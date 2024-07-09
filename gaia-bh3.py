@@ -30,8 +30,8 @@ ic.disable()
 from astropy.coordinates import SkyCoord  # High-level coordinates
 from astropy.coordinates import ICRS, Galactic, FK4, FK5  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-import astropy.units as u
 from astropy.time        import Time, TimeDelta
+import astropy.units as u
 
 # Local modules
 from verbose import verbose, warning, error
