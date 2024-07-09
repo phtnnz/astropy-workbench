@@ -1,0 +1,8 @@
+/activate.bat
+/create-venv.bat
+/OLD
+/tmp
+/venv
+*.code-workspace
+__pycache__
+.config/
