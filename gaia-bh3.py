@@ -54,7 +54,7 @@ def gaia_bh3():
     ic(bh3)
     bh3_pm = SkyCoord(ra=bh3.ra, dec=bh3.dec, 
                       # proper motion from Wikipedia https://en.wikipedia.org/wiki/Gaia_BH3
-                      distance=1930*u.lyr,
+                      distance=591*u.pc, radial_velocity=-333.2*u.km/u.s,
                       pm_ra_cosdec=-28.317*u.mas/u.yr, pm_dec=-155.221*u.mas/u.yr,
                       obstime="J2000") 
     ic(bh3_pm)
