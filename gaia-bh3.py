@@ -48,7 +48,7 @@ class Options:
 
 
 
-def gaia_bh3():
+def gaia_bh3(t):
     name = "Gaia DR3 4318465066420528000"
     bh3 = SkyCoord.from_name(name)
     ic(bh3)
@@ -61,9 +61,8 @@ def gaia_bh3():
     ic(bh3_pm)
     verbose(f"Gaia BH3 ({name}) catalog position (ICRS) = {bh3_pm.to_string("hmsdms")}")
  
-    now = Time.now()
-    ic(now)
-    bh3_now = bh3_pm.apply_space_motion(new_obstime=now)
+    ic(t)
+    bh3_now = bh3_pm.apply_space_motion(new_obstime=t)
     ic(bh3_now)
     verbose(f"Gaia BH3 ({name}) position now (ICRS) = {bh3_now.to_string("hmsdms")}")
 
@@ -76,6 +75,7 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
+    arg.add_argument("--date", help="calculate position for DATE (default now)")
 
     args = arg.parse_args()
 
@@ -87,9 +87,12 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
     # ... more options ...
-        
+    if args.date:
+        t = Time(args.date)
+    else:
+        t = Time.now()
     # ... the action starts here ...
-    gaia_bh3()
+    gaia_bh3(t)
 
 
 
