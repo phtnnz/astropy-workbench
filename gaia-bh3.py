@@ -67,7 +67,12 @@ def gaia_bh3(t):
                       obstime="J2000") 
     ic(bh3_pm)
     verbose(f"Gaia BH3 ({name}) catalog position (ICRS) = {bh3_pm.to_string("hmsdms")}")
- 
+    bh3_fk5 = bh3.fk5
+    ic(bh3_fk5)
+    verbose(f"Gaia BH3 ({name}) catalog position (FK5 J2000) = {bh3_fk5.to_string("hmsdms")}")
+
+
+
     ic(t)
     bh3_now = bh3_pm.apply_space_motion(new_obstime=t)
     ic(bh3_now)
