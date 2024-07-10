@@ -48,6 +48,13 @@ class Options:
 
 
 
+def coord_from_name(name):
+    obj = SkyCoord.from_name(name)
+    ic(obj)
+    verbose(f"{name} catalog position (ICRS) = {obj.to_string("hmsdms")}")
+    
+
+
 def gaia_bh3(t):
     name = "Gaia DR3 4318465066420528000"
     bh3 = SkyCoord.from_name(name)
@@ -76,6 +83,7 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("--date", help="calculate position for DATE (default now)")
+    arg.add_argument("--name", help="retrieve coordinates for object NAME")
 
     args = arg.parse_args()
 
@@ -92,7 +100,10 @@ def main():
     else:
         t = Time.now()
     # ... the action starts here ...
-    gaia_bh3(t)
+    if args.name:
+        coord_from_name(args.name)
+    else:
+        gaia_bh3(t)
 
 
 
