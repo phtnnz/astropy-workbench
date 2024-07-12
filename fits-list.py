@@ -32,6 +32,8 @@ ic.disable()
 # from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 # import astropy.units as u
 # from astropy.time        import Time, TimeDelta
+
+# See docs at https://docs.astropy.org/en/stable/io/fits/
 from astropy.io import fits
 
 # Local modules
