@@ -20,6 +20,7 @@
 
 import sys
 import argparse
+import os
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -69,6 +70,23 @@ def process_fits(file):
 
 
 
+def process_file_or_dir(name):
+    if os.path.isfile(name):
+        process_fits(name)
+
+    elif os.path.isdir(name):
+        for dir, subdir_list, file_list in os.walk(name):
+            verbose(f"found directory {dir}")
+            for file in file_list:
+                file = os.path.join(dir, file)
+                if file.lower().endswith(".fits") or file.lower().endswith(".fit"):
+                    process_fits(file)
+
+    else:
+        error(f"no such file or directory {name}")
+
+
+
 def init_csv_output():
     CSVOutput.set_default_locale()
     CSVOutput.add_fields(Options.hdr_list)
@@ -104,8 +122,12 @@ def main():
     # ... the action starts here ...
     init_csv_output()
     for fits in args.fits:
-        process_fits(fits)
+        # quick hack: Windows PowerShell adds a stray " to the end of dirname 
+        # if it ends with a backslash \ AND contains a space!!!
+        # see here https://bugs.python.org/issue39845
+        process_file_or_dir(fits.rstrip("\""))
     write_csv_output()
+
 
 
 if __name__ == "__main__":
