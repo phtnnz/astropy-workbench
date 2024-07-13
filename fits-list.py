@@ -49,7 +49,10 @@ NAME    = "fits-list"
 
 # Command line options
 class Options:
-    hdr_list = ["DATE-LOC", "IMAGETYP", "EXPOSURE"]     # -H --header
+    hdr_list = ["OBJECT", "DATE-LOC", "IMAGETYP", "EXPOSURE"]
+                    # -H --header
+    csv = False     # -C --csv
+    output = None   # -o --output
 
 
 
@@ -65,8 +68,9 @@ def process_fits(file):
         value_verbose = [ f"{h}={hdr.get(h)}" for h in Options.hdr_list ]
         value_list = [ hdr.get(h) for h in Options.hdr_list ]
 
-        verbose(f"{", ".join(value_verbose)}")
-        CSVOutput.add_row(value_list)
+        verbose(f"  {", ".join(value_verbose)}")
+        if Options.csv:
+            CSVOutput.add_row(value_list)
 
 
 
@@ -88,11 +92,13 @@ def process_file_or_dir(name):
 
 
 def init_csv_output():
-    CSVOutput.set_default_locale()
-    CSVOutput.add_fields(Options.hdr_list)
+    if Options.csv:
+        CSVOutput.set_default_locale()
+        CSVOutput.add_fields(Options.hdr_list)
 
-def write_csv_output(file=None):
-    CSVOutput.write(file)
+def write_csv_output():
+    if Options.csv:
+        CSVOutput.write(Options.output)
 
 
 
@@ -104,6 +110,8 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-H", "--header", help=f"show image headers in HEADER list, (default {",".join(Options.hdr_list)})")
+    arg.add_argument("-C", "--csv", action="store_true", help="output CSV list")
+    arg.add_argument("-o", "--output", help="write CSV to file OUTPUT (default: stdout)")
     arg.add_argument("fits", nargs="+", help="FITS filename or directory")
 
     args = arg.parse_args()
@@ -118,6 +126,8 @@ def main():
     # ... more options ...
     if args.header:
         Options.hdr_list = args.header.split(",")     
+    Options.csv = args.csv
+    Options.output = args.output
 
     # ... the action starts here ...
     init_csv_output()
