@@ -38,6 +38,7 @@ from astropy.io import fits
 
 # Local modules
 from verbose import verbose, warning, error
+from csvoutput import CSVOutput
 
 VERSION = "0.0 / 2024-07-12"
 AUTHOR  = "Martin Junius"
@@ -64,7 +65,17 @@ def process_fits(file):
         value_list = [ hdr.get(h) for h in Options.hdr_list ]
 
         verbose(f"{", ".join(value_verbose)}")
-    
+        CSVOutput.add_row(value_list)
+
+
+
+def init_csv_output():
+    CSVOutput.set_default_locale()
+    CSVOutput.add_fields(Options.hdr_list)
+
+def write_csv_output(file=None):
+    CSVOutput.write(file)
+
 
 
 def main():
@@ -91,9 +102,10 @@ def main():
         Options.hdr_list = args.header.split(",")     
 
     # ... the action starts here ...
+    init_csv_output()
     for fits in args.fits:
         process_fits(fits)
-
+    write_csv_output()
 
 
 if __name__ == "__main__":
