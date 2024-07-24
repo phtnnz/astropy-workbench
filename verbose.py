@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2023-2024 Martin Junius
+# Copyright 2023 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #       First version of verbose module
 # Version 0.2 / 2023-12-18
 #       Added warning(), error() with abort
+# Version 1.0 / 2024-01-06
+#       Version bumped to 1.0
 #
 #       Usage:  from verbose import verbose, warning, error
 #               verbose(print-like-args)
