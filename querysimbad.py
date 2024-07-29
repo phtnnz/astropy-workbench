@@ -17,6 +17,8 @@
 # ChangeLog
 # Version 0.1 / 2024-07-14
 #       Query Simbad for object coordinates, distance, proper motion, velocity
+# Version 0.2 / 2024-07-29
+#       Renamed, can be used as a module
 
 import sys
 import argparse
@@ -39,15 +41,9 @@ from astroquery.simbad import Simbad
 # Local modules
 from verbose import verbose, warning, error
 
-VERSION = "0.1 / 2024-07-14"
+VERSION = "0.2 / 2024-07-29"
 AUTHOR  = "Martin Junius"
-NAME    = "query-simbad"
-
-
-
-# Command line options
-class Options:
-    pass
+NAME    = "querysimbad"
 
 
 
@@ -72,9 +68,9 @@ def query_simbad(obj):
     if str(ra_u) != '"h:m:s"' or str(dec_u) != '"d:m:s"':
         error(f"query_simbad: RA/DEC units ({str(ra_u)}/{str(dec_u)}) must be hour/degree (h:m:s/d:m:s)")
     dist     = result["Distance_distance"][0]
-    # No proper unit in Distance_distance column, work-around
     dist_u   = result["Distance_unit"][0]
-    if dist_u == "pc":
+    # No proper unit in Distance_distance column, work-around
+    if not dist_u or dist_u == "pc":
         dist_u = u.pc
     else:
         error(f"query_simbad: unknown distance unit {dist_u}")
@@ -87,9 +83,9 @@ def query_simbad(obj):
     ic(id, id_u, ra, ra_u, dec, dec_u, dist, dist_u, pmra, pmra_u, pmdec, pmdec_u, radvel, radvel_u)
 
     coord = SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg),
-                     distance=dist*dist_u, radial_velocity=-radvel*radvel_u,
-                     pm_ra_cosdec=pmra*pmra_u, pm_dec=pmdec*pmdec_u,
-                     obstime="J2000") 
+                    distance=dist*dist_u, radial_velocity=-radvel*radvel_u,
+                    pm_ra_cosdec=pmra*pmra_u, pm_dec=pmdec*pmdec_u,
+                    obstime="J2000") 
     ic(coord, coord.to_string("hmsdms"))
 
     return coord
