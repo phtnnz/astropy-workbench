@@ -55,14 +55,17 @@ def convert_to_alt_az(coord, utc_time):
     """ Convert RA/DEC to local Alt/Az """
     # Based on https://docs.astropy.org/en/stable/generated/examples/coordinates/plot_obs-planning.html
 
-    hakos = EarthLocation(lat=-23.233*u.deg, lon=16.350*u.deg , height=1825*u.m)
-    time = Time(utc_time, location=hakos)
+    # IAS Hakos, Namibia
+    loc  = EarthLocation(lat=-23.233*u.deg, lon=16.350*u.deg , height=1834*u.m)
+    time = Time(utc_time, location=loc)
     lst  = time.sidereal_time("mean")
     hour_angle = lst - coord.ra 
-    ic(hakos, time, lst, coord.ra, hour_angle)
+    ic(loc, time, lst, coord.ra, hour_angle)
+    verbose(f"  location: lat={loc.lat:.3f}, lon={loc.lon:.3f}, height={loc.height:.0f}")
 
-    altaz = coord.transform_to( AltAz(obstime=time, location=hakos) )
+    altaz = coord.transform_to( AltAz(obstime=time, location=loc) )
     ic(altaz)
+    verbose(f"  Az={altaz.az:.3f}, Alt={altaz.alt:.3f}")
 
     # Calculate parallactic angle https://en.wikipedia.org/wiki/Parallactic_angle 
     # Based on https://github.com/lsst-ts/ts_observatory_control/blob/develop/python/lsst/ts/observatory/control/utils/utils.py
@@ -72,9 +75,10 @@ def convert_to_alt_az(coord, utc_time):
     # q > 0     N axis turned q degrees right
     H = hour_angle.radian
     q = Angle( np.arctan2( np.sin(H),
-                           (np.tan(hakos.lat.radian) * np.cos(coord.dec.radian) 
-                            - np.sin(coord.dec.radian) * np.cos(H))             ), u.rad)
-    ic(q.deg)
+                           (np.tan(loc.lat.radian) * np.cos(coord.dec.radian) 
+                            - np.sin(coord.dec.radian) * np.cos(H))             ), u.rad).to(u.deg)
+    ic(q)
+    verbose(f"  parallactic angle={q:.3f}")
 
 
 
