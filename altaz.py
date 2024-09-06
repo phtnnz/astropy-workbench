@@ -90,6 +90,7 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-T", "--time", help="ISO format time incl. timezone, e.g. 2024-07-09T22:00:00+02:00, default now")
+    arg.add_argument("-C", "--coord", action="store_true", help="object is hmsdms coordinates, not name")
     arg.add_argument("object", nargs="+", help="object name(s)")
 
     args = arg.parse_args()
@@ -105,13 +106,17 @@ def main():
     if args.time:
         loc_time = datetime.fromisoformat(args.time)
     else:
+        ##FIXME: use timezone for location
         loc_time = datetime.now().astimezone()
     utc_time = loc_time.astimezone(timezone.utc)
     ic(loc_time, utc_time)
 
     # ... the action starts here ...
     for obj in args.object:
-        coord = SkyCoord.from_name(obj)
+        if args.coord:
+            coord = SkyCoord(obj, unit=(u.hour, u.deg))
+        else:
+            coord = SkyCoord.from_name(obj)
         verbose(f"{obj}: RA/DEC = {coord.to_string("hmsdms")}")
         convert_to_alt_az(coord, utc_time)
 
