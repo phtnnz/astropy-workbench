@@ -105,16 +105,21 @@ def main():
     hadec1 = coord.transform_to(HADec(obstime=time, location=loc))
     hadec2 = coord.transform_to(HADec(obstime=time, location=loc, 
                                      pressure=1000*u.hPa, temperature=20*u.deg_C,
-                                     relative_humidity=0.4))
+                                     relative_humidity=0.4, obswl=0.54*u.micron))
     lst  = time.sidereal_time("mean")
     ra1 = lst - hadec1.ha
+    if ra1 >= 24*u.hourangle:
+        ra1 -= 24*u.hourangle
     ra2 = lst - hadec2.ha
-    ic(loc, time, lst)
+    if ra2 >= 24*u.hourangle:
+        ra2 -= 24*u.hourangle
+    ic(loc, time, lst, ra1, ra2)
     ic(hadec1, ra1.to_string(unit=u.hour), hadec1.dec.to_string(unit=u.degree))
     ic(hadec2, ra2.to_string(unit=u.hour), hadec2.dec.to_string(unit=u.degree))
     print(f"lst {lst.to_string(unit=u.hour)}")
     print(f"ha {hadec1.ha.to_string(unit=u.degree)}")
     print(f"hadec1 now       {ra1.to_string(unit=u.hour)} {hadec1.dec.to_string(unit=u.degree)}")
+    print(f"hadec2 now refr  {ra2.to_string(unit=u.hour)} {hadec2.dec.to_string(unit=u.degree)}")
 
 
 if __name__ == "__main__":
