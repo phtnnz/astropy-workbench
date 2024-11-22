@@ -57,7 +57,7 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("object", help="sky coord \"RA DEC\"")
+    arg.add_argument("object", nargs="*", help="sky coord \"RA DEC\"")
 
     args = arg.parse_args()
 
@@ -69,8 +69,15 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
-    object = args.object
-    coord = SkyCoord(object, unit=(u.hour, u.deg))
+    if args.object:
+        print("nothing happens ... ;-)")
+        return
+        for obj in args.object:
+            pass
+
+    obj = "03:57:25.611 -46:11:07.57" # SN 2024abfo
+
+    coord = SkyCoord(obj, unit=(u.hour, u.deg))
     ic(coord)
     print(f"coord ICRS      {coord.to_string("hmsdms")}")
     print(f"Autoslew M49    03h58m14.52s       -46d06m45s")
