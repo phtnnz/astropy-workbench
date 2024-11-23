@@ -75,6 +75,40 @@ def main():
         for obj in args.object:
             pass
 
+    # NINA:
+    #
+    # 2024-11-22T22:06:20.8901|INFO|SequenceItem.cs|
+    #   Run|208|Starting Category: Telescope, Item: Center, Coordinates RA: 03:57:26; Dec: -46° 11' 08"; Epoch: J2000
+    # 2024-11-22T22:06:20.9889|INFO|TelescopeVM.cs|
+    #   SlewToCoordinatesAsync|926|Slewing from RA: 13:10:34; Dec: -82° 10' 33"; Epoch: JNOW to RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW - Alt: 51° 00' 18"; Az: 135° 44' 08"
+    # 2024-11-22T22:06:58.2396|INFO|ImageSolver.cs|
+    #   Solve|54|Platesolve successful: Coordinates: RA: 03:56:49; Dec: -46° 10' 35"; Epoch: J2000
+    # 2024-11-22T22:06:58.2445|INFO|CenteringSolver.cs|
+    #   Center|99|Centering Solver - Scope Position: RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW; Offset: RA: 00:00:00; Dec: 00° 00' 00"; Distance: 00° 00' 00"; Bearing: 00° 00' 00"; Centering Coordinates: RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW; Solved: RA: 03:57:38; Dec: -46° 06' 12"; Epoch: JNOW; Separation RA: 00:00:36; Dec: -00° 00' 33"; Distance: 00° 06' 17"; Bearing: 84° 58' 06"; Threshold: 0.5
+    #
+    # 2024-11-22T22:06:59.2706|INFO|TelescopeVM.cs|
+    #   Sync|800|Syncing scope from RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW to RA: 03:57:38; Dec: -46° 06' 12"; Epoch: JNOW
+    # 2024-11-22T22:07:09.2757|INFO|CenteringSolver.cs|
+    #   Center|132|Slewing to target after sync. Current Position: RA: 03:57:38; Dec: -46° 06' 12"; Epoch: JNOW; Target coordinates: RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW; Offset RA: 00:00:00; Dec: 00° 00' 00"; Distance: 00° 00' 00"; Bearing: 00° 00' 00"
+    # 2024-11-22T22:07:09.2790|INFO|TelescopeVM.cs|
+    #   SlewToCoordinatesAsync|926|Slewing from RA: 03:57:38; Dec: -46° 06' 12"; Epoch: JNOW to RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW - Alt: 51° 08' 03"; Az: 135° 49' 13"
+    # 2024-11-22T22:07:30.8207|INFO|ImageSolver.cs|
+    #   Solve|54|Platesolve successful: Coordinates: RA: 03:57:26; Dec: -46° 11' 07"; Epoch: J2000
+    # 2024-11-22T22:07:30.8318|INFO|CenteringSolver.cs|
+    #   Center|99|Centering Solver - Scope Position: RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW; Offset: RA: 00:00:00; Dec: 00° 00' 00"; Distance: 00° 00' 00"; Bearing: 00° 00' 00"; Centering Coordinates: RA: 03:58:15; Dec: -46° 06' 45"; Epoch: JNOW; Solved: RA: 03:58:15; Dec: -46° 06' 44"; Epoch: JNOW; Separation RA: -00:00:00; Dec: -00° 00' 01"; Distance: 00° 00' 02"; Bearing: -68° 54' 32"; Threshold: 0.5
+    #
+    # Autoslew:
+    # 22:06:21.084: Interface SlewToTargetAsynch
+    # 22:06:21.084: Starting Slew to RA 03.97h  DE -46.11d  EPOCH 0000
+    # 22:06:58.259: Interface setting TargetRightAscension to 3.96 False
+    # 22:06:58.260: Interface setting TargetDeclination to -46.10 True
+    # 22:06:58.260: Interface SynchToTarget
+    # 22:07:09.282: Interface setting TargetRightAscension to 3.97 False
+    # 22:07:09.283: Interface setting TargetDeclination to -46.11 True
+    # 22:07:09.283: Interface SlewToTargetAsynch
+    # 22:07:09.283: Starting Slew to RA 03.97h  DE -46.11d  EPOCH 0000
+
+
     obj = "03:57:25.611 -46:11:07.57" # SN 2024abfo
 
     coord = SkyCoord(obj, unit=(u.hour, u.deg))
