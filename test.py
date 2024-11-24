@@ -29,7 +29,7 @@ ic.disable()
 
 # AstroPy
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-from astropy.coordinates import ICRS, ITRS, Galactic, FK4, FK5, HADec, CIRS  # Low-level frames
+from astropy.coordinates import ICRS, FK4, FK5, HADec  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 import astropy.units as u
 from astropy.time        import Time, TimeDelta
@@ -114,7 +114,7 @@ def main():
     jnow     = "03:58:15     -46:06:45"    # NINA Epoch: JNOW - Alt: 51° 00' 18"; Az: 135° 44' 08"
     autoslew = "03h58m14.52s -46d06m45s"   # Autoslew position with Ep: "real"
     loc      = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # Hakos, Namibia
-    time     = Time(Time("2024-11-22 20:06:20"), location=loc)
+    time     = Time("2024-11-22 20:06:20", location=loc)
     ic(obj, jnow, autoslew, loc, time)
 
     coord = SkyCoord(obj, unit=(u.hour, u.deg))
@@ -135,7 +135,7 @@ def main():
     ic(coord1)
     print(f"coord FK5 J2000 {coord1.to_string("hmsdms")}")
 
-    coord2 = coord.transform_to(FK5(equinox=f"J{time.jyear}"))
+    coord2 = coord.transform_to(FK5(equinox=Time(time, format="jyear")))
     ic(coord2)
     print(f"coord FK5 time  {coord2.to_string("hmsdms")}")
 
