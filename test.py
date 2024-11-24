@@ -75,6 +75,8 @@ def main():
         for obj in args.object:
             pass
 
+    ### Test case ###
+
     # NINA:
     #
     # 2024-11-22T22:06:20.8901|INFO|SequenceItem.cs|
@@ -108,13 +110,17 @@ def main():
     # 22:07:09.283: Interface SlewToTargetAsynch
     # 22:07:09.283: Starting Slew to RA 03.97h  DE -46.11d  EPOCH 0000
 
-
-    obj = "03:57:25.611 -46:11:07.57" # SN 2024abfo
+    obj      = "03:57:25.611 -46:11:07.57" # SN 2024abfo
+    jnow     = "03:58:15     -46:06:45"    # NINA Epoch: JNOW - Alt: 51° 00' 18"; Az: 135° 44' 08"
+    autoslew = "03h58m14.52s -46d06m45s"   # Autoslew position with Ep: "real"
+    loc      = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # Hakos, Namibia
+    time     = Time(Time("2024-11-22 20:06:20"), location=loc)
+    ic(obj, jnow, autoslew, loc, time)
 
     coord = SkyCoord(obj, unit=(u.hour, u.deg))
     ic(coord)
     print(f"coord ICRS      {coord.to_string("hmsdms")}")
-    print(f"Autoslew M49    03h58m14.52s       -46d06m45s")
+    print(f"Autoslew M49    {autoslew}")
     print()
 
     # From https://www.cloudynights.com/topic/861776-asiair-small-program-to-convert-from-j2000-to-jnow/
@@ -129,31 +135,34 @@ def main():
     ic(coord1)
     print(f"coord FK5 J2000 {coord1.to_string("hmsdms")}")
 
-    coord2 = coord.transform_to(FK5(equinox=f"J{Time.now().jyear}"))
+    coord2 = coord.transform_to(FK5(equinox=f"J{time.jyear}"))
     ic(coord2)
-    print(f"coord FK5 now   {coord2.to_string("hmsdms")}")
-
-    loc  = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m)
-    time = Time(Time.now(), location=loc)
+    print(f"coord FK5 time  {coord2.to_string("hmsdms")}")
 
     hadec1 = coord.transform_to(HADec(obstime=time, location=loc))
     hadec2 = coord.transform_to(HADec(obstime=time, location=loc, 
                                      pressure=1000*u.hPa, temperature=20*u.deg_C,
                                      relative_humidity=0.4, obswl=0.54*u.micron))
     lst  = time.sidereal_time("mean")
+    lsta = time.sidereal_time("apparent")
     ra1 = lst - hadec1.ha
     if ra1 >= 24*u.hourangle:
         ra1 -= 24*u.hourangle
+    ra1a = lsta - hadec1.ha
+    if ra1a >= 24*u.hourangle:
+        ra1a -= 24*u.hourangle
     ra2 = lst - hadec2.ha
     if ra2 >= 24*u.hourangle:
         ra2 -= 24*u.hourangle
-    ic(loc, time, lst, ra1, ra2)
+    ic(lst, lsta, ra1, ra1a, ra2)
     ic(hadec1, ra1.to_string(unit=u.hour), hadec1.dec.to_string(unit=u.degree))
+    ic(hadec1, ra1a.to_string(unit=u.hour), hadec1.dec.to_string(unit=u.degree))
     ic(hadec2, ra2.to_string(unit=u.hour), hadec2.dec.to_string(unit=u.degree))
-    print(f"lst {lst.to_string(unit=u.hour)}")
+    print(f"lst mean {lst.to_string(unit=u.hour)}, lst apparent {lsta.to_string(unit=u.hour)}")
     print(f"ha {hadec1.ha.to_string(unit=u.degree)}")
-    print(f"hadec1 now       {ra1.to_string(unit=u.hour)} {hadec1.dec.to_string(unit=u.degree)}")
-    print(f"hadec2 now refr  {ra2.to_string(unit=u.hour)} {hadec2.dec.to_string(unit=u.degree)}")
+    print(f"hadec1 time mean {ra1.to_string(unit=u.hour)} {hadec1.dec.to_string(unit=u.degree)}")
+    print(f"hadec1 time app. {ra1a.to_string(unit=u.hour)} {hadec1.dec.to_string(unit=u.degree)}")
+    print(f"hadec2 now refr. {ra2.to_string(unit=u.hour)} {hadec2.dec.to_string(unit=u.degree)}")
 
 
 if __name__ == "__main__":
