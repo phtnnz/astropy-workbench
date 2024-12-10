@@ -79,7 +79,8 @@ def object_with_proper_motion(name: str, t: Time):
 
 def coord_with_proper_motion(name: str, coord: SkyCoord, t: Time):
     ic(coord)
-    verbose(f"{name} catalog position (ICRS) = {coord.to_string("hmsdms")}")
+    verbose(f"{name}: catalog position (ICRS) = {coord.to_string("hmsdms")}")
+    verbose(f"{name}: proper motion dRA={coord.pm_ra_cosdec}, dDEC={coord.pm_dec}")
 
     # coord_j2000 = coord.fk5
     # ic(coord_j2000)
@@ -89,7 +90,7 @@ def coord_with_proper_motion(name: str, coord: SkyCoord, t: Time):
     # coord_now = coord_j2000.apply_space_motion(new_obstime=t)
     coord_now = coord.apply_space_motion(new_obstime=t)
     ic(coord_now)
-    verbose(f"{name} position now (ICRS)     = {coord_now.to_string("hmsdms")}")
+    verbose(f"{name}: position now (ICRS)     = {coord_now.to_string("hmsdms")}")
 
 
 
