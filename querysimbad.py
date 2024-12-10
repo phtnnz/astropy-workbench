@@ -47,7 +47,7 @@ NAME    = "querysimbad"
 
 
 
-def query_simbad(obj):
+def query_simbad(obj: str) -> SkyCoord:
     verbose(f"query object {obj}")
 
     simbad = Simbad()
