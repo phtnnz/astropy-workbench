@@ -123,14 +123,6 @@ def main():
     print(f"Autoslew M49    {autoslew}")
     print()
 
-    # From https://www.cloudynights.com/topic/861776-asiair-small-program-to-convert-from-j2000-to-jnow/
-    # _fk5 = FK5(equinox=Time(Time(datetime.now(UTC), scale='utc').jd, format="jd", scale="utc"))
-    # coord_now = SkyCoord(object, frame=FK4, unit=(u.hourangle, u.deg)).transform_to(_fk5)
-    # ic(_fk5, coord_now)
-    # print(f"coord now={coord_now.to_string("hmsdms")}")
-
-    # ic(coord_now.ra - coord.ra, coord_now.dec - coord.dec)
-
     coord1 = coord.transform_to(FK5(equinox="J2000"))
     ic(coord1)
     print(f"coord FK5 J2000 {coord1.to_string("hmsdms")}")
