@@ -16,7 +16,7 @@
 
 # ChangeLog
 # Version 0.1 / 2024-12-12
-#       Test with SkyCoord
+#       SkyCoord transformations
 
 import sys
 import argparse
@@ -107,10 +107,10 @@ def ra_from_lst_ha(lst: Angle, ha: Angle):
 
 
 def ra_dec_to_string(ra: Angle, dec: Angle):
-    return f"RA={ra.to_string(unit=u.hour)} DEC={dec.to_string(unit=u.degree)}"
+    return f"RA={ra.to_string(unit=u.hour, precision=2)} DEC={dec.to_string(unit=u.degree, precision=2)}"
 
 def angle_to_string(a: Angle):
-    return f"{a.to_string(unit=u.degree)}"
+    return f"{a.to_string(unit=u.degree, precision=2)}"
 
 
 def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
