@@ -85,9 +85,10 @@ def test_sn2024abfo():
     # 22:07:09.283: Interface SlewToTargetAsynch
     # 22:07:09.283: Starting Slew to RA 03.97h  DE -46.11d  EPOCH 0000
 
-    obj      = "03:57:25.611 -46:11:07.57" # SN 2024abfo
-    jnow     = "03:58:15     -46:06:45"    # NINA Epoch: JNOW - Alt: 51° 00' 18"; Az: 135° 44' 08"
-    altaz    = "51:00:18     135:44:08"
+    obj1     = "03:57:25.611 -46:11:07.57" # SN 2024abfo precise position
+    obj      = "03:57:25.6 -46:11:07.6" # SN 2024abfo NINA sequencer position
+    jnow     = "03:58:15 -46:06:45"    # NINA Epoch: JNOW - Alt: 51° 00' 18"; Az: 135° 44' 08"
+    altaz    = "51:00:18 135:44:08"
     autoslew = "03h58m14.52s -46d06m45s"   # Autoslew position with Ep: "real"
     loc      = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # Hakos, Namibia
     time     = Time("2024-11-22 20:06:20", location=loc)
