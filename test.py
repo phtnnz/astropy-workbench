@@ -20,7 +20,6 @@
 
 import sys
 import argparse
-from datetime import datetime, UTC
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -28,8 +27,8 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-from astropy.coordinates import ICRS, FK4, FK5, HADec  # Low-level frames
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord, CartesianRepresentation
+from astropy.coordinates import ICRS, GCRS, FK5, HADec  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 import astropy.units as u
 from astropy.time        import Time, TimeDelta
@@ -130,6 +129,12 @@ def main():
     coord2 = coord.transform_to(FK5(equinox=Time(time, format="jyear")))
     ic(coord2)
     print(f"coord FK5 time  {coord2.to_string("hmsdms")}")
+
+    coord3a = coord.transform_to(GCRS(obstime=time))
+    coord3b = coord.transform_to(GCRS(obstime=time, obsgeoloc=CartesianRepresentation(loc.x, loc.y, loc.z)))
+    ic(coord3a, coord3b)
+    print(f"coord GCRS obstime {coord3a.to_string("hmsdms")}")
+    print(f"coord GCRS obstime, obsgeoloc {coord3b.to_string("hmsdms")}")
 
     hadec1 = coord.transform_to(HADec(obstime=time, location=loc))
     hadec2 = coord.transform_to(HADec(obstime=time, location=loc, 
