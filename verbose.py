@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2023 Martin Junius
+# Copyright 2023-2024 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@
 #       Added warning(), error() with abort
 # Version 1.0 / 2024-01-06
 #       Version bumped to 1.0
+# Version 1.1 / 2024-12-15
+#       Added docstrings
 #
 #       Usage:  from verbose import verbose, warning, error
 #               verbose(print-like-args)
@@ -41,22 +43,38 @@ ic.disable()
 
 
 global VERSION, AUTHOR, NAME
-VERSION = "1.0 / 2024-01-06"
+VERSION = "1.1 / 2024-12-15"
 AUTHOR  = "Martin Junius"
 NAME    = "verbose"
 
 
 
 class Verbose:
+    """
+    Class for verbose-style objects
+    """
     progname = None             # global program name
 
-    def __init__(self, flag=False, prefix=None, abort=False):
+    def __init__(self, flag: bool=False, prefix: str=None, abort: bool=False):
+        """
+        Create verbose-style object
+
+        :param flag: enable flag for verbose output, defaults to False
+        :type flag: bool, optional
+        :param prefix: prefix for verbose output, defaults to None
+        :type prefix: str, optional
+        :param abort: abort (exit) after verbose output, defaults to False
+        :type abort: bool, optional
+        """
         self.enabled = flag
         self.prefix = prefix
         self.abort = abort
         self.errno = 1          # exit(1) for generic errors
 
     def __call__(self, *args, **kwargs):
+        """
+        Make object callable, print-like, all args passed to print()
+        """
         if not self.enabled:
             return
         if Verbose.progname:
@@ -67,19 +85,43 @@ class Verbose:
         if self.abort:
             self._exit()
 
-    def enable(self, flag=True):
+    def enable(self, flag: bool=True):
+        """
+        Enable (default) or disable (flag=False) output
+
+        :param flag: enable flag, defaults to True
+        :type flag: bool, optional
+        """
         self.enabled = flag
 
     def disable(self):
+        """
+        Disable output
+        """
         self.enabled = False
 
-    def set_prog(self, name):
+    def set_prog(self, name: str):
+        """
+        Set program name prefix for output
+
+        :param name: program name
+        :type name: str
+        """
         Verbose.progname = name
 
     def set_errno(self, errno):
+        """
+        Set errno for sys.exit()
+
+        :param errno: error code
+        :type errno: _type_
+        """
         self.errno = errno
 
     def _exit(self):
+        """
+        Internal, exit program
+        """
         if Verbose.progname:
             print(Verbose.progname + ": ", end="")
         print(f"exiting ({self.errno})")
