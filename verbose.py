@@ -21,7 +21,10 @@
 #       Added warning(), error() with abort
 # Version 1.0 / 2024-01-06
 #       Version bumped to 1.0
-# Version 1.1 / 2024-12-15
+# Version 1.1 / 2024-08-08
+#       Output "exiting" message only if verbose is enabled
+#       errno is now global for verbose, warning, error
+# Version 1.2 / 2024-12-15
 #       Added docstrings
 #
 #       Usage:  from verbose import verbose, warning, error
@@ -30,6 +33,7 @@
 #               error(print-like-args)
 #               .enable(flag=True)
 #               .disable()
+#               .enabled
 #               .set_prog(name)         global for all objects
 #               .set_errno(errno)       relevant only for error()
 
@@ -42,8 +46,7 @@ from icecream import ic
 ic.disable()
 
 
-global VERSION, AUTHOR, NAME
-VERSION = "1.1 / 2024-12-15"
+VERSION = "1.2 / 2024-12-15"
 AUTHOR  = "Martin Junius"
 NAME    = "verbose"
 
@@ -54,26 +57,26 @@ class Verbose:
     Class for verbose-style objects
     """
     progname = None             # global program name
+    errno    = 1                # exit code, 1 for generic errors
 
     def __init__(self, flag: bool=False, prefix: str=None, abort: bool=False):
         """
         Create verbose-style object
 
-        :param flag: enable flag for verbose output, defaults to False
+        :param flag: enable output flag, defaults to False
         :type flag: bool, optional
-        :param prefix: prefix for verbose output, defaults to None
+        :param prefix: output prefix (in addition to program name), defaults to None
         :type prefix: str, optional
-        :param abort: abort (exit) after verbose output, defaults to False
+        :param abort: abort after output flag, defaults to False
         :type abort: bool, optional
         """
         self.enabled = flag
         self.prefix = prefix
         self.abort = abort
-        self.errno = 1          # exit(1) for generic errors
 
     def __call__(self, *args, **kwargs):
         """
-        Make object callable, print-like, all args passed to print()
+        Make verbose-style object callable, all parameters passed to print()
         """
         if not self.enabled:
             return
@@ -89,7 +92,7 @@ class Verbose:
         """
         Enable (default) or disable (flag=False) output
 
-        :param flag: enable flag, defaults to True
+        :param flag: enable output flag, defaults to True
         :type flag: bool, optional
         """
         self.enabled = flag
@@ -102,30 +105,31 @@ class Verbose:
 
     def set_prog(self, name: str):
         """
-        Set program name prefix for output
+        Set program name prefix
 
         :param name: program name
         :type name: str
         """
         Verbose.progname = name
 
-    def set_errno(self, errno):
+    def set_errno(self, errno: int):
         """
-        Set errno for sys.exit()
+        Set global errno for abort exit()
 
         :param errno: error code
-        :type errno: _type_
+        :type errno: int
         """
-        self.errno = errno
+        Verbose.errno = errno
 
     def _exit(self):
         """
         Internal, exit program
         """
-        if Verbose.progname:
-            print(Verbose.progname + ": ", end="")
-        print(f"exiting ({self.errno})")
-        sys.exit(self.errno)
+        if verbose.enabled:
+            if Verbose.progname:
+                print(Verbose.progname + ": ", end="")
+            print(f"exiting ({Verbose.errno})")
+        sys.exit(Verbose.errno)
 
 
 verbose = Verbose()
