@@ -43,12 +43,6 @@
 import argparse
 import sys
 
-# The following libs must be installed with pip
-from icecream import ic
-# Disable debugging
-ic.disable()
-
-
 VERSION = "1.3 / 2024-12-16"
 AUTHOR  = "Martin Junius"
 NAME    = "verbose"
@@ -157,8 +151,7 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
     if args.debug:
-        ic.enable()
-        ic(args)
+        message("Nothing to debug ;-)")
 
     message("Just", "a", "message at the beginning")
     warning("Just a first warning ;-)")
