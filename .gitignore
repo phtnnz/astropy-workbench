@@ -1,6 +1,5 @@
 /activate.bat
 /create-venv.bat
-/OLD
 /tmp
 /venv
 *.code-workspace
