@@ -19,6 +19,8 @@
 #       Query Simbad for object coordinates, distance, proper motion, velocity
 # Version 0.2 / 2024-07-29
 #       Renamed, can be used as a module
+# Version 0.3 / 2024-12-16
+#       Added docstrings
 
 import sys
 import argparse
@@ -30,10 +32,7 @@ ic.disable()
 
 # AstroPy
 from astropy.coordinates import SkyCoord  # High-level coordinates
-from astropy.coordinates import ICRS, Galactic, FK4, FK5  # Low-level frames
-from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 import astropy.units as u
-from astropy.time        import Time, TimeDelta
 
 # Astroquery
 from astroquery.simbad import Simbad
@@ -41,13 +40,21 @@ from astroquery.simbad import Simbad
 # Local modules
 from verbose import verbose, warning, error
 
-VERSION = "0.2 / 2024-07-29"
+VERSION = "0.3 / 2024-12-16"
 AUTHOR  = "Martin Junius"
 NAME    = "querysimbad"
 
 
 
 def query_simbad(obj: str) -> SkyCoord:
+    """
+    Query Simbad and return SkyCoord with position, distance, proper motion, radial velocity
+
+    :param obj: object name
+    :type obj: str
+    :return: coordinates of object
+    :rtype: SkyCoord
+    """
     verbose(f"query object {obj}")
 
     simbad = Simbad()
@@ -83,7 +90,7 @@ def query_simbad(obj: str) -> SkyCoord:
     ic(id, id_u, ra, ra_u, dec, dec_u, dist, dist_u, pmra, pmra_u, pmdec, pmdec_u, radvel, radvel_u)
 
     coord = SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg),
-                    distance=dist*dist_u, radial_velocity=-radvel*radvel_u,
+                    distance=dist*dist_u, radial_velocity=radvel*radvel_u,
                     pm_ra_cosdec=pmra*pmra_u, pm_dec=pmdec*pmdec_u,
                     obstime="J2000") 
     ic(coord, coord.to_string("hmsdms"))
@@ -110,9 +117,7 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
-    # ... more options ...
-        
-    # ... the action starts here ...
+
     for obj in args.object:
         query_simbad(obj)
 
