@@ -45,7 +45,7 @@ class Options:
     """
     Global options
     """
-    hdr_list = ["OBJECT", "DATE-OBS", "IMAGETYP", "EXPOSURE"]
+    hdr_list = ["OBJECT", "DATE-OBS", "RA", "DEC", "CENTALT", "CENTAZ", "IMAGETYP", "EXPOSURE"]
                     # -H --header
     csv = False     # -C --csv
     output = None   # -o --output
