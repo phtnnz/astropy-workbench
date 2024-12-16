@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # ChangeLog
-# Version 0.0 / 2024-07-12
+# Version 0.1 / 2024-12-16
 #       First version
 
 import sys
@@ -27,21 +27,14 @@ from icecream import ic
 # Disable debugging
 ic.disable()
 
-# AstroPy
-# from astropy.coordinates import SkyCoord  # High-level coordinates
-# from astropy.coordinates import ICRS, Galactic, FK4, FK5  # Low-level frames
-# from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-# import astropy.units as u
-# from astropy.time        import Time, TimeDelta
-
 # See docs at https://docs.astropy.org/en/stable/io/fits/
 from astropy.io import fits
 
 # Local modules
 from verbose import verbose, warning, error
-from csvoutput import CSVOutput
+from csvoutput import csv_output
 
-VERSION = "0.0 / 2024-07-12"
+VERSION = "0.1 / 2024-12-16"
 AUTHOR  = "Martin Junius"
 NAME    = "fits-list"
 
@@ -49,14 +42,23 @@ NAME    = "fits-list"
 
 # Command line options
 class Options:
-    hdr_list = ["OBJECT", "DATE-LOC", "IMAGETYP", "EXPOSURE"]
+    """
+    Global options
+    """
+    hdr_list = ["OBJECT", "DATE-OBS", "IMAGETYP", "EXPOSURE"]
                     # -H --header
     csv = False     # -C --csv
     output = None   # -o --output
 
 
 
-def process_fits(file):
+def process_fits(file: str):
+    """
+    Process single FITS file
+
+    :param file: file name
+    :type file: str
+    """
     with fits.open(file) as hdul:
         if ic.enabled:
             hdul.info()
@@ -70,11 +72,17 @@ def process_fits(file):
 
         verbose(f"  {", ".join(value_verbose)}")
         if Options.csv:
-            CSVOutput.add_row(value_list)
+            csv_output.add_row(value_list)
 
 
 
-def process_file_or_dir(name):
+def process_file_or_dir(name: str):
+    """
+    Process single FITS file or traverse directory
+
+    :param name: file or directory name
+    :type name: str
+    """
     if os.path.isfile(name):
         process_fits(name)
 
@@ -92,13 +100,19 @@ def process_file_or_dir(name):
 
 
 def init_csv_output():
+    """
+    Initialize CSV output
+    """
     if Options.csv:
-        CSVOutput.set_default_locale()
-        CSVOutput.add_fields(Options.hdr_list)
+        csv_output.set_default_locale()
+        csv_output.add_fields(Options.hdr_list)
 
 def write_csv_output():
+    """
+    Write CSV output
+    """
     if Options.csv:
-        CSVOutput.write(Options.output)
+        csv_output.write(Options.output)
 
 
 
