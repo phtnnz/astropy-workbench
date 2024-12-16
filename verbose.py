@@ -26,8 +26,11 @@
 #       errno is now global for verbose, warning, error
 # Version 1.2 / 2024-12-15
 #       Added docstrings
+# Version 1.3 / 2024-12-16
+#       Added message(), just like print(), but can be disabled
 #
-#       Usage:  from verbose import verbose, warning, error
+#       Usage:  from verbose import message, verbose, warning, error
+#               message(print-like-args)
 #               verbose(print-like-args)
 #               warning(print-like-args)
 #               error(print-like-args)
@@ -46,7 +49,7 @@ from icecream import ic
 ic.disable()
 
 
-VERSION = "1.2 / 2024-12-15"
+VERSION = "1.3 / 2024-12-16"
 AUTHOR  = "Martin Junius"
 NAME    = "verbose"
 
@@ -132,6 +135,7 @@ class Verbose:
         sys.exit(Verbose.errno)
 
 
+message = Verbose(True)
 verbose = Verbose()
 warning = Verbose(True, "WARNING")
 error   = Verbose(True, "ERROR", True)
@@ -149,13 +153,15 @@ def main():
 
     args = arg.parse_args()
 
-    verbose.set_prog(NAME)
     if args.verbose:
+        verbose.set_prog(NAME)
         verbose.enable()
     if args.debug:
         ic.enable()
+        ic(args)
 
-    ic(args)
+    message("Just", "a", "message at the beginning")
+    warning("Just a first warning ;-)")
     verbose("Test", "1", "for", "verbose()")
     verbose("Test", "2", "for more", "verbose()", "with some formatting {:04d}".format(11+12))
     verbose("Changing progname")
