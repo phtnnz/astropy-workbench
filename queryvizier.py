@@ -29,6 +29,7 @@ ic.disable()
 # AstroPy
 from astropy.coordinates import SkyCoord  # High-level coordinates
 import astropy.units as u
+from astropy.table import Table, Row
 
 # Astroquery
 from astroquery.vizier import Vizier
@@ -42,17 +43,26 @@ NAME    = "queryvizier"
 
 
 
-def query_vizier(cat: str):
+def query_vizier(cat: str, cols: list=None, row_limit: int=-1):
     # vizier = Vizier(catalog=cat)
     vizier = Vizier(catalog=cat,
-                    columns=["*", 'Names'] ) ##FIXME: get from command line
+                    columns=["**"],        # "*" = default columns, "**" = all columns
+                    row_limit = row_limit
+                   )
     meta = vizier.get_catalog_metadata()
-    ic(vizier, meta, meta.keys())
-    result = vizier.query_object("")        # query all catalog entries
+    ic(vizier, meta)
+    result = vizier.query_object("")                # "" = query all catalog entries
     ic(result)
     for name in result.keys():
         table = result[name]
-        ic(table)
+        if not cols:
+            cols = table.keys()
+        ic(table, cols)
+        for row in table:
+            ic(row)
+            # values = list(row)                    # Convert row to list
+            values = [ row[col] for col in cols ]   # Selected columns
+            ic(values)
     pass
 
 
@@ -64,6 +74,8 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
+    arg.add_argument("--columns", help="columns to retrieve, comma-separated, default all")
+    arg.add_argument("--row-limit", help="number of rows to retrieve, default unlimited")
     arg.add_argument("catalog", help="catalog name")
 
     args = arg.parse_args()
@@ -75,8 +87,14 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
     cat = args.catalog
-    verbose(f"query catalog {cat}")
-    query_vizier(cat)
+    columns = None
+    row_limit = int(args.row_limit or -1)
+    if args.columns:
+        columns = args.columns.split(",")
+    verbose(f"query catalog {cat}, {row_limit=}")
+    if columns:
+        verbose(f"columns = {columns}")
+    query_vizier(cat, columns, row_limit)
 
 
 
