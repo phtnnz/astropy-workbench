@@ -44,6 +44,18 @@ NAME    = "queryvizier"
 
 
 
+class Options:
+    ra_dec_float = False         # --ra-dec-float
+
+
+
+def _replace_ra_dec(val, col: str, ra: float, dec: float):
+    if Options.ra_dec_float:
+        if col == "RAJ2000": return ra
+        if col == "DEJ2000": return dec
+    return val
+
+
 def query_vizier(cat: str, cols: list=None, row_limit: int=-1):
     # Process TABLE=OUT in cols list
     if cols:
@@ -70,8 +82,13 @@ def query_vizier(cat: str, cols: list=None, row_limit: int=-1):
         csv_output(fields=out_cols)
         for row in table:
             ic(row)
-            # values = list(row)                        # Convert row to list
-            values = [ row[col] for col in table_cols ] # Selected columns
+            # Special handling for coordinates
+            coord = SkyCoord(row["RAJ2000"], row["DEJ2000"], unit=(u.hour, u.degree))
+            ra = float(coord.ra.degree)
+            dec = float(coord.dec.degree)
+            ic(coord, ra, dec)
+            values = [ _replace_ra_dec(row[col], col, ra, dec)
+                       for col in table_cols ]          # Selected columns
             ic(values)
             csv_output(row=values)
 
@@ -86,6 +103,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("--columns", help="columns to retrieve, comma-separated, default all")
     arg.add_argument("--row-limit", help="number of rows to retrieve, default unlimited")
+    arg.add_argument("--ra-dec-float", action="store_true", help="output RA/DEC as float degrees")
     arg.add_argument("-C", "--csv", action="store_true", help="CSV output")
     arg.add_argument("-o", "--output", help="output file")
 
@@ -100,6 +118,8 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
+    Options.ra_dec_float = args.ra_dec_float
+    
     cat = args.catalog
     columns = None
     row_limit = int(args.row_limit or -1)
