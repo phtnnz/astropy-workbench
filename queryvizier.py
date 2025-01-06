@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024 Martin Junius
+# Copyright 2025 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
 # ChangeLog
 # Version 0.1 / 2025-01-05
 #       Query VizieR catalog
+# Version 0.2 / 2025-01-06
+#       New option, -f --ra-dec-float to output RA/DEC as float degrees,
+#       --replace-comma to replace "," in fields with the given string
 
 import sys
 import argparse
@@ -38,7 +41,7 @@ from astroquery.vizier import Vizier
 from verbose import verbose, warning, error
 from csvoutput import csv_output
 
-VERSION = "0.1 / 2025-01-05"
+VERSION = "0.2 / 2025-01-06"
 AUTHOR  = "Martin Junius"
 NAME    = "queryvizier"
 
