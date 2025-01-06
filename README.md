@@ -21,3 +21,62 @@ limitations under the License.
 
 This is just my personal playground for working with astropy and friends,
 not necessarily usable for anyone else.
+
+
+## VizieR
+
+### astroquery.vizier Package
+VizieR Query Tool
+
+This package is for querying the VizieR service, primarily hosted at: https://vizier.cds.unistra.fr
+
+Note: If the access to catalogues with VizieR was helpful for your research work, the following acknowledgment would be appreciated:
+
+This research has made use of the VizieR catalogue access tool, CDS,
+Strasbourg, France.  The original description of the VizieR service was
+published in A&AS 143, 23
+
+### queryvizier.py
+
+```
+usage: queryvizier [-h] [-v] [-d] [--columns COLUMNS] [-n ROW_LIMIT] [-f] [-C] [-o OUTPUT] [--replace-comma REPLACE_COMMA] catalog
+
+Query VizieR catalog
+
+positional arguments:
+  catalog               catalog name
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbose messages
+  -d, --debug           more debug messages
+  --columns COLUMNS     columns to retrieve, comma-separated, default all
+  -n ROW_LIMIT, --row-limit ROW_LIMIT
+                        number of rows to retrieve, default unlimited
+  -f, --ra-dec-float    output RA/DEC as float degrees
+  -C, --csv             CSV output
+  -o OUTPUT, --output OUTPUT
+                        output file
+  --replace-comma REPLACE_COMMA
+                        replace "," in field with REPLACE_COMMA
+
+Version 0.1 / 2025-01-05 / Martin Junius
+```
+
+
+## Catalogs
+
+### cat/dust-clouds.csv
+
+https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/383/631&-out.max=50&-out.form=HTML%20Table&-out.add=_r&-out.add=_RAJ,_DEJ&-sort=_r&-oc.form=sexa
+
+Prepared for PixInsight's AnnotateImage
+
+```
+> .\queryvizier.py -C -v --columns RAJ2000=alpha,DEJ2000=delta,Names=id,MajAxis=diameter -n 20 --replace-comma=" / " -f -o cat\dust-clouds.csv 'J/A+A/383/631'
+queryvizier: query catalog J/A+A/383/631
+queryvizier: catalog title: Catalogue of dust clouds in the Galaxy
+queryvizier:       authors: Dutra C.M.; Bica E.
+queryvizier: table columns = ['RAJ2000', 'DEJ2000', 'Names', 'MajAxis']
+queryvizier: output columns = ['alpha', 'delta', 'id', 'diameter']
+```
