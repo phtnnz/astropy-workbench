@@ -38,6 +38,8 @@ published in A&AS 143, 23
 
 ### queryvizier.py
 
+Query VizieR catalog
+
 ```
 usage: queryvizier [-h] [-v] [-d] [--columns COLUMNS] [-n ROW_LIMIT] [-f] [-C] [-o OUTPUT] [--replace-comma REPLACE_COMMA] catalog
 
@@ -60,7 +62,7 @@ options:
   --replace-comma REPLACE_COMMA
                         replace "," in field with REPLACE_COMMA
 
-Version 0.1 / 2025-01-05 / Martin Junius
+Version 0.2 / 2025-01-06 / Martin Junius
 ```
 
 
@@ -73,7 +75,7 @@ https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/383/631&-out.max=
 Prepared for PixInsight's AnnotateImage
 
 ```
-> .\queryvizier.py -C -v --columns RAJ2000=alpha,DEJ2000=delta,Names=id,MajAxis=diameter -n 20 --replace-comma=" / " -f -o cat\dust-clouds.csv 'J/A+A/383/631'
+> .\queryvizier.py -C -v --columns RAJ2000=alpha,DEJ2000=delta,Names=id,MajAxis=diameter --replace-comma=" / " -f -o cat\dust-clouds.csv 'J/A+A/383/631'
 queryvizier: query catalog J/A+A/383/631
 queryvizier: catalog title: Catalogue of dust clouds in the Galaxy
 queryvizier:       authors: Dutra C.M.; Bica E.
