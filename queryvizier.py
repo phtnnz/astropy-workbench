@@ -45,7 +45,9 @@ NAME    = "queryvizier"
 
 
 class Options:
-    ra_dec_float = False         # --ra-dec-float
+    row_limit = -1              # -n --row-limit
+    ra_dec_float = False        # -f --ra-dec-float
+    replace_comma = None        # --replace-comma
 
 
 
@@ -53,10 +55,13 @@ def _replace_ra_dec(val, col: str, ra: float, dec: float):
     if Options.ra_dec_float:
         if col == "RAJ2000": return ra
         if col == "DEJ2000": return dec
+    if Options.replace_comma and isinstance(val, str):
+        ic(val, type(val))
+        return val.replace(",", Options.replace_comma)
     return val
 
 
-def query_vizier(cat: str, cols: list=None, row_limit: int=-1):
+def query_vizier(cat: str, cols: list=None):
     # Process TABLE=OUT in cols list
     if cols:
         table_cols = [ col.split("=")[0] if "=" in col else col for col in cols ]
@@ -66,10 +71,13 @@ def query_vizier(cat: str, cols: list=None, row_limit: int=-1):
     # Query VizieR
     vizier = Vizier(catalog=cat,
                     columns=["**"],                     # "*" = default columns, "**" = all columns
-                    row_limit = row_limit
+                    row_limit = Options.row_limit
                    )
     meta = vizier.get_catalog_metadata()
     ic(vizier, meta)
+    verbose(f"catalog title: {meta["title"][0]}")
+    verbose(f"      authors: {meta["authors"][0]}")
+
     result = vizier.query_object("")                    # "" = query all catalog entries
     ic(result)
     for name in result.keys():
@@ -102,10 +110,11 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("--columns", help="columns to retrieve, comma-separated, default all")
-    arg.add_argument("--row-limit", help="number of rows to retrieve, default unlimited")
-    arg.add_argument("--ra-dec-float", action="store_true", help="output RA/DEC as float degrees")
+    arg.add_argument("-n", "--row-limit", help="number of rows to retrieve, default unlimited")
+    arg.add_argument("-f", "--ra-dec-float", action="store_true", help="output RA/DEC as float degrees")
     arg.add_argument("-C", "--csv", action="store_true", help="CSV output")
     arg.add_argument("-o", "--output", help="output file")
+    arg.add_argument("--replace-comma", help="replace \",\" in field with REPLACE_COMMA")
 
     arg.add_argument("catalog", help="catalog name")
 
@@ -120,14 +129,15 @@ def main():
 
     Options.ra_dec_float = args.ra_dec_float
     
-    cat = args.catalog
+    if args.row_limit:
+        Options.row_limit = int(args.row_limit)
+    Options.replace_comma = args.replace_comma
     columns = None
-    row_limit = int(args.row_limit or -1)
     if args.columns:
         columns = args.columns.split(",")
 
-    verbose(f"query catalog {cat}, {row_limit=}")
-    query_vizier(cat, columns, row_limit)
+    verbose(f"query catalog {args.catalog}")
+    query_vizier(args.catalog, columns)
 
     if args.csv:
         csv_output.write(args.output, set_locale=False)
