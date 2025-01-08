@@ -20,7 +20,8 @@
 # Version 0.2 / 2025-01-08
 #       Output ICRS, FK5/J2000, FK4/B1950, FK5/JNOW, GCRS, topocentrc LST, 
 #       hourangle, parallactic angle, JNOW, AltAz, and with refraction
-#       New options --time, --j2000
+#       New options -t --time, -j --j2000, -q --query-simbad
+#       Query Simbad for object
 
 import sys
 import argparse
@@ -40,6 +41,7 @@ import numpy as np
 
 # Local modules
 from verbose import verbose, warning, error
+from querysimbad import query_simbad
 
 VERSION = "0.2 / 2025-01-08"
 AUTHOR  = "Martin Junius"
@@ -49,7 +51,8 @@ NAME    = "coord-jnow"
 
 # Command line options
 class Options:
-    j2000 = False           # --j2000
+    j2000 = False           # -j --j2000
+    query_simbad = False    # -q --query-simbad
 
 
 
@@ -122,7 +125,13 @@ def hourangle_to_string(a: Angle):
 
 
 def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
-    if Options.j2000:
+    if Options.query_simbad:
+        # Query object name
+        coord = query_simbad(obj)
+        ic(coord)
+        verbose(f"ICRS coord {ra_dec_to_string(coord.ra, coord.dec)}")
+        coord_j2000 = coord.transform_to(FK5(equinox="J2000"))
+    elif Options.j2000:
         # FK5/J2000 coord
         coord = SkyCoord(obj, unit=(u.hour, u.deg), frame=FK5, equinox="J2000")
         coord_j2000 = coord
@@ -205,7 +214,8 @@ def main():
     arg.add_argument("--test-sn2024abfo", action="store_true", help="test case SN 2024abfo")
     arg.add_argument("-j", "--j2000", action="store_true", help="object coordinates FK5/J2000, default ICRS")
     arg.add_argument("-t", "--time", help="time (UTC) for JNOW coordinates, default now")
-    arg.add_argument("object", nargs="*", help="sky coord \"RA DEC\"")
+    arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
+    arg.add_argument("object", nargs="*", help="sky coord \"RA DEC\" or object name (-q)")
 
     args = arg.parse_args()
 
@@ -221,6 +231,8 @@ def main():
     loc      = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # Hakos, Namibia
 
     Options.j2000 = args.j2000
+    Options.query_simbad = args.query_simbad
+
     if args.time:
         time = Time(args.time, location=loc)
     else:
@@ -235,7 +247,6 @@ def main():
             verbose(f"object {obj}")
             verbose(f"time (UTC) {time}")
             coord_to_jnow_altaz(obj, loc, time)            
-
 
 
 
