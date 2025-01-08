@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024 Martin Junius
+# Copyright 2024-2025 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,10 @@
 # ChangeLog
 # Version 0.1 / 2024-12-12
 #       SkyCoord transformations
+# Version 0.2 / 2025-01-08
+#       Output ICRS, FK5/J2000, FK4/B1950, FK5/JNOW, GCRS, topocentrc LST, 
+#       hourangle, parallactic angle, JNOW, AltAz, and with refraction
+#       New options --time, --j2000
 
 import sys
 import argparse
@@ -28,7 +32,7 @@ ic.disable()
 
 # AstroPy
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord, CartesianRepresentation
-from astropy.coordinates import ICRS, GCRS, FK5, HADec  # Low-level frames
+from astropy.coordinates import ICRS, GCRS, FK4, FK5, HADec  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 import astropy.units as u
 from astropy.time        import Time, TimeDelta
@@ -37,7 +41,7 @@ import numpy as np
 # Local modules
 from verbose import verbose, warning, error
 
-VERSION = "0.1 / 2024-12-12"
+VERSION = "0.2 / 2025-01-08"
 AUTHOR  = "Martin Junius"
 NAME    = "coord-jnow"
 
@@ -45,7 +49,7 @@ NAME    = "coord-jnow"
 
 # Command line options
 class Options:
-    pass
+    j2000 = False           # --j2000
 
 
 
@@ -113,17 +117,28 @@ def ra_dec_to_string(ra: Angle, dec: Angle):
 def angle_to_string(a: Angle):
     return f"{a.to_string(unit=u.degree, precision=2)}"
 
+def hourangle_to_string(a: Angle):
+    return f"{a.to_string(unit=u.hour, precision=2)}"
+
 
 def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
-    # ICRS coord
-    coord = SkyCoord(obj, unit=(u.hour, u.deg))
-    ic(coord)
-    verbose(f"ICRS coord {ra_dec_to_string(coord.ra, coord.dec)}")
+    if Options.j2000:
+        # FK5/J2000 coord
+        coord = SkyCoord(obj, unit=(u.hour, u.deg), frame=FK5, equinox="J2000")
+        coord_j2000 = coord
+    else:
+        # ICRS coord
+        coord = SkyCoord(obj, unit=(u.hour, u.deg))
+        ic(coord)
+        verbose(f"ICRS coord {ra_dec_to_string(coord.ra, coord.dec)}")
+        coord_j2000 = coord.transform_to(FK5(equinox="J2000"))
 
-    # FK5 - J2000 coord
-    coord_j2000 = coord.transform_to(FK5(equinox="J2000"))
     ic(coord_j2000)
     verbose(f"FK5 J2000 coord {ra_dec_to_string(coord_j2000.ra, coord_j2000.dec)}")
+
+    coord_b1950 = coord.transform_to(FK4(equinox="B1950"))
+    ic(coord_b1950)
+    verbose(f"FK4 B1950 coord {ra_dec_to_string(coord_b1950.ra, coord_b1950.dec)}")
 
     coord_jnow = coord.transform_to(FK5(equinox=Time(time, format="jyear")))
     ic(coord_jnow)
@@ -146,6 +161,7 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
     ra_mean      = ra_from_lst_ha(lst_mean, hadec_jnow.ha)
     ra_apparent  = ra_from_lst_ha(lst_apparent, hadec_jnow.ha)
     ic(lst_mean, lst_apparent, ra_mean, ra_apparent)
+    verbose(f"Topocentric mean LST={hourangle_to_string(lst_mean)}, hourangle={hourangle_to_string(hadec_jnow.ha)}")
     verbose(f"Topocentric JNOW coord (lst mean) {ra_dec_to_string(ra_mean, hadec_jnow.dec)}")
     # verbose(f"Topocentric JNOW coord (lst apparent) {ra_dec_to_string(ra_apparent, hadec_jnow.dec)}")
 
@@ -187,6 +203,8 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("--test-sn2024abfo", action="store_true", help="test case SN 2024abfo")
+    arg.add_argument("-j", "--j2000", action="store_true", help="object coordinates FK5/J2000, default ICRS")
+    arg.add_argument("-t", "--time", help="time (UTC) for JNOW coordinates, default now")
     arg.add_argument("object", nargs="*", help="sky coord \"RA DEC\"")
 
     args = arg.parse_args()
@@ -199,13 +217,24 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
+    ##FIXME: loc / time from command line
+    loc      = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # Hakos, Namibia
+
+    Options.j2000 = args.j2000
+    if args.time:
+        time = Time(args.time, location=loc)
+    else:
+        time = Time(Time.now(), location=loc)
+    ic(loc, time)
+
     if args.test_sn2024abfo:
         verbose.enable()
         test_sn2024abfo()
     elif args.object:
-        print("nothing happens ... ;-)")
         for obj in args.object:
-            pass
+            verbose(f"object {obj}")
+            verbose(f"time (UTC) {time}")
+            coord_to_jnow_altaz(obj, loc, time)            
 
 
 
