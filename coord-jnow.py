@@ -229,7 +229,7 @@ def main():
 
     ##FIXME: loc / time from command line
     loc      = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # Hakos, Namibia
-
+    ic(loc, loc.to_geodetic())
     Options.j2000 = args.j2000
     Options.query_simbad = args.query_simbad
 
@@ -237,7 +237,7 @@ def main():
         time = Time(args.time, location=loc)
     else:
         time = Time(Time.now(), location=loc)
-    ic(loc, time)
+    ic(time)
 
     if args.test_sn2024abfo:
         verbose.enable()
