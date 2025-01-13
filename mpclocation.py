@@ -144,7 +144,8 @@ def main():
         test_m49()
     else:
         for station in args.station:
-            pass
+            loc = mpc_station_location(station)
+            ic(loc, loc.to_geodetic())
 
 
 
