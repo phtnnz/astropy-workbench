@@ -46,12 +46,14 @@ NAME    = "querysimbad"
 
 
 
-def query_simbad(obj: str) -> SkyCoord:
+def query_simbad(obj: str, w_velocity: bool=True) -> SkyCoord:
     """
     Query Simbad and return SkyCoord with position, distance, proper motion, radial velocity
 
     :param obj: object name
     :type obj: str
+    :param w_velocity: flag to include distance/velocity
+    :type obj: bool, default: True
     :return: coordinates of object
     :rtype: SkyCoord
     """
@@ -89,10 +91,14 @@ def query_simbad(obj: str) -> SkyCoord:
     radvel_u = result["RVZ_RADVEL"].unit
     ic(id, id_u, ra, ra_u, dec, dec_u, dist, dist_u, pmra, pmra_u, pmdec, pmdec_u, radvel, radvel_u)
 
-    coord = SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg),
-                    distance=dist*dist_u, radial_velocity=radvel*radvel_u,
-                    pm_ra_cosdec=pmra*pmra_u, pm_dec=pmdec*pmdec_u,
-                    obstime="J2000") 
+    if w_velocity:
+        coord = SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg),
+                        distance=dist*dist_u, radial_velocity=radvel*radvel_u,
+                        pm_ra_cosdec=pmra*pmra_u, pm_dec=pmdec*pmdec_u,
+                        obstime="J2000") 
+    else:
+        coord = SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg),
+                        obstime="J2000") 
     ic(coord, coord.to_string("hmsdms"))
 
     return coord
