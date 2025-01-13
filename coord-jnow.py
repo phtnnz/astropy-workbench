@@ -25,6 +25,7 @@
 
 import sys
 import argparse
+import re
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -35,6 +36,7 @@ ic.disable()
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord, CartesianRepresentation
 from astropy.coordinates import ICRS, GCRS, FK4, FK5, HADec  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
+from astropy.coordinates import errors
 import astropy.units as u
 from astropy.time        import Time, TimeDelta
 import numpy as np
@@ -42,6 +44,7 @@ import numpy as np
 # Local modules
 from verbose import verbose, warning, error
 from querysimbad import query_simbad
+from mpclocation import mpc_station_location
 
 VERSION = "0.2 / 2025-01-08"
 AUTHOR  = "Martin Junius"
@@ -127,9 +130,10 @@ def hourangle_to_string(a: Angle):
 def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
     if Options.query_simbad:
         # Query object name
-        coord = query_simbad(obj)
+        coord = query_simbad(obj, w_velocity=False)
         ic(coord)
         verbose(f"ICRS coord {ra_dec_to_string(coord.ra, coord.dec)}")
+        ##FIXME: fails if coord has velocity components!
         coord_j2000 = coord.transform_to(FK5(equinox="J2000"))
     elif Options.j2000:
         # FK5/J2000 coord
@@ -204,6 +208,44 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
 
 
 
+def get_location(name: str) -> EarthLocation:
+    """
+    Try to interpret location name as address, site name, MPC code
+
+    :param name: location name
+    :type name: str
+    :return: location object
+    :rtype: EarthLocation
+    """
+    loc = None
+    m = re.match(r'^([0-9.]+) ([+-]?[0-9.]+) ([0-9.]+)$', name)
+    if m:
+        (lon, lat, height) = [ float(v) for v in m.groups() ]
+        loc = EarthLocation(lon=lon*u.degree, lat=lat*u.degree, height=height*u.m)
+        verbose(f"location {lon=} {lat=} {height=}")
+
+    if loc == None:
+        try:
+            loc = EarthLocation.of_site(name)
+        except errors.UnknownSiteException as e:
+            verbose(f"location {name} not in astropy database")
+            loc = None
+
+    if loc == None:
+        try:
+            loc = mpc_station_location(name)
+        except (LookupError, ValueError):
+            verbose(f"location {name} not an MPC station code")
+            loc = None
+
+    if loc == None:
+        ic(EarthLocation.get_site_names())
+        error(f"named location {name} not found")
+
+    return loc
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -215,6 +257,7 @@ def main():
     arg.add_argument("-j", "--j2000", action="store_true", help="object coordinates FK5/J2000, default ICRS")
     arg.add_argument("-t", "--time", help="time (UTC) for JNOW coordinates, default now")
     arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
+    arg.add_argument("-l", "--location", help="named location of MPC station code")
     arg.add_argument("object", nargs="*", help="sky coord \"RA DEC\" or object name (-q)")
 
     args = arg.parse_args()
@@ -227,9 +270,12 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
-    ##FIXME: loc / time from command line
-    loc      = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # Hakos, Namibia
+    # Default location is Hakos, Namibia for personal reasons ;-)
+    loc      = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1825*u.m)
+    if args.location:
+        loc = get_location(args.location)
     ic(loc, loc.to_geodetic())
+
     Options.j2000 = args.j2000
     Options.query_simbad = args.query_simbad
 
