@@ -34,7 +34,7 @@ ic.disable()
 
 # AstroPy
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord, CartesianRepresentation
-from astropy.coordinates import ICRS, GCRS, FK4, FK5, HADec  # Low-level frames
+from astropy.coordinates import ICRS, GCRS, PrecessedGeocentric, FK4, FK5, HADec  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 from astropy.coordinates import errors
 import astropy.units as u
@@ -161,7 +161,10 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
     coord_gcrs = coord.transform_to(GCRS(obstime=time))
     ic(coord_gcrs)
     verbose(f"GCRS coord {ra_dec_to_string(coord_gcrs.ra, coord_gcrs.dec)}")
-    ##TODO: check PrecessedGeocentric?
+    
+    coord_pgc = coord.transform_to(PrecessedGeocentric(equinox=Time(time, format="jyear"), obstime=time))
+    ic(coord_pgc)
+    verbose(f"PrecessedGeocentric coord {ra_dec_to_string(coord_pgc.ra, coord_pgc.dec)}")
 
     # Transform to topocentric HADec
     hadec_jnow = coord.transform_to(HADec(obstime=time, location=loc))
