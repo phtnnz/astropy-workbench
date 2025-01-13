@@ -161,6 +161,7 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
     coord_gcrs = coord.transform_to(GCRS(obstime=time))
     ic(coord_gcrs)
     verbose(f"GCRS coord {ra_dec_to_string(coord_gcrs.ra, coord_gcrs.dec)}")
+    ##TODO: check PrecessedGeocentric?
 
     # Transform to topocentric HADec
     hadec_jnow = coord.transform_to(HADec(obstime=time, location=loc))
