@@ -106,6 +106,7 @@ def init_csv_output():
     if Options.csv:
         csv_output.set_default_locale()
         csv_output.add_fields(Options.hdr_list)
+        csv_output.set_float_format("%.6f")
 
 def write_csv_output():
     """
