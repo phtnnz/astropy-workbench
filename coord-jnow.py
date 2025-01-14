@@ -132,7 +132,7 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
         # Query object name
         coord = query_simbad(obj, w_velocity=False)
         ic(coord)
-        verbose(f"ICRS coord {ra_dec_to_string(coord.ra, coord.dec)}")
+        verbose(f"ICRS coord                       {ra_dec_to_string(coord.ra, coord.dec)}")
         ##FIXME: fails if coord has velocity components!
         coord_j2000 = coord.transform_to(FK5(equinox="J2000"))
     elif Options.j2000:
@@ -143,28 +143,28 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
         # ICRS coord
         coord = SkyCoord(obj, unit=(u.hour, u.deg))
         ic(coord)
-        verbose(f"ICRS coord {ra_dec_to_string(coord.ra, coord.dec)}")
+        verbose(f"ICRS coord                       {ra_dec_to_string(coord.ra, coord.dec)}")
         coord_j2000 = coord.transform_to(FK5(equinox="J2000"))
 
     ic(coord_j2000)
-    verbose(f"FK5 J2000 coord {ra_dec_to_string(coord_j2000.ra, coord_j2000.dec)}")
+    verbose(f"FK5 J2000 coord                  {ra_dec_to_string(coord_j2000.ra, coord_j2000.dec)}")
 
     coord_b1950 = coord.transform_to(FK4(equinox="B1950"))
     ic(coord_b1950)
-    verbose(f"FK4 B1950 coord {ra_dec_to_string(coord_b1950.ra, coord_b1950.dec)}")
+    verbose(f"FK4 B1950 coord                  {ra_dec_to_string(coord_b1950.ra, coord_b1950.dec)}")
 
     coord_jnow = coord.transform_to(FK5(equinox=Time(time, format="jyear")))
     ic(coord_jnow)
-    verbose(f"FK5 JNOW coord {ra_dec_to_string(coord_jnow.ra, coord_jnow.dec)}")
+    verbose(f"FK5 JNOW coord                   {ra_dec_to_string(coord_jnow.ra, coord_jnow.dec)}")
 
     # Transform to geocentric GCRS
     coord_gcrs = coord.transform_to(GCRS(obstime=time))
     ic(coord_gcrs)
-    verbose(f"GCRS coord {ra_dec_to_string(coord_gcrs.ra, coord_gcrs.dec)}")
+    verbose(f"GCRS coord                       {ra_dec_to_string(coord_gcrs.ra, coord_gcrs.dec)}")
     
     coord_pgc = coord.transform_to(PrecessedGeocentric(equinox=Time(time, format="jyear"), obstime=time))
     ic(coord_pgc)
-    verbose(f"PrecessedGeocentric coord {ra_dec_to_string(coord_pgc.ra, coord_pgc.dec)}")
+    verbose(f"PrecessedGeocentric JNOW coord   {ra_dec_to_string(coord_pgc.ra, coord_pgc.dec)}")
 
     # Transform to topocentric HADec
     hadec_jnow = coord.transform_to(HADec(obstime=time, location=loc))
@@ -178,14 +178,14 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
     ra_mean      = ra_from_lst_ha(lst_mean, hadec_jnow.ha)
     ra_apparent  = ra_from_lst_ha(lst_apparent, hadec_jnow.ha)
     ic(lst_mean, lst_apparent, ra_mean, ra_apparent)
-    verbose(f"Topocentric mean LST={hourangle_to_string(lst_mean)}, hourangle={hourangle_to_string(hadec_jnow.ha)}")
-    verbose(f"Topocentric JNOW coord (lst mean) {ra_dec_to_string(ra_mean, hadec_jnow.dec)}")
+    verbose(f"LST={hourangle_to_string(lst_mean)}, HA={hourangle_to_string(hadec_jnow.ha)}")
+    verbose(f"Topocentric JNOW coord           {ra_dec_to_string(ra_mean, hadec_jnow.dec)}")
     # verbose(f"Topocentric JNOW coord (lst apparent) {ra_dec_to_string(ra_apparent, hadec_jnow.dec)}")
 
     ra_mean_w_refraction = ra_from_lst_ha(lst_mean, hadec_jnow_w_refraction.ha)
     ra_apparent_w_refraction = ra_from_lst_ha(lst_apparent, hadec_jnow_w_refraction.ha)
     ic(ra_mean_w_refraction, ra_apparent_w_refraction)
-    verbose(f"Topocentric JNOW coord (lst mean) w/REFRACTION {ra_dec_to_string(
+    verbose(f"Topocentric JNOW coord w/refr    {ra_dec_to_string(
         ra_mean_w_refraction, hadec_jnow_w_refraction.dec)}")
     # verbose(f"Topocentric JNOW coord (lst apparent) w/REFRACTION {ra_dec_to_string(
     #     ra_apparent_w_refraction, hadec_jnow_w_refraction.dec)}")
@@ -194,8 +194,8 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
     altaz = hadec_jnow.transform_to( AltAz(obstime=time, location=loc) )
     altaz_w_refraction = hadec_jnow_w_refraction.transform_to( AltAz(obstime=time, location=loc) )
     ic(altaz, altaz_w_refraction)
-    verbose(f"Topocentric Alt={angle_to_string(altaz.alt)} Az={angle_to_string(altaz.az)}")
-    verbose(f"Topocentric w/REFRACTION Alt={angle_to_string(altaz_w_refraction.alt)} Az={angle_to_string(altaz_w_refraction.az)}")
+    verbose(f"Alt={angle_to_string(altaz.alt)} Az={angle_to_string(altaz.az)}")
+    verbose(f"w/refr Alt={angle_to_string(altaz_w_refraction.alt)} Az={angle_to_string(altaz_w_refraction.az)}")
 
     # Calculate parallactic angle https://en.wikipedia.org/wiki/Parallactic_angle 
     # Based on https://github.com/lsst-ts/ts_observatory_control/blob/develop/python/lsst/ts/observatory/control/utils/utils.py
@@ -208,7 +208,7 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
                            (np.tan(loc.lat.radian) * np.cos(coord.dec.radian) 
                             - np.sin(hadec_jnow.dec.radian) * np.cos(H))             ), u.rad).to(u.deg)
     ic(q)
-    verbose(f"Parallactic angle={angle_to_string(q)}")
+    verbose(f"parallactic angle={angle_to_string(q)}")
 
 
 
