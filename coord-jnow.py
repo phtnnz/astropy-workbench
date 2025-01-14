@@ -111,11 +111,9 @@ def test_sn2024abfo():
 
 def ra_from_lst_ha(lst: Angle, ha: Angle):
     ra = lst - ha
-    if ra >= 24*u.hourangle:
-        ra -= 24*u.hourangle
+    ra.wrap_at(24*u.hourangle, inplace=True)
     ic(lst, ha, ra)
     return ra
-
 
 def ra_dec_to_string(ra: Angle, dec: Angle):
     return f"RA={ra.to_string(unit=u.hour, precision=2)} DEC={dec.to_string(unit=u.degree, precision=2)}"
