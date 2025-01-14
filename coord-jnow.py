@@ -128,6 +128,8 @@ def hourangle_to_string(a: Angle):
 
 
 def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
+    verbose(f"object {obj}, time {time}")
+
     if Options.query_simbad:
         # Query object name
         coord = query_simbad(obj, w_velocity=False)
