@@ -124,7 +124,7 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("-H", "--header", help=f"show image headers in HEADER list, (default {",".join(Options.hdr_list)})")
+    arg.add_argument("-H", "--header", help=f"show image headers in HEADER list, \"+\" adds, (default {",".join(Options.hdr_list)})")
     arg.add_argument("-C", "--csv", action="store_true", help="output CSV list")
     arg.add_argument("-o", "--output", help="write CSV to file OUTPUT (default: stdout)")
     arg.add_argument("fits", nargs="+", help="FITS filename or directory")
@@ -140,7 +140,14 @@ def main():
         verbose.enable()
     # ... more options ...
     if args.header:
-        Options.hdr_list = args.header.split(",")     
+        h = args.header
+        if h[0] == "+":
+            h = h[1:]
+            if h[0] == ",":
+                h = h[1:]
+            Options.hdr_list.extend(h.split(","))
+        else:
+            Options.hdr_list = h.split(",")
     Options.csv = args.csv
     Options.output = args.output
 
