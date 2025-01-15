@@ -68,6 +68,14 @@ Version 0.2 / 2025-01-06 / Martin Junius
 
 ## Catalogs
 
+### PixInsight CSV catalog headers
+Mandatory: id, alpha, delta  
+(id=Name, alpha=RA float degrees, delta=DEC float degrees)
+
+Common: magnitude, diameter, axisRatio, posAngle
+
+Other: Common name, PGC, PGC2, Messier, NGC/IC, Spectral type, HD, HIP
+
 ### cat/dust-clouds.csv
 
 https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/383/631&-out.max=50&-out.form=HTML%20Table&-out.add=_r&-out.add=_RAJ,_DEJ&-sort=_r&-oc.form=sexa
