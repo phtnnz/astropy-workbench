@@ -142,10 +142,9 @@ def main():
     # ... more options ...
     if args.header:
         h = args.header
-        if h[0] == "+":
-            h = h[1:]
-            if h[0] == ",":
-                h = h[1:]
+        if h.startswith("+"):
+            h = h.lstrip("+")
+            h = h.lstrip(",")
             Options.hdr_list.extend(h.split(","))
         else:
             Options.hdr_list = h.split(",")
