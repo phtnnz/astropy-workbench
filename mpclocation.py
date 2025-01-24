@@ -48,8 +48,8 @@ NAME    = "mpclocation"
 
 
 
-# R_earth = C.R_earth.to_value(u.m) # not precise enough!
-R_earth = 6378137.0                 # GRS 80/WG S84 value (Wikipedia)
+# R_earth = C.R_earth.to_value(u.m) # astropy.contants not precise enough!
+R_earth = 6378137.0                 # GRS 80/WGS 84 value (Wikipedia)
                                     # https://en.wikipedia.org/wiki/World_Geodetic_System
 
 
