@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius
+# Copyright 2024-2025 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
 # ChangeLog
 # Version 0.1 / 2024-01-09
 #       EarthLocation from MPC longitude/parallax data
+# Version 0.2 / 2025-01-24
+#       Formatted verbose output for main, add station name to
+#       EarthLocation.info.name
 
 import sys
 import argparse
@@ -39,9 +42,15 @@ ic.disable()
 from verbose import verbose, warning, error
 
 
-VERSION = "0.1 / 2024-01-09"
+VERSION = "0.2 / 2025-01-24"
 AUTHOR  = "Martin Junius"
 NAME    = "mpclocation"
+
+
+
+# R_earth = C.R_earth.to_value(u.m) # not precise enough!
+R_earth = 6378137.0                 # GRS 80/WG S84 value (Wikipedia)
+                                    # https://en.wikipedia.org/wiki/World_Geodetic_System
 
 
 
@@ -87,7 +96,9 @@ def mpc_station_location(station: str) -> EarthLocation:
     (long, rho_cos_phi, rho_sin_phi, name) = MPC.get_observatory_location(station)
     ic(long, rho_cos_phi, rho_sin_phi, name)
 
-    return mpc_parallax_to_location(long, rho_cos_phi, rho_sin_phi)
+    loc = mpc_parallax_to_location(long, rho_cos_phi, rho_sin_phi)
+    loc.info.name = name
+    return loc
 
 
 
@@ -104,9 +115,6 @@ def mpc_parallax_to_location(longitude: Longitude, rho_cos_phi: float, rho_sin_p
     :return: location object
     :rtype: EarthLocation
     """
-    # R_earth = C.R_earth.to_value(u.m) # not precise enough!
-    R_earth = 6378137.0                 # GRS 80/WG S84 value (Wikipedia)
-                                        # https://en.wikipedia.org/wiki/World_Geodetic_System
     lon = longitude.to_value(u.radian)
     ic(R_earth, lon)
 
@@ -145,8 +153,9 @@ def main():
     else:
         for station in args.station:
             loc = mpc_station_location(station)
-            ic(loc, loc.to_geodetic())
-
+            ic(loc, loc.to_geodetic(), loc.info)
+            verbose(f"station {station}: {loc.info.name}")
+            verbose(f"    lon={loc.lon.to_string(unit=u.degree, precision=2)} lat={loc.lat.to_string(unit=u.degree, precision=2)} height={loc.height.to_string(unit=u.m, precision=0)}")
 
 
 if __name__ == "__main__":
