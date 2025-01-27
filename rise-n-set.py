@@ -101,6 +101,7 @@ def main():
     # pressure=0
     # horizon=-0.8333*u.deg 
     # is strictly required!
+    # See https://astroplan.readthedocs.io/en/stable/faq/precision.html#how-are-sunrise-and-sunset-defined 
     moon_rise = observer.moon_rise_time(time, horizon=-0.8333*u.deg).to_datetime().isoformat()
     moon_set  = observer.moon_set_time(time, horizon=-0.8333*u.deg).to_datetime().isoformat()
     ic(moon_rise, moon_set)
