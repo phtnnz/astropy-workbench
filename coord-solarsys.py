@@ -17,6 +17,8 @@
 # ChangeLog
 # Version 0.1 / 2025-01-14
 #       Get coordinates for solar system bodies
+# Version 0.2 / 2025-01-27
+#       Use astroutils module
 
 import sys
 import argparse
@@ -42,9 +44,9 @@ from astropy.coordinates import get_body_barycentric, get_body
 
 # Local modules
 from verbose import verbose, warning, error
-from mpclocation import mpc_station_location
+from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location
 
-VERSION = "0.1 / 2025-01-14"
+VERSION = "0.2 / 2025-01-27"
 AUTHOR  = "Martin Junius"
 NAME    = "coord-solarsys"
 
@@ -54,23 +56,6 @@ NAME    = "coord-solarsys"
 class Options:
     pass
 
-
-
-def ra_from_lst_ha(lst: Angle, ha: Angle):
-    ra = lst - ha
-    ra.wrap_at(24*u.hourangle, inplace=True)
-    ic(lst, ha, ra)
-    return ra
-
-
-def ra_dec_to_string(ra: Angle, dec: Angle):
-    return f"RA={ra.to_string(unit=u.hour, precision=2)} DEC={dec.to_string(unit=u.degree, precision=2)}"
-
-def angle_to_string(a: Angle):
-    return f"{a.to_string(unit=u.degree, precision=2)}"
-
-def hourangle_to_string(a: Angle):
-    return f"{a.to_string(unit=u.hour, precision=2)}"
 
 
 def coord_to_altaz(obj: str, loc: EarthLocation, time: Time):
@@ -115,44 +100,6 @@ def coord_to_altaz(obj: str, loc: EarthLocation, time: Time):
                             - np.sin(hadec_jnow.dec.radian) * np.cos(H))             ), u.rad).to(u.deg)
     ic(q)
     verbose(f"parallactic angle={angle_to_string(q)}")
-
-
-
-def get_location(name: str) -> EarthLocation:
-    """
-    Try to interpret location name as address, site name, MPC code
-
-    :param name: location name
-    :type name: str
-    :return: location object
-    :rtype: EarthLocation
-    """
-    loc = None
-    m = re.match(r'^([0-9.]+) ([+-]?[0-9.]+) ([0-9.]+)$', name)
-    if m:
-        (lon, lat, height) = [ float(v) for v in m.groups() ]
-        loc = EarthLocation(lon=lon*u.degree, lat=lat*u.degree, height=height*u.m)
-        verbose(f"location {lon=} {lat=} {height=}")
-
-    if loc == None:
-        try:
-            loc = EarthLocation.of_site(name)
-        except errors.UnknownSiteException as e:
-            verbose(f"location {name} not in astropy database")
-            loc = None
-
-    if loc == None:
-        try:
-            loc = mpc_station_location(name)
-        except (LookupError, ValueError):
-            verbose(f"location {name} not an MPC station code")
-            loc = None
-
-    if loc == None:
-        ic(EarthLocation.get_site_names())
-        error(f"named location {name} not found")
-
-    return loc
 
 
 
