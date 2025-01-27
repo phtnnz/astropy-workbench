@@ -20,6 +20,9 @@
 # Version 0.2 / 2025-01-06
 #       New option, -f --ra-dec-float to output RA/DEC as float degrees,
 #       --replace-comma to replace "," in fields with the given string
+# Version 0.3 / 2025-01-27
+#       Added --object option, not that useful, because .query_object()
+#       doesn't seem to support wildcards * or %
 
 import sys
 import argparse
@@ -41,7 +44,7 @@ from astroquery.vizier import Vizier
 from verbose import verbose, warning, error
 from csvoutput import csv_output
 
-VERSION = "0.2 / 2025-01-06"
+VERSION = "0.3 / 2025-01-27"
 AUTHOR  = "Martin Junius"
 NAME    = "queryvizier"
 
@@ -51,7 +54,7 @@ class Options:
     row_limit = -1              # -n --row-limit
     ra_dec_float = False        # -f --ra-dec-float
     replace_comma = None        # --replace-comma
-
+    object = ""                 # -O --object, "" = query all catalog entries
 
 
 def _replace_ra_dec(val, col: str, ra: float, dec: float):
@@ -81,7 +84,7 @@ def query_vizier(cat: str, cols: list=None):
     verbose(f"catalog title: {meta["title"][0]}")
     verbose(f"      authors: {meta["authors"][0]}")
 
-    result = vizier.query_object("")                    # "" = query all catalog entries
+    result = vizier.query_object(Options.object)
     ic(result)
     for name in result.keys():
         table = result[name]
@@ -118,6 +121,7 @@ def main():
     arg.add_argument("-C", "--csv", action="store_true", help="CSV output")
     arg.add_argument("-o", "--output", help="output file")
     arg.add_argument("--replace-comma", help="replace \",\" in field with REPLACE_COMMA")
+    arg.add_argument("--object", help="query specific object, default \"\"=all, no wildcards")
 
     arg.add_argument("catalog", help="catalog name")
 
@@ -138,6 +142,8 @@ def main():
     columns = None
     if args.columns:
         columns = args.columns.split(",")
+    if args.object:
+        Options.object = args.object
 
     verbose(f"query catalog {args.catalog}")
     query_vizier(args.catalog, columns)
