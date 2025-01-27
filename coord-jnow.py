@@ -22,10 +22,11 @@
 #       hourangle, parallactic angle, JNOW, AltAz, and with refraction
 #       New options -t --time, -j --j2000, -q --query-simbad
 #       Query Simbad for object
+# Version 0.3 / 2025-01-27
+#       Use astroutils module
 
 import sys
 import argparse
-import re
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -44,10 +45,9 @@ import numpy as np
 # Local modules
 from verbose import verbose, warning, error
 from querysimbad import query_simbad
-from mpclocation import mpc_station_location
 from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location
 
-VERSION = "0.2 / 2025-01-08"
+VERSION = "0.3 / 2025-01-27"
 AUTHOR  = "Martin Junius"
 NAME    = "coord-jnow"
 
