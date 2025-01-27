@@ -23,9 +23,12 @@
 # Version 0.3 / 2025-01-27
 #       Added --object option, not that useful, because .query_object()
 #       doesn't seem to support wildcards * or %
+#       Added -m --match (regex) option
+#       Added -l --locale option for CSV output
 
 import sys
 import argparse
+import re
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -55,6 +58,8 @@ class Options:
     ra_dec_float = False        # -f --ra-dec-float
     replace_comma = None        # --replace-comma
     object = ""                 # -O --object, "" = query all catalog entries
+    match = None                # -m --match
+
 
 
 def _replace_ra_dec(val, col: str, ra: float, dec: float):
@@ -96,6 +101,10 @@ def query_vizier(cat: str, cols: list=None):
         csv_output(fields=out_cols)
         for row in table:
             ic(row)
+            # Match string
+            if Options.match:
+                if not any(isinstance(field, str) and re.search(Options.match, field) for field in row):
+                    continue
             # Special handling for coordinates
             coord = SkyCoord(row["RAJ2000"], row["DEJ2000"], unit=(u.hour, u.degree))
             ra = float(coord.ra.degree)
@@ -119,9 +128,11 @@ def main():
     arg.add_argument("-n", "--row-limit", help="number of rows to retrieve, default unlimited")
     arg.add_argument("-f", "--ra-dec-float", action="store_true", help="output RA/DEC as float degrees")
     arg.add_argument("-C", "--csv", action="store_true", help="CSV output")
+    arg.add_argument("-l", "--locale", action="store_true", help="set locale for CSV output")
     arg.add_argument("-o", "--output", help="output file")
     arg.add_argument("--replace-comma", help="replace \",\" in field with REPLACE_COMMA")
     arg.add_argument("--object", help="query specific object, default \"\"=all, no wildcards")
+    arg.add_argument("-m", "--match", help="output rows containing regex MATCH only")
 
     arg.add_argument("catalog", help="catalog name")
 
@@ -144,12 +155,13 @@ def main():
         columns = args.columns.split(",")
     if args.object:
         Options.object = args.object
+    Options.match = args.match
 
     verbose(f"query catalog {args.catalog}")
     query_vizier(args.catalog, columns)
 
     if args.csv:
-        csv_output.write(args.output, set_locale=False)
+        csv_output.write(args.output, set_locale=args.locale)
 
 
 if __name__ == "__main__":
