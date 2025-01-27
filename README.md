@@ -90,3 +90,11 @@ queryvizier:       authors: Dutra C.M.; Bica E.
 queryvizier: table columns = ['RAJ2000', 'DEJ2000', 'Names', 'MajAxis']
 queryvizier: output columns = ['alpha', 'delta', 'id', 'diameter']
 ```
+
+### cat/CGs.csv
+
+```
+> .\queryvizier.py -C -v --columns Names,RAJ2000,DEJ2000 --replace-comma=" / " -m "CG\d+[A-Z]* DN" -l -o .\cat\CGs.csv 'J/A+A/383/631'
+```
+
+Catalog excerpt with cometary globules (CGs)
