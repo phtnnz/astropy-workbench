@@ -45,9 +45,9 @@ NAME    = "astroutils"
 
 def ra_from_lst_ha(lst: Angle, ha: Angle) -> Angle:
     """
-    Compute RA from local star time and hour angle
+    Compute RA from local sidereal time and hour angle
 
-    :param lst: local star time
+    :param lst: local sidereal time
     :type lst: Angle
     :param ha: hour angle
     :type ha: Angle
@@ -62,12 +62,38 @@ def ra_from_lst_ha(lst: Angle, ha: Angle) -> Angle:
 
 
 def ra_dec_to_string(ra: Angle, dec: Angle) -> str:
+    """
+    Format RA and DEC as string
+
+    :param ra: RA
+    :type ra: Angle
+    :param dec: DEC
+    :type dec: Angle
+    :return: formatted string "RA=... DEC=..."
+    :rtype: str
+    """
     return f"RA={ra.to_string(unit=u.hour, precision=2)} DEC={dec.to_string(unit=u.degree, precision=2)}"
 
 def angle_to_string(a: Angle) -> str:
+    """
+    Format angle as string
+
+    :param a: angle
+    :type a: Angle
+    :return: formatted string angle in degrees, minutes, seconds
+    :rtype: str
+    """
     return f"{a.to_string(unit=u.degree, precision=2)}"
 
 def hourangle_to_string(a: Angle) -> str:
+    """
+    Format hour angle as string
+
+    :param a: hour angle
+    :type a: Angle
+    :return: formatted string hour angle in hours, minutes, seconds
+    :rtype: str
+    """
     return f"{a.to_string(unit=u.hour, precision=2)}"
 
 
