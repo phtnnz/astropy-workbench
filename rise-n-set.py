@@ -20,7 +20,10 @@
 
 import sys
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+# Required on Windows
+import tzdata
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -76,7 +79,8 @@ def main():
         verbose.enable()
 
     # Default location is Hakos, Namibia for personal reasons ;-)
-    loc      = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1853*u.m)
+    loc = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1853*u.m)
+    tz  = ZoneInfo("Africa/Windhoek")
     if args.location:
         loc = get_location(args.location)
     ic(loc, loc.to_geodetic())
@@ -102,13 +106,27 @@ def main():
     # horizon=-0.8333*u.deg 
     # is strictly required!
     # See https://astroplan.readthedocs.io/en/stable/faq/precision.html#how-are-sunrise-and-sunset-defined 
-    moon_rise = observer.moon_rise_time(time, horizon=-0.8333*u.deg).to_datetime().isoformat()
-    moon_set  = observer.moon_set_time(time, horizon=-0.8333*u.deg).to_datetime().isoformat()
-    ic(moon_rise, moon_set)
 
-    sun_rise = observer.sun_rise_time(time, horizon=-0.8333*u.deg).to_datetime().isoformat()
-    sun_set  = observer.sun_set_time(time, horizon=-0.8333*u.deg).to_datetime().isoformat()
-    ic(sun_rise, sun_set)
+    format = "%Y-%m-%d %H:%M:%S %Z"
+
+    verbose(f"time:              {time.to_datetime(timezone=timezone.utc).strftime(format)}")
+
+    dt_moon_rise = observer.moon_rise_time(time, horizon=-0.8333*u.deg).to_datetime(timezone=timezone.utc)
+    dt_moon_set = observer.moon_set_time(time, horizon=-0.8333*u.deg).to_datetime(timezone=timezone.utc)
+    dt_moon_rise_local = dt_moon_rise.astimezone(tz)
+    dt_moon_set_local = dt_moon_set.astimezone(tz)
+    ic(dt_moon_rise, dt_moon_set, dt_moon_rise_local, dt_moon_set_local)
+    verbose(f"nearest moon rise: {dt_moon_rise.strftime(format)}  {dt_moon_rise_local.strftime(format)}")
+    verbose(f"nearest moon set:  {dt_moon_set.strftime(format)}  {dt_moon_set_local.strftime(format)}")
+
+    dt_sun_rise = observer.sun_rise_time(time, horizon=-0.8333*u.deg).to_datetime(timezone=timezone.utc)
+    dt_sun_set = observer.sun_set_time(time, horizon=-0.8333*u.deg).to_datetime(timezone=timezone.utc)
+    dt_sun_rise_local = dt_sun_rise.astimezone(tz)
+    dt_sun_set_local = dt_sun_set.astimezone(tz)
+    ic(dt_sun_rise, dt_sun_set, dt_sun_rise_local, dt_sun_set_local)
+    verbose(f"nearest sun rise:  {dt_sun_rise.strftime(format)}  {dt_sun_rise_local.strftime(format)}")
+    verbose(f"nearest sun set:   {dt_sun_set.strftime(format)}  {dt_sun_set_local.strftime(format)}")
+
 
 
 if __name__ == "__main__":
