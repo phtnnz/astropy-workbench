@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024 Martin Junius
+# Copyright 2024-2025 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@
 #       Renamed, can be used as a module
 # Version 0.3 / 2024-12-16
 #       Added docstrings
+# Version 0.4 / 2025-01-30
+#       Major rework for new table format
 
 import sys
 import argparse
@@ -33,6 +35,7 @@ ic.disable()
 # AstroPy
 from astropy.coordinates import SkyCoord  # High-level coordinates
 import astropy.units as u
+import numpy as np
 
 # Astroquery
 from astroquery.simbad import Simbad
@@ -40,7 +43,7 @@ from astroquery.simbad import Simbad
 # Local modules
 from verbose import verbose, warning, error
 
-VERSION = "0.3 / 2024-12-16"
+VERSION = "0.4 / 2025-01-30"
 AUTHOR  = "Martin Junius"
 NAME    = "querysimbad"
 
@@ -60,7 +63,7 @@ def query_simbad(obj: str, w_velocity: bool=True) -> SkyCoord:
     verbose(f"query object {obj}")
 
     simbad = Simbad()
-    simbad.add_votable_fields("distance", "propermotions", "velocity")
+    simbad.add_votable_fields("mesdistance", "propermotions", "velocity")
     ic(simbad.get_votable_fields())
 
     result = simbad.query_object(obj)
@@ -68,39 +71,45 @@ def query_simbad(obj: str, w_velocity: bool=True) -> SkyCoord:
     ic(result)
     ic(result.info)
 
-    id       = result["MAIN_ID"][0]
-    id_u     = result["MAIN_ID"].unit
-    ra       = result["RA"][0]
-    dec      = result["DEC"][0]
-    ra_u     = result["RA"].unit
-    dec_u    = result["DEC"].unit
-    if str(ra_u) != '"h:m:s"' or str(dec_u) != '"d:m:s"':
-        error(f"query_simbad: RA/DEC units ({str(ra_u)}/{str(dec_u)}) must be hour/degree (h:m:s/d:m:s)")
-    dist     = result["Distance_distance"][0]
-    dist_u   = result["Distance_unit"][0]
-    # No proper unit in Distance_distance column, work-around
-    if not dist_u or dist_u == "pc":
+    id       = result["main_id"][0]
+    id_u     = result["main_id"].unit
+    ra       = result["ra"][0]
+    dec      = result["dec"][0]
+    ra_u     = result["ra"].unit
+    dec_u    = result["dec"].unit
+    ic(id, ra, dec)
+    ic(id_u, ra_u, dec_u)
+
+    dist     = result["mesdistance.dist"][0]
+    dist_u   = result["mesdistance.unit"][0]
+    # No proper unit in the.unit column, work-around
+    if not dist_u or dist_u.strip() == "pc":
         dist_u = u.pc
     else:
         error(f"query_simbad: unknown distance unit {dist_u}")
-    pmra     = result["PMRA"][0]
-    pmdec    = result["PMDEC"][0]
-    radvel   = result["RVZ_RADVEL"][0]
-    pmra_u   = result["PMRA"].unit
-    pmdec_u  = result["PMDEC"].unit
-    radvel_u = result["RVZ_RADVEL"].unit
-    ic(id, id_u, ra, ra_u, dec, dec_u, dist, dist_u, pmra, pmra_u, pmdec, pmdec_u, radvel, radvel_u)
+    ic(dist, dist_u)
+
+    pmra     = result["pmra"][0]
+    pmdec    = result["pmdec"][0]
+    radvel   = result["rvz_radvel"][0]
+    pmra_u   = result["pmra"].unit
+    pmdec_u  = result["pmdec"].unit
+    radvel_u = result["rvz_radvel"].unit
+    ic(pmra, pmra_u, pmdec, pmdec_u, radvel, radvel_u)
+
+    if np.ma.is_masked(pmra):
+        ic("no propermotions/velocity data")
+        w_velocity = False
 
     if w_velocity:
-        coord = SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg),
+        coord = SkyCoord(ra=ra*ra_u, dec=dec*dec_u,
                         distance=dist*dist_u, radial_velocity=radvel*radvel_u,
                         pm_ra_cosdec=pmra*pmra_u, pm_dec=pmdec*pmdec_u,
                         obstime="J2000") 
     else:
-        coord = SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg),
-                        obstime="J2000") 
-    ic(coord, coord.to_string("hmsdms"))
+        coord = SkyCoord(ra=ra*ra_u, dec=dec*dec_u) 
 
+    ic(coord, coord.to_string("hmsdms"))
     return coord
 
 
@@ -125,7 +134,9 @@ def main():
         verbose.enable()
 
     for obj in args.object:
-        query_simbad(obj)
+        coord = query_simbad(obj)
+        verbose(f"{obj}: position (ICRS) = {coord.to_string("hmsdms")}")
+
 
 
 
