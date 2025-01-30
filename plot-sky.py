@@ -46,7 +46,7 @@ from astroplan.plots import plot_airmass, plot_altitude, plot_sky, plot_finder_i
 
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location
+from astroutils import get_location, get_coord
 
 VERSION = "0.1 / 2025-01-30"
 AUTHOR  = "Martin Junius"
@@ -69,6 +69,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-t", "--time", help="time (UTC) for computation, default now")
     arg.add_argument("-l", "--location", help="coordinates, named location or MPC station code")
+    arg.add_argument("object", nargs="+", help="object name or \"RA DEC\" coordinates")
 
     args = arg.parse_args()
 
@@ -113,35 +114,37 @@ def main():
     coord = SkyCoord(obj, unit=(u.hour, u.deg))
     ic(obj, coord)
 
-    target = FixedTarget(name=name, coord=coord)
-    ic(target)
+    for obj in args.object:
+        coord = get_coord(obj, True)
+        target = FixedTarget(name=obj, coord=coord)
+        ic(target)
 
-    midnight = observer.midnight(time, which="next")
-    ic(midnight)
-    verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
-    time = midnight
+        midnight = observer.midnight(time, which="next")
+        ic(midnight)
+        verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
+        time = midnight
 
-    plot_altitude(target, observer, time, brightness_shading=True)
-    plt.savefig("tmp/plot-sky1.png", bbox_inches="tight")
-    plt.close()
+        plot_altitude(target, observer, time, brightness_shading=True)
+        plt.savefig("tmp/plot-sky1.png", bbox_inches="tight")
+        plt.close()
 
-    plot_airmass(target, observer, time, brightness_shading=True, altitude_yaxis=True)
-    plt.savefig("tmp/plot-sky2.png", bbox_inches="tight")
-    plt.close()
+        plot_airmass(target, observer, time, brightness_shading=True, altitude_yaxis=True)
+        plt.savefig("tmp/plot-sky2.png", bbox_inches="tight")
+        plt.close()
 
-    time = time + np.linspace(-4, 5, 10)*u.hour
-    plot_sky(target, observer, time)
-    # plt.legend(loc='center left', bbox_to_anchor=(1.25, 0.5))
-    plt.savefig("tmp/plot-sky3.png", bbox_inches="tight")
-    plt.close()
+        time = time + np.linspace(-4, 5, 10)*u.hour
+        plot_sky(target, observer, time)
+        # plt.legend(loc='center left', bbox_to_anchor=(1.25, 0.5))
+        plt.savefig("tmp/plot-sky3.png", bbox_inches="tight")
+        plt.close()
 
-    # Doesn't work anymore, see https://github.com/astropy/astroplan/pull/591
-    # ax, hdu = plot_finder_image(target)
-    # plt.savefig("tmp/plot-sky4.png", bbox_inches="tight")
-    # plt.close()
+        # Doesn't work anymore, see https://github.com/astropy/astroplan/pull/591
+        # ax, hdu = plot_finder_image(target)
+        # plt.savefig("tmp/plot-sky4.png", bbox_inches="tight")
+        # plt.close()
 
-    # not working inside VSCode terminal
-    # plt.show()
+        # not working inside VSCode terminal
+        # plt.show()
 
 
 
