@@ -36,6 +36,8 @@ import numpy as np
 # Local modules
 from verbose import verbose, warning, error
 from mpclocation import mpc_station_location
+from querysimbad import query_simbad
+
 
 VERSION = "0.1 / 2025-01-27"
 AUTHOR  = "Martin Junius"
@@ -133,6 +135,29 @@ def get_location(name: str) -> EarthLocation:
         error(f"named location {name} not found")
 
     return loc
+
+
+
+def get_coord(name: str, simbad=False) -> SkyCoord:
+    """
+    Get coordinates for object, either by converting "RA DEC" string, or querying Simbad
+
+    :param name: object name or "RA DEC" string
+    :type name: str
+    :param simbad: query simbad for object name, defaults to False
+    :type simbad: bool, optional
+    :return: coordinates object
+    :rtype: SkyCoord
+    """
+    if simbad:
+        # Query object name
+        coord = query_simbad(name, w_velocity=False)
+    else:
+        # ICRS coord
+        coord = SkyCoord(name, unit=(u.hour, u.deg))
+
+    ic(name, coord)
+    return coord;
 
 
 
