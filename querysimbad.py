@@ -85,6 +85,8 @@ def query_simbad(obj: str, w_velocity: bool=True) -> SkyCoord:
     # No proper unit in the.unit column, work-around
     if not dist_u or dist_u.strip() == "pc":
         dist_u = u.pc
+    elif dist_u.strip() == "Mpc":
+        dist_u = u.Mpc
     else:
         error(f"query_simbad: unknown distance unit {dist_u}")
     ic(dist, dist_u)
@@ -107,7 +109,7 @@ def query_simbad(obj: str, w_velocity: bool=True) -> SkyCoord:
                         pm_ra_cosdec=pmra*pmra_u, pm_dec=pmdec*pmdec_u,
                         obstime="J2000") 
     else:
-        coord = SkyCoord(ra=ra*ra_u, dec=dec*dec_u) 
+        coord = SkyCoord(ra=ra*ra_u, dec=dec*dec_u, distance=dist*dist_u) 
 
     ic(coord, coord.to_string("hmsdms"))
     return coord
