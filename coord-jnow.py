@@ -37,7 +37,7 @@ ic.disable()
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord, CartesianRepresentation
 from astropy.coordinates import ICRS, GCRS, PrecessedGeocentric, FK4, FK5, HADec  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-from astropy.coordinates import errors
+from astropy.coordinates import errors, get_constellation
 import astropy.units as u
 from astropy.time        import Time, TimeDelta
 import numpy as np
@@ -130,6 +130,10 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
         ic(coord)
         verbose(f"ICRS coord                       {ra_dec_to_string(coord.ra, coord.dec)}")
         coord_j2000 = coord.transform_to(FK5(equinox="J2000"))
+
+    constellation = str(get_constellation(coord))
+    constellation_s = str(get_constellation(coord, short_name=True))
+    verbose(f"constellation {constellation} ({constellation_s})")
 
     ic(coord_j2000)
     verbose(f"FK5 J2000 coord                  {ra_dec_to_string(coord_j2000.ra, coord_j2000.dec)}")
