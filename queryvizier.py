@@ -25,6 +25,13 @@
 #       doesn't seem to support wildcards * or %
 #       Added -m --match (regex) option
 #       Added -l --locale option for CSV output
+# Version 0.4 / 2025-02-05
+#       Added --constellation option, adds constellation full and short name
+#       to CSV output
+
+VERSION = "0.4 / 2025-02-05"
+AUTHOR  = "Martin Junius"
+NAME    = "queryvizier"
 
 import sys
 import argparse
@@ -36,7 +43,7 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import SkyCoord  # High-level coordinates
+from astropy.coordinates import SkyCoord, get_constellation
 import astropy.units as u
 from astropy.table import Table, Row
 
@@ -47,10 +54,6 @@ from astroquery.vizier import Vizier
 from verbose import verbose, warning, error
 from csvoutput import csv_output
 
-VERSION = "0.3 / 2025-01-27"
-AUTHOR  = "Martin Junius"
-NAME    = "queryvizier"
-
 
 
 class Options:
@@ -59,6 +62,7 @@ class Options:
     replace_comma = None        # --replace-comma
     object = ""                 # -O --object, "" = query all catalog entries
     match = None                # -m --match
+    constellation = False       # --constellation
 
 
 
@@ -95,6 +99,8 @@ def query_vizier(cat: str, cols: list=None):
         table = result[name]
         if not cols:
             table_cols = out_cols = table.keys()
+        if Options.constellation:
+            out_cols.extend(["constellation", "constellation_short"])
         ic(table, table_cols, out_cols)
         verbose(f"table columns = {table_cols}")
         verbose(f"output columns = {out_cols}")
@@ -112,6 +118,9 @@ def query_vizier(cat: str, cols: list=None):
             ic(coord, ra, dec)
             values = [ _replace_ra_dec(row[col], col, ra, dec)
                        for col in table_cols ]          # Selected columns
+            if Options.constellation:
+                values.append(str(get_constellation(coord)))
+                values.append(str(get_constellation(coord, short_name=True)))
             ic(values)
             csv_output(row=values)
 
@@ -133,6 +142,7 @@ def main():
     arg.add_argument("--replace-comma", help="replace \",\" in field with REPLACE_COMMA")
     arg.add_argument("--object", help="query specific object, default \"\"=all, no wildcards")
     arg.add_argument("-m", "--match", help="output rows containing regex MATCH only")
+    arg.add_argument("--constellation", action="store_true", help="get and output constellation as an extra column")
 
     arg.add_argument("catalog", help="catalog name")
 
@@ -156,6 +166,7 @@ def main():
     if args.object:
         Options.object = args.object
     Options.match = args.match
+    Options.constellation = args.constellation
 
     verbose(f"query catalog {args.catalog}")
     query_vizier(args.catalog, columns)
