@@ -98,3 +98,10 @@ queryvizier: output columns = ['alpha', 'delta', 'id', 'diameter']
 ```
 
 Catalog excerpt with cometary globules (CGs)
+
+```
+> .\queryvizier.py --constellation -C -o .\cat\CGs-constellation.csv -v --columns Names,RAJ2000,DEJ2000 --replace-comma=" / 
+" -m "CG\d+[A-Z]* DN" -l 'J/A+A/383/631'
+```
+
+Catalog excerpt with cometary globules (CGs) and added constellation names
