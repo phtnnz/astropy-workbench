@@ -63,6 +63,17 @@ def ra_from_lst_ha(lst: Angle, ha: Angle) -> Angle:
 
 
 
+def coord_to_string(coord: SkyCoord) -> str:
+    """
+    Format SkyCoord as string
+
+    :param coord: coordinates object
+    :type coord: SkyCoord
+    :return: _description_
+    :rtype: str
+    """
+    return ra_dec_to_string(coord.ra, coord.dec)
+
 def ra_dec_to_string(ra: Angle, dec: Angle) -> str:
     """
     Format RA and DEC as string
