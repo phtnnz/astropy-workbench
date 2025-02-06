@@ -18,6 +18,10 @@
 # Version 0.1 / 2025-01-30
 #       First steps with astroplan
 
+VERSION = "0.1 / 2025-01-30"
+AUTHOR  = "Martin Junius"
+NAME    = "plot-sky"
+
 import sys
 import argparse
 from datetime import datetime, timezone
@@ -46,11 +50,7 @@ from astroplan.plots import plot_airmass, plot_altitude, plot_sky, plot_finder_i
 
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import get_location, get_coord
-
-VERSION = "0.1 / 2025-01-30"
-AUTHOR  = "Martin Junius"
-NAME    = "plot-sky"
+from astroutils import get_location, get_coord, coord_to_string
 
 
 
@@ -117,6 +117,7 @@ def main():
     for obj in args.object:
         coord = get_coord(obj, True)
         target = FixedTarget(name=obj, coord=coord)
+        verbose(f"{coord_to_string(coord)}")
         ic(target)
 
         midnight = observer.midnight(time, which="next")
@@ -124,14 +125,17 @@ def main():
         verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
         time = midnight
 
+        ic("plot_altitude")
         plot_altitude(target, observer, time, brightness_shading=True)
         plt.savefig("tmp/plot-sky1.png", bbox_inches="tight")
         plt.close()
 
+        ic("plot_airmass")
         plot_airmass(target, observer, time, brightness_shading=True, altitude_yaxis=True)
         plt.savefig("tmp/plot-sky2.png", bbox_inches="tight")
         plt.close()
 
+        ic("plot_sky")
         time = time + np.linspace(-4, 5, 10)*u.hour
         plot_sky(target, observer, time)
         # plt.legend(loc='center left', bbox_to_anchor=(1.25, 0.5))
