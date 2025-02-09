@@ -51,6 +51,10 @@ NAME    = "mpclocation"
 # R_earth = C.R_earth.to_value(u.m) # astropy.contants not precise enough!
 R_earth = 6378137.0                 # GRS 80/WGS 84 value (Wikipedia)
                                     # https://en.wikipedia.org/wiki/World_Geodetic_System
+# R_earth = 6378136.6               # UNITED STATES NAVAL OBSERVATORY, CIRCULAR NO. 179, 2005
+                                    # The IAU Resolutions on Astronomical Reference Systems,
+                                    # Time Scales, and Earth Rotation Models
+                                    # https://aa.usno.navy.mil/downloads/Circular_179.pdf
 
 
 
