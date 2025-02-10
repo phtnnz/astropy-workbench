@@ -29,6 +29,7 @@ import numpy as np
 # AstroPy
 import astropy.constants as const
 import astropy.units as u
+from astropy.units import imperial
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -58,6 +59,13 @@ def test():
     message("eps0  = ", eps0)
     message("mu0   = ", mu0)
     message("1 / (eps0 * mu0)  = ", c2_2b)
+
+    # Some fun ...
+    message("A bit less serious ... ;-)")
+    furlong = 1/8 * imperial.mile
+    fortnight = 14 * u.d
+    f_p_f = furlong / fortnight
+    message("1 furlong / fortnight  = ", f_p_f, " = ", f_p_f.to(u.m / u.d), " = ", f_p_f.to(u.m / u.s))
 
     
 
