@@ -112,6 +112,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-t", "--time", help="time (UTC) for JNOW coordinates, default now")
     arg.add_argument("-l", "--location", help="coordinates, named location or MPC station code")
+    arg.add_argument("-e", "--ephemeris", help="use EPHEMERIS (e.g. JPL \"de430\"), default \"builtin\"")
     arg.add_argument("object", nargs="+", help="solar system body")
 
     args = arg.parse_args()
@@ -136,8 +137,10 @@ def main():
         time = Time(Time.now(), location=loc)
     ic(time)
 
-    # Ephemeris, TODO: add option for JPL
-    solar_system_ephemeris.set('builtin')
+    # Ephemeris
+    ephemeris = args.ephemeris or "builtin"
+    verbose(f"using {ephemeris} ephemeris")
+    solar_system_ephemeris.set(ephemeris)
 
     for obj in args.object:
         verbose(f"object {obj}")
