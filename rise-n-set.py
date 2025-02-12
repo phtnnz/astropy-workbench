@@ -16,7 +16,11 @@
 
 # ChangeLog
 # Version 0.1 / 2025-01-27
-#       First steps with astroplan
+#       Sun/Moon rise/set with astroplan
+
+VERSION = "0.1 / 2025-01-27"
+AUTHOR  = "Martin Junius"
+NAME    = "rise-n-set"
 
 import sys
 import argparse
@@ -31,24 +35,16 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord, CartesianRepresentation
-from astropy.coordinates import ICRS, GCRS, PrecessedGeocentric, FK4, FK5, HADec  # Low-level frames
-from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-from astropy.coordinates import errors
+from astropy.coordinates import EarthLocation
 import astropy.units as u
-from astropy.time        import Time, TimeDelta
-import numpy as np
+from astropy.time        import Time
 
 # Astroplan
 from astroplan import Observer
 
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location
-
-VERSION = "0.1 / 2025-01-27"
-AUTHOR  = "Martin Junius"
-NAME    = "rise-n-set"
+from astroutils import get_location
 
 
 
