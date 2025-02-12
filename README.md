@@ -41,7 +41,9 @@ published in A&AS 143, 23
 Query VizieR catalog
 
 ```
-usage: queryvizier [-h] [-v] [-d] [--columns COLUMNS] [-n ROW_LIMIT] [-f] [-C] [-o OUTPUT] [--replace-comma REPLACE_COMMA] catalog
+usage: queryvizier [-h] [-v] [-d] [--columns COLUMNS] [-n ROW_LIMIT] [-f] [-C] [-l] [-o OUTPUT] [--replace-comma REPLACE_COMMA] [--object OBJECT] [-m MATCH]
+                   [--constellation]
+                   catalog
 
 Query VizieR catalog
 
@@ -57,12 +59,17 @@ options:
                         number of rows to retrieve, default unlimited
   -f, --ra-dec-float    output RA/DEC as float degrees
   -C, --csv             CSV output
+  -l, --locale          set locale for CSV output
   -o OUTPUT, --output OUTPUT
                         output file
   --replace-comma REPLACE_COMMA
                         replace "," in field with REPLACE_COMMA
+  --object OBJECT       query specific object, default ""=all, no wildcards
+  -m MATCH, --match MATCH
+                        output rows containing regex MATCH only
+  --constellation       get and output constellation as an extra column
 
-Version 0.2 / 2025-01-06 / Martin Junius
+Version 0.4 / 2025-02-05 / Martin Junius
 ```
 
 
