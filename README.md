@@ -112,3 +112,27 @@ Catalog excerpt with cometary globules (CGs)
 ```
 
 Catalog excerpt with cometary globules (CGs) and added constellation names
+
+
+## References
+
+https://arxiv.org/abs/astro-ph/0602086  
+https://aa.usno.navy.mil/downloads/Circular_179.pdf
+
+The IAU Resolutions on Astronomical Reference Systems, Time Scales, and Earth Rotation Models  
+Explanation and Implementation  
+by George H. Kaplan
+
+http://www.iausofa.org/cookbooks.html  
+http://www.iausofa.org/sofa_pn_c.pdf  
+http://www.iausofa.org/sofa_ts_c.pdf
+
+International Astronomical Union, Standards of Fundamental Astronomy
+
+SOFA Tools for Earth Attitude  
+Software version 18  
+Document revision 1.7
+
+SOFA Time Scale and Calendar Tools  
+Software version 18  
+Document revision 1.63
