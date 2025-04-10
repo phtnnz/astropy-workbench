@@ -183,8 +183,8 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
     altaz = hadec_jnow.transform_to( AltAz(obstime=time, location=loc) )
     altaz_w_refraction = hadec_jnow_w_refraction.transform_to( AltAz(obstime=time, location=loc) )
     ic(altaz, altaz_w_refraction)
-    verbose(f"Alt={angle_to_string(altaz.alt)} Az={angle_to_string(altaz.az)}")
-    verbose(f"w/refr Alt={angle_to_string(altaz_w_refraction.alt)} Az={angle_to_string(altaz_w_refraction.az)}")
+    verbose(f"Alt={angle_to_string(altaz.alt, decimal=True)} Az={angle_to_string(altaz.az, decimal=True)}")
+    verbose(f"w/refr Alt={angle_to_string(altaz_w_refraction.alt, decimal=True)} Az={angle_to_string(altaz_w_refraction.az, decimal=True)}")
 
     # Calculate parallactic angle https://en.wikipedia.org/wiki/Parallactic_angle 
     # Based on https://github.com/lsst-ts/ts_observatory_control/blob/develop/python/lsst/ts/observatory/control/utils/utils.py
@@ -197,7 +197,7 @@ def coord_to_jnow_altaz(obj: str, loc: EarthLocation, time: Time):
                            (np.tan(loc.lat.radian) * np.cos(coord.dec.radian) 
                             - np.sin(hadec_jnow.dec.radian) * np.cos(H))             ), u.rad).to(u.deg)
     ic(q)
-    verbose(f"parallactic angle={angle_to_string(q)}")
+    verbose(f"parallactic angle={angle_to_string(q, decimal=True)}")
 
 
 
