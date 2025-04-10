@@ -87,16 +87,18 @@ def ra_dec_to_string(ra: Angle, dec: Angle) -> str:
     """
     return f"RA={ra.to_string(unit=u.hour, precision=2)} DEC={dec.to_string(unit=u.degree, precision=2)}"
 
-def angle_to_string(a: Angle) -> str:
+def angle_to_string(a: Angle, decimal: bool=False) -> str:
     """
     Format angle as string
 
     :param a: angle
     :type a: Angle
+    :param decimal: flag for decimal output, default False
+    :type decimal: bool
     :return: formatted string angle in degrees, minutes, seconds
     :rtype: str
     """
-    return f"{a.to_string(unit=u.degree, precision=2)}"
+    return f"{a.to_string(unit=u.degree, decimal=decimal, precision=2)}"
 
 def hourangle_to_string(a: Angle) -> str:
     """
