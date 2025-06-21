@@ -17,8 +17,10 @@
 # ChangeLog
 # Version 0.1 / 2025-01-27
 #       Sun/Moon rise/set with astroplan
+# Version 0.2 / 2025-06-21
+#       Added civil/nautical/astronomical dusk/dawn
 
-VERSION = "0.1 / 2025-01-27"
+VERSION = "0.2 / 2025-06-21"
 AUTHOR  = "Martin Junius"
 NAME    = "rise-n-set"
 
@@ -123,6 +125,29 @@ def main():
     verbose(f"nearest sun rise:  {dt_sun_rise.strftime(format)}  {dt_sun_rise_local.strftime(format)}")
     verbose(f"nearest sun set:   {dt_sun_set.strftime(format)}  {dt_sun_set_local.strftime(format)}")
 
+    dt_c_dusk = observer.twilight_evening_civil(time).to_datetime(timezone=timezone.utc)
+    dt_n_dusk = observer.twilight_evening_nautical(time).to_datetime(timezone=timezone.utc)
+    dt_a_dusk = observer.twilight_evening_astronomical(time).to_datetime(timezone=timezone.utc)
+    dt_c_dusk_local = dt_c_dusk.astimezone(tz)
+    dt_n_dusk_local = dt_n_dusk.astimezone(tz)
+    dt_a_dusk_local = dt_a_dusk.astimezone(tz)
+    ic(dt_a_dusk, dt_n_dusk, dt_c_dusk)
+    ic(dt_a_dusk_local, dt_n_dusk_local, dt_c_dusk_local)
+    verbose(f"nearest civil dusk {dt_c_dusk.strftime(format)}  {dt_c_dusk_local.strftime(format)}")
+    verbose(f"nearest naut. dusk {dt_n_dusk.strftime(format)}  {dt_n_dusk_local.strftime(format)}")
+    verbose(f"nearest astr. dusk {dt_a_dusk.strftime(format)}  {dt_a_dusk_local.strftime(format)}")
+
+    dt_c_dawn = observer.twilight_morning_civil(time).to_datetime(timezone=timezone.utc)
+    dt_n_dawn = observer.twilight_morning_nautical(time).to_datetime(timezone=timezone.utc)
+    dt_a_dawn = observer.twilight_morning_astronomical(time).to_datetime(timezone=timezone.utc)
+    dt_c_dawn_local = dt_c_dawn.astimezone(tz)
+    dt_n_dawn_local = dt_n_dawn.astimezone(tz)
+    dt_a_dawn_local = dt_a_dawn.astimezone(tz)
+    ic(dt_a_dawn, dt_n_dawn, dt_c_dawn)
+    ic(dt_a_dawn_local, dt_n_dawn_local, dt_c_dawn_local)
+    verbose(f"nearest civil dawn {dt_c_dawn.strftime(format)}  {dt_c_dawn_local.strftime(format)}")
+    verbose(f"nearest naut. dawn {dt_n_dawn.strftime(format)}  {dt_n_dawn_local.strftime(format)}")
+    verbose(f"nearest astr. dawn {dt_a_dawn.strftime(format)}  {dt_a_dawn_local.strftime(format)}")
 
 
 if __name__ == "__main__":
