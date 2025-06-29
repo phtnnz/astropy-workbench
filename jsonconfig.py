@@ -29,6 +29,8 @@
 #       Added code for getting the path of Windows' Documents directory
 # Version 0.5 / 2024-08-28
 #       New method .info(), verbose output of config filename and top-level keys
+# Version 0.6 / 2025-06-29
+#       Method .get() now supports nested keys, e.g. config.get("main", "sub", "setting")
 
 import os
 import sys
@@ -46,7 +48,7 @@ from verbose import verbose, warning, error
 
 
 
-VERSION = "0.5 / 2024-08-28"
+VERSION = "0.6 / 2025-06-29"
 AUTHOR  = "Martin Junius"
 NAME    = "JSONConfig"
 
@@ -143,8 +145,13 @@ class JSONConfig:
             json.dump(self.config, f, indent = 2)
 
 
-    def get(self, key):
-        return self.config[key] if key in self.config else None
+    def get(self, *keys):
+        cf = self.config
+        for k in keys:
+            cf = cf.get(k)
+            if not cf:
+                return None
+        return cf
 
 
     def get_keys(self):
