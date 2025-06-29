@@ -38,7 +38,8 @@ from jsonconfig import JSONConfig
 # AstroPy
 from astropy.coordinates import SkyCoord, get_constellation
 import astropy.units as u
-from astropy.table import Table, Row
+from astropy import wcs
+from astropy.io import fits
 
 # Astroquery
 from astroquery.astrometry_net import AstrometryNet
@@ -104,7 +105,7 @@ def main():
 
     ic(wcs_header)
     if wcs_header:
-        # Sucessful
+        # Successful, wcs_header is of type astropy.io.fits.Header
         center_ra  = wcs_header["CRVAL1"]
         center_dec = wcs_header["CRVAL2"]
         center_x   = wcs_header["CRPIX1"]
@@ -121,6 +122,10 @@ def main():
                 cpu_time = comment[len("cpu time: "):]
 
         verbose(f"center RA={center_ra} DEC={center_dec} pos={center_x}({image_w})/{center_y}({image_h}) {scale} cpu={cpu_time}")
+
+        # Convert to WCS
+        w = wcs.WCS(wcs_header)
+        ic(w, w.wcs, w.wcs.name)
     else:
         # Code to execute when solve fails
         warning("plate solve failed")
