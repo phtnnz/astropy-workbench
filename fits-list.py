@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024 Martin Junius
+# Copyright 2024-2025 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 # ChangeLog
 # Version 0.1 / 2024-12-16
 #       First version
+# Version 0.2 / 2025-06-30
+#       Added -a --all / -l --list options
 
 import sys
 import argparse
@@ -31,10 +33,10 @@ ic.disable()
 from astropy.io import fits
 
 # Local modules
-from verbose import verbose, warning, error
+from verbose import verbose, warning, error, message
 from csvoutput import csv_output
 
-VERSION = "0.1 / 2024-12-16"
+VERSION = "0.2 / 2025-06-30"
 AUTHOR  = "Martin Junius"
 NAME    = "fits-list"
 
@@ -50,6 +52,8 @@ class Options:
                     # -H --header
     csv = False     # -C --csv
     output = None   # -o --output
+    all = False     # -a --all
+    list = False    # -l --list
 
 
 
@@ -68,8 +72,20 @@ def process_fits(file: str):
         hdr = hdul[0].header
         ic(list(hdr.keys()))
 
-        value_verbose = [ f"{h}={hdr.get(h)}" for h in Options.hdr_list ]
-        value_list = [ hdr.get(h) for h in Options.hdr_list ]
+        if Options.list:
+            if verbose.enabled:
+                verbose(f"keywords={", ".join(hdr.keys())}")
+            else:
+                message(f"FITS file {file}")
+                message(f"keywords={", ".join(hdr.keys())}")
+            # list only, no keyword/value output
+            return
+        elif Options.all:
+            value_verbose = [ f"{h}={hdr.get(h)}" for h in hdr.keys() ]
+            value_list = [ hdr.get(h) for h in hdr.keys() ]
+        else:
+            value_verbose = [ f"{h}={hdr.get(h)}" for h in Options.hdr_list ]
+            value_list = [ hdr.get(h) for h in Options.hdr_list ]
 
         verbose(f"  {", ".join(value_verbose)}")
         if Options.csv:
@@ -126,6 +142,8 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-H", "--header", help=f"show image headers in HEADER list, \"+\" adds, (default {",".join(Options.hdr_list)})")
+    arg.add_argument("-a", "--all", action="store_true", help="output all headers")
+    arg.add_argument("-l", "--list", action="store_true", help="list all header keywords")
     arg.add_argument("-C", "--csv", action="store_true", help="output CSV list")
     arg.add_argument("-o", "--output", help="write CSV to file OUTPUT (default: stdout)")
     arg.add_argument("fits", nargs="+", help="FITS filename or directory")
@@ -150,6 +168,8 @@ def main():
             Options.hdr_list = h.split(",")
     Options.csv = args.csv
     Options.output = args.output
+    Options.all = args.all
+    Options.list = args.list
 
     # ... the action starts here ...
     init_csv_output()
