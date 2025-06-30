@@ -18,7 +18,7 @@
 # Version 0.1 / 2024-12-16
 #       First version
 # Version 0.2 / 2025-06-30
-#       Added -a --all / -l --list options
+#       Added -a --all / -L --list / -l --locale options
 
 import sys
 import argparse
@@ -49,12 +49,12 @@ class Options:
     """
     hdr_list = ["OBJECT", "DATE-OBS", "RA", "DEC", "CENTALT", "CENTAZ", 
                 "IMAGETYP", "FILTER", "EXPOSURE"]
-                    # -H --header
-    csv = False     # -C --csv
-    output = None   # -o --output
-    all = False     # -a --all
-    list = False    # -l --list
-
+                        # -H --header
+    csv = False         # -C --csv
+    output = None       # -o --output
+    all = False         # -a --all
+    list = False        # -L --list
+    set_locale = False  # -l --locale
 
 
 def process_fits(file: str):
@@ -121,7 +121,6 @@ def init_csv_output():
     Initialize CSV output
     """
     if Options.csv:
-        csv_output.set_default_locale()
         csv_output.add_fields(Options.hdr_list)
         csv_output.set_float_format("%.6f")
 
@@ -130,7 +129,7 @@ def write_csv_output():
     Write CSV output
     """
     if Options.csv:
-        csv_output.write(Options.output)
+        csv_output.write(Options.output, Options.set_locale)
 
 
 
@@ -142,9 +141,10 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-H", "--header", help=f"show image headers in HEADER list, \"+\" adds, (default {",".join(Options.hdr_list)})")
-    arg.add_argument("-a", "--all", action="store_true", help="output all headers")
-    arg.add_argument("-l", "--list", action="store_true", help="list all header keywords")
+    arg.add_argument("-a", "--all", action="store_true", help="output all headers (not with CSV)")
+    arg.add_argument("-L", "--list", action="store_true", help="list all header keywords")
     arg.add_argument("-C", "--csv", action="store_true", help="output CSV list")
+    arg.add_argument("-l", "--locale", action="store_true", help="set locale for CSV output")
     arg.add_argument("-o", "--output", help="write CSV to file OUTPUT (default: stdout)")
     arg.add_argument("fits", nargs="+", help="FITS filename or directory")
 
@@ -170,8 +170,11 @@ def main():
     Options.output = args.output
     Options.all = args.all
     Options.list = args.list
+    Options.set_locale = args.locale
 
-    # ... the action starts here ...
+    if Options.csv and Options.all:
+        error("can't combine --all and --csv options")
+
     init_csv_output()
     for fits in args.fits:
         # quick hack: Windows PowerShell adds a stray " to the end of dirname 
