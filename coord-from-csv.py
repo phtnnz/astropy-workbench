@@ -18,6 +18,10 @@
 # Version 0.1 / 2025-06-30
 #       Coord conversion using positions from CSV file, based on coord-jnow.py 0.3
 
+VERSION = "0.1 / 2025-06-30"
+AUTHOR  = "Martin Junius"
+NAME    = "coord-from-csv"
+
 import sys
 import argparse
 import csv
@@ -38,17 +42,20 @@ import numpy as np
 
 # Local modules
 from verbose import verbose, warning, error, message
-from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location
+from csvoutput import csv_output
 
-VERSION = "0.1 / 2025-06-30"
-AUTHOR  = "Martin Junius"
-NAME    = "coord-from-csv"
+from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location
 
 
 
 # Command line options
 class Options:
-    pass
+    """
+    Global options
+    """
+    csv = False         # -C --csv
+    output = None       # -o --output
+    set_locale = False  # -l --locale
 
 
 
@@ -88,7 +95,11 @@ def coord_to_jnow_altaz(ra: float, dec: float, loc: EarthLocation, date_obs: str
     az        = float(altaz.az.degree)
 
     # message(f"{date_obs=} {ra_j2000=}, {dec_j2000=}, {ra_jnow=}, {dec_jnow=}, {alt=}, {az=}")
-    message(f"{date_obs=} {ra_j2000=}, {dec_j2000=}, {alt=}, {az=}")
+    message(f"{date_obs=}, {ra_j2000=}, {dec_j2000=}, {alt=}, {az=}")
+
+    if Options.csv:
+        csv_output(fields=[ "date_obs", "ra_j2000", "dec_j2000", "alt", "az" ])
+        csv_output(row=[ date_obs, ra_j2000, dec_j2000, alt, az ])
 
 
 
@@ -125,7 +136,11 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("-l", "--location", help="named location or MPC station code")
+    arg.add_argument("-L", "--location", help="named location or MPC station code")
+    arg.add_argument("-C", "--csv", action="store_true", help="output CSV list")
+    arg.add_argument("-l", "--locale", action="store_true", help="set locale for CSV output")
+    arg.add_argument("-o", "--output", help="write CSV to file OUTPUT (default: stdout)")
+
     arg.add_argument("csvfile", nargs="+", help="input CSV file")
 
     args = arg.parse_args()
@@ -138,6 +153,10 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
+    Options.csv = args.csv
+    Options.output = args.output
+    Options.set_locale = args.locale
+
     # Default location is Hakos, Namibia for personal reasons ;-)
     loc      = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1853*u.m)
     if args.location:
@@ -146,6 +165,10 @@ def main():
 
     for csvfile in args.csvfile:
         process_csv(loc, csvfile)
+
+    if Options.csv:
+        csv_output.set_float_format("%.6f")
+        csv_output.write(Options.output, Options.set_locale)
 
 
 
