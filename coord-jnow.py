@@ -226,7 +226,7 @@ def main():
         verbose.enable()
 
     # Default location is Hakos, Namibia for personal reasons ;-)
-    loc      = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1825*u.m)
+    loc      = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1853*u.m)
     if args.location:
         loc = get_location(args.location)
     ic(loc, loc.to_geodetic())
