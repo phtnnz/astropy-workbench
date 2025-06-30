@@ -212,7 +212,7 @@ def main():
     arg.add_argument("-j", "--j2000", action="store_true", help="object coordinates FK5/J2000, default ICRS")
     arg.add_argument("-t", "--time", help="time (UTC) for JNOW coordinates, default now")
     arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
-    arg.add_argument("-l", "--location", help="named location of MPC station code")
+    arg.add_argument("-l", "--location", help="named location or MPC station code")
     arg.add_argument("object", nargs="*", help="sky coord \"RA DEC\" or object name (-q)")
 
     args = arg.parse_args()

@@ -125,7 +125,7 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("-l", "--location", help="named location of MPC station code")
+    arg.add_argument("-l", "--location", help="named location or MPC station code")
     arg.add_argument("csvfile", nargs="+", help="input CSV file")
 
     args = arg.parse_args()
