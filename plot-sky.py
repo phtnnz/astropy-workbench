@@ -69,6 +69,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-t", "--time", help="time (UTC) for computation, default now")
     arg.add_argument("-l", "--location", help="coordinates, named location or MPC station code")
+    arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
     arg.add_argument("object", nargs="+", help="object name or \"RA DEC\" coordinates")
 
     args = arg.parse_args()
@@ -109,13 +110,13 @@ def main():
     verbose(f"time: {time.to_datetime(timezone=timezone.utc).strftime(format)}")
 
     # test object
-    obj = "03:57:25.611 -46:11:07.57" # SN 2024abfo precise position
-    name = "SN 2024abfo"
-    coord = SkyCoord(obj, unit=(u.hour, u.deg))
-    ic(obj, coord)
+    # obj = "03:57:25.611 -46:11:07.57" # SN 2024abfo precise position
+    # name = "SN 2024abfo"
+    # coord = SkyCoord(obj, unit=(u.hour, u.deg))
+    # ic(obj, coord)
 
     for obj in args.object:
-        coord = get_coord(obj, True)
+        coord = get_coord(obj, args.query_simbad)
         target = FixedTarget(name=obj, coord=coord)
         verbose(f"{coord_to_string(coord)}")
         ic(target)
@@ -125,21 +126,32 @@ def main():
         verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
         time = midnight
 
+        time_interval50 = time + np.linspace(-4, 5, 50)*u.hour
+        time_interval10 = time + np.linspace(-4, 5, 10)*u.hour
+        moon_vals50 = observer.moon_altaz(time_interval50)
+        moon_vals10 = observer.moon_altaz(time_interval10)
+        ic(moon_vals10)
+
         ic("plot_altitude")
-        plot_altitude(target, observer, time, brightness_shading=True)
-        plt.savefig("tmp/plot-sky1.png", bbox_inches="tight")
+        plot_altitude(target, observer, time_interval50, brightness_shading=True)
+        plot_altitude(moon_vals50, observer, time_interval50)
+        l = plt.legend(loc='lower left')
+        l.get_texts()[1].set_text("Moon")
+        plt.tight_layout()
+        plt.savefig("tmp/plot-altitude.png", bbox_inches="tight")
         plt.close()
 
         ic("plot_airmass")
         plot_airmass(target, observer, time, brightness_shading=True, altitude_yaxis=True)
-        plt.savefig("tmp/plot-sky2.png", bbox_inches="tight")
+        plt.savefig("tmp/plot-airmass.png", bbox_inches="tight")
         plt.close()
 
         ic("plot_sky")
-        time = time + np.linspace(-4, 5, 10)*u.hour
-        plot_sky(target, observer, time)
-        # plt.legend(loc='center left', bbox_to_anchor=(1.25, 0.5))
-        plt.savefig("tmp/plot-sky3.png", bbox_inches="tight")
+        plot_sky(target, observer, time_interval10)
+        plot_sky(moon_vals10, observer, time_interval10)
+        l = plt.legend(loc='lower left')
+        l.get_texts()[1].set_text("Moon")
+        plt.savefig("tmp/plot-sky.png", bbox_inches="tight")
         plt.close()
 
         # Doesn't work anymore, see https://github.com/astropy/astroplan/pull/591
