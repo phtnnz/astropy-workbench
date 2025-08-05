@@ -83,7 +83,7 @@ def coord_to_jnow_altaz(ra: float, dec: float, loc: EarthLocation, date_obs: str
     verbose(f"Topocentric JNOW coord  {ra_dec_to_string(ra_mean, hadec_jnow.dec)}")
 
     # Transform to topocentric AltAz
-    altaz = hadec_jnow.transform_to( AltAz(obstime=time, location=loc) )
+    altaz = coord.transform_to( AltAz(obstime=time, location=loc) )
     ic(altaz)
     verbose(f"Alt={angle_to_string(altaz.alt, decimal=True)} Az={angle_to_string(altaz.az, decimal=True)}")
 
@@ -122,7 +122,6 @@ def process_csv(loc: EarthLocation, csvfile: str) -> None:
             if not date_obs:
                 warning("header DATE-OBS not found")
                 continue
-            time = Time(date_obs, location=loc)
 
             ic(date_obs, ra, dec)
             coord_to_jnow_altaz(ra, dec, loc, date_obs)
