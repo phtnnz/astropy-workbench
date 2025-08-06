@@ -17,8 +17,11 @@
 # ChangeLog
 # Version 0.1 / 2025-01-30
 #       First steps with astroplan
+# Version 0.2 / 2025-08-06
+#       Somewhat complete version plotting altitude and sky for
+#       multiple objects
 
-VERSION = "0.1 / 2025-01-30"
+VERSION = "0.2 / 2025-08-06"
 AUTHOR  = "Martin Junius"
 NAME    = "plot-sky"
 
@@ -35,12 +38,9 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord, CartesianRepresentation
-from astropy.coordinates import ICRS, GCRS, PrecessedGeocentric, FK4, FK5, HADec  # Low-level frames
-from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-from astropy.coordinates import errors
+from astropy.coordinates import EarthLocation
 import astropy.units as u
-from astropy.time        import Time, TimeDelta
+from astropy.time        import Time
 import numpy as np
 
 # Astroplan
@@ -125,21 +125,19 @@ def main():
     for obj in args.object:
         if "=" in obj:
             (name, obj) = obj.split("=")
+            verbose(f"object name: {name}")
         else:
             name = obj
         ic(name, obj)
         coord = get_coord(obj, args.query_simbad)
         target = FixedTarget(name=name, coord=coord)
-        verbose(f"object: {coord_to_string(coord)}")
+        verbose(f"object coord: {coord_to_string(coord)}")
         ic(target)
 
         if args.altitude:
-            verbose("altitude plot")
             # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
             plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
         else:
-            verbose("sky plot")
-            # Passing [target, moon_vals_pm5] doesn't work here, when altaz positions are below the horizon
             plot_sky(target, observer, time_interval_pm5)
 
     # Add moon plot and legend
