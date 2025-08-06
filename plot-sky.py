@@ -126,18 +126,14 @@ def main():
         verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
         time = midnight
 
-        time_interval50 = time + np.linspace(-4, 5, 50)*u.hour
-        time_interval10 = time + np.linspace(-4, 5, 10)*u.hour
-        moon_vals50 = observer.moon_altaz(time_interval50)
-        moon_vals10 = observer.moon_altaz(time_interval10)
-        ic(moon_vals10)
-
-        ic("plot_altitude")
-        plot_altitude(target, observer, time_interval50, brightness_shading=True)
-        plot_altitude(moon_vals50, observer, time_interval50)
+        verbose("altitude plot")
+        time_interval_full = time + np.linspace(-8, 8, 160)*u.hour
+        moon_vals_full = observer.moon_altaz(time_interval_full)
+        # Must use fmt="", not marker="none" to avoid warnings from plot_date!
+        ax = plot_altitude([target, moon_vals_full], observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
+        # Set legend for 2nd curve
         plt.legend(loc='lower left').get_texts()[1].set_text("Moon")
         plt.tight_layout()
-        verbose("altitude plot")
         plt.savefig("tmp/plot-altitude.png", bbox_inches="tight")
         plt.close()
 
@@ -146,11 +142,14 @@ def main():
         # plt.savefig("tmp/plot-airmass.png", bbox_inches="tight")
         # plt.close()
 
-        ic("plot_sky")
-        plot_sky(target, observer, time_interval10)
-        plot_sky(moon_vals10, observer, time_interval10)
-        plt.legend(loc='lower left').get_texts()[1].set_text("Moon")
         verbose("sky plot")
+        time_interval_pm5 = time + np.linspace(-5, 5, 11)*u.hour
+        moon_vals_pm5 = observer.moon_altaz(time_interval_pm5)
+        ic(time_interval_pm5, moon_vals_pm5)
+        # Passing [target, moon_vals_pm5] doesn't work here, when altaz positions are below the horizon
+        plot_sky(target, observer, time_interval_pm5)
+        plot_sky(moon_vals_pm5, observer, time_interval_pm5)
+        plt.legend(loc='lower left').get_texts()[1].set_text("Moon")
         plt.savefig("tmp/plot-sky.png", bbox_inches="tight")
         plt.close()
 
