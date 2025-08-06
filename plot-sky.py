@@ -70,6 +70,7 @@ def main():
     arg.add_argument("-t", "--time", help="time (UTC) for computation, default now")
     arg.add_argument("-l", "--location", help="coordinates, named location or MPC station code")
     arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
+    arg.add_argument("-A", "--altitude", action="store_true", help="plot altitude (default: sky)")
     arg.add_argument("object", nargs="+", help="object name or \"RA DEC\" coordinates")
 
     args = arg.parse_args()
@@ -108,58 +109,60 @@ def main():
     format = "%Y-%m-%d %H:%M:%S %Z"
 
     verbose(f"time: {time.to_datetime(timezone=timezone.utc).strftime(format)}")
+    midnight = observer.midnight(time, which="next")
+    ic(midnight)
+    verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
+    time = midnight
 
-    # test object
-    # obj = "03:57:25.611 -46:11:07.57" # SN 2024abfo precise position
-    # name = "SN 2024abfo"
-    # coord = SkyCoord(obj, unit=(u.hour, u.deg))
-    # ic(obj, coord)
+    # Intervals around midnight
+    time_interval_full = time + np.linspace(-8, 8, 160)*u.hour
+    moon_vals_full = observer.moon_altaz(time_interval_full)
+    time_interval_pm5 = time + np.linspace(-5, 5, 11)*u.hour
+    moon_vals_pm5 = observer.moon_altaz(time_interval_pm5)
+    ic(time_interval_pm5, moon_vals_pm5)
 
+    # plot objects
     for obj in args.object:
         coord = get_coord(obj, args.query_simbad)
         target = FixedTarget(name=obj, coord=coord)
         verbose(f"object: {coord_to_string(coord)}")
         ic(target)
 
-        midnight = observer.midnight(time, which="next")
-        ic(midnight)
-        verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
-        time = midnight
+        if args.altitude:
+            verbose("altitude plot")
+            # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
+            plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
+        else:
+            verbose("sky plot")
+            # Passing [target, moon_vals_pm5] doesn't work here, when altaz positions are below the horizon
+            plot_sky(target, observer, time_interval_pm5)
 
-        verbose("altitude plot")
-        time_interval_full = time + np.linspace(-8, 8, 160)*u.hour
-        moon_vals_full = observer.moon_altaz(time_interval_full)
-        # Must use fmt="", not marker="none" to avoid warnings from plot_date!
-        ax = plot_altitude([target, moon_vals_full], observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
-        # Set legend for 2nd curve
+    # Add moon plot and legend
+    if args.altitude:
+        plot_altitude(moon_vals_full, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
+        # Set legend for last curve
         plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
         plt.tight_layout()
-        plt.savefig("tmp/plot-altitude.png", bbox_inches="tight")
-        plt.close()
-
-        # ic("plot_airmass")
-        # plot_airmass(target, observer, time, brightness_shading=True, altitude_yaxis=True)
-        # plt.savefig("tmp/plot-airmass.png", bbox_inches="tight")
-        # plt.close()
-
-        verbose("sky plot")
-        time_interval_pm5 = time + np.linspace(-5, 5, 11)*u.hour
-        moon_vals_pm5 = observer.moon_altaz(time_interval_pm5)
-        ic(time_interval_pm5, moon_vals_pm5)
-        # Passing [target, moon_vals_pm5] doesn't work here, when altaz positions are below the horizon
-        plot_sky(target, observer, time_interval_pm5)
+    else:
         plot_sky(moon_vals_pm5, observer, time_interval_pm5)
         plt.legend(bbox_to_anchor=(0.25,0)).get_texts()[-1].set_text("Moon")
-        plt.savefig("tmp/plot-sky.png", bbox_inches="tight")
-        plt.close()
 
-        # Doesn't work anymore, see https://github.com/astropy/astroplan/pull/591
-        # ax, hdu = plot_finder_image(target)
-        # plt.savefig("tmp/plot-sky4.png", bbox_inches="tight")
-        # plt.close()
+    plt.savefig("tmp/plot.png", bbox_inches="tight")
+    plt.close()
 
-        # not working inside VSCode terminal
-        # plt.show()
+
+    # ic("plot_airmass")
+    # plot_airmass(target, observer, time, brightness_shading=True, altitude_yaxis=True)
+    # plt.savefig("tmp/plot-airmass.png", bbox_inches="tight")
+    # plt.close()
+
+    # Doesn't work anymore, see https://github.com/astropy/astroplan/pull/591
+    # ax, hdu = plot_finder_image(target)
+    # plt.savefig("tmp/plot-sky4.png", bbox_inches="tight")
+    # plt.close()
+
+    # not working inside VSCode terminal
+    # plt.show()
 
 
 
