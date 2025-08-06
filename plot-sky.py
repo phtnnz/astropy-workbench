@@ -132,7 +132,7 @@ def main():
         # Must use fmt="", not marker="none" to avoid warnings from plot_date!
         ax = plot_altitude([target, moon_vals_full], observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
         # Set legend for 2nd curve
-        plt.legend(loc='lower left').get_texts()[1].set_text("Moon")
+        plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
         plt.tight_layout()
         plt.savefig("tmp/plot-altitude.png", bbox_inches="tight")
         plt.close()
@@ -149,7 +149,7 @@ def main():
         # Passing [target, moon_vals_pm5] doesn't work here, when altaz positions are below the horizon
         plot_sky(target, observer, time_interval_pm5)
         plot_sky(moon_vals_pm5, observer, time_interval_pm5)
-        plt.legend(loc='lower left').get_texts()[1].set_text("Moon")
+        plt.legend(bbox_to_anchor=(0.25,0)).get_texts()[-1].set_text("Moon")
         plt.savefig("tmp/plot-sky.png", bbox_inches="tight")
         plt.close()
 
