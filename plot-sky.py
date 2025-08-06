@@ -71,7 +71,7 @@ def main():
     arg.add_argument("-l", "--location", help="coordinates, named location or MPC station code")
     arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
     arg.add_argument("-A", "--altitude", action="store_true", help="plot altitude (default: sky)")
-    arg.add_argument("object", nargs="+", help="object name or \"RA DEC\" coordinates")
+    arg.add_argument("object", nargs="+", help="object name (-q required) or [name=]\"RA DEC\" coordinates")
 
     args = arg.parse_args()
 
@@ -123,8 +123,13 @@ def main():
 
     # plot objects
     for obj in args.object:
+        if "=" in obj:
+            (name, obj) = obj.split("=")
+        else:
+            name = obj
+        ic(name, obj)
         coord = get_coord(obj, args.query_simbad)
-        target = FixedTarget(name=obj, coord=coord)
+        target = FixedTarget(name=name, coord=coord)
         verbose(f"object: {coord_to_string(coord)}")
         ic(target)
 
