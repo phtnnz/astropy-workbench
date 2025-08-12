@@ -20,8 +20,10 @@
 # Version 0.2 / 2025-08-06
 #       Somewhat complete version plotting altitude and sky for
 #       multiple objects
+# Version 0.3 / 2025-08-12
+#       Added support for CSV list with objects, improved plots
 
-VERSION = "0.2 / 2025-08-06"
+VERSION = "0.3 / 2025-08-12"
 AUTHOR  = "Martin Junius"
 NAME    = "plot-sky"
 
@@ -183,8 +185,8 @@ def main():
         # plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
         # plt.tight_layout()
     else:
-        plot_sky(moon_vals_pm5, observer, time_interval_pm5)
-        plt.legend(bbox_to_anchor=(0.25,0)).get_texts()[-1].set_text("Moon")
+        plot_sky(moon_vals_pm5, observer, time_interval_pm5, style_kwargs=dict(color="y", marker="x"))
+        plt.legend(bbox_to_anchor=(1.48, 1.11)).get_texts()[-1].set_text("Moon")
 
     plt.savefig("tmp/plot.png", bbox_inches="tight")
     plt.close()
