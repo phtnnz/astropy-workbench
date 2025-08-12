@@ -148,7 +148,7 @@ def main():
 
                 if args.altitude:
                     # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
-                    plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs=dict(fmt=""))
+                    plot_altitude(target, observer, time_interval_full, style_kwargs=dict(fmt=""))
                 else:
                     plot_sky(target, observer, time_interval_pm5)
 
@@ -171,7 +171,7 @@ def main():
 
         if args.altitude:
             # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
-            plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs=dict(fmt=""))
+            plot_altitude(target, observer, time_interval_full, style_kwargs=dict(fmt=""))
         else:
             plot_sky(target, observer, time_interval_pm5)
 
