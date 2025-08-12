@@ -162,12 +162,17 @@ def get_coord(name: str, simbad=False) -> SkyCoord:
     :return: coordinates object
     :rtype: SkyCoord
     """
-    if simbad:
-        # Query object name
-        coord = query_simbad(name, w_velocity=False)
-    else:
-        # ICRS coord
+    # Try ICRS coords first
+    try:
         coord = SkyCoord(name, unit=(u.hour, u.deg))
+    except ValueError:
+        ic("not ra/dec coordinates")
+        coord = None
+        pass
+
+    # Try to query Simbad for object name
+    if not coord and simbad:
+        coord = query_simbad(name, w_velocity=False)
 
     ic(name, coord)
     return coord;
