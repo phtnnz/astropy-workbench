@@ -71,6 +71,10 @@ def query_simbad(obj: str, w_velocity: bool=True) -> SkyCoord:
     ic(result)
     ic(result.info)
 
+    # Object not found
+    if not result:
+        return None
+    
     id       = result["main_id"][0]
     id_u     = result["main_id"].unit
     ra       = result["ra"][0]
