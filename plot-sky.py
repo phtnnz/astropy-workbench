@@ -130,6 +130,10 @@ def main():
             name = obj
         ic(name, obj)
         coord = get_coord(obj, args.query_simbad)
+        if not coord:
+            warning(f"{obj} not a coordinate or not found (--query-simbad)")
+            continue
+
         target = FixedTarget(name=name, coord=coord)
         verbose(f"object coord: {coord_to_string(coord)}")
         ic(target)
