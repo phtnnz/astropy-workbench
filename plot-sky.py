@@ -27,6 +27,7 @@ NAME    = "plot-sky"
 
 import sys
 import argparse
+import csv
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 # Required on Windows
@@ -71,7 +72,8 @@ def main():
     arg.add_argument("-l", "--location", help="coordinates, named location or MPC station code")
     arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
     arg.add_argument("-A", "--altitude", action="store_true", help="plot altitude (default: sky)")
-    arg.add_argument("object", nargs="+", help="object name (-q required) or [name=]\"RA DEC\" coordinates")
+    arg.add_argument("-f", "--file", help="read list of objects from file")
+    arg.add_argument("object", nargs="*", help="object name (-q required) or [name=]\"RA DEC\" coordinates")
 
     args = arg.parse_args()
 
@@ -121,7 +123,36 @@ def main():
     moon_vals_pm5 = observer.moon_altaz(time_interval_pm5)
     ic(time_interval_pm5, moon_vals_pm5)
 
-    # plot objects
+    # plot objects from file
+    if args.file:
+        with open(args.file, newline="") as file:
+            line = file.readline()
+            sep = ";" if ";" in line else ","
+            file.seek(0)
+            reader = csv.DictReader(file, delimiter=sep)
+            for row in reader:
+                name = row.get("Name") or row.get("name")
+                ra   = row.get("RA") or row.get("ra") or row.get("RAJ2000")
+                dec  = row.get("DE") or row.get("DEC") or row.get("de") or row.get("dec") or row.get("DEJ2000")
+                obj  = f"{ra} {dec}"
+                ic(name, ra, dec, obj)
+
+                coord = get_coord(obj, args.query_simbad)
+                if not coord:
+                    warning(f"{obj} not a coordinate or not found (--query-simbad)")
+                    continue
+
+                verbose(f"object: {name}={coord_to_string(coord, short=True)}")
+                target = FixedTarget(name=name, coord=coord)
+                ic(target)
+
+                if args.altitude:
+                    # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
+                    plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
+                else:
+                    plot_sky(target, observer, time_interval_pm5)
+
+    # plot objects from command line
     for obj in args.object:
         if "=" in obj:
             (name, obj) = obj.split("=")
@@ -146,10 +177,11 @@ def main():
 
     # Add moon plot and legend
     if args.altitude:
-        plot_altitude(moon_vals_full, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
+        plot_altitude(moon_vals_full, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": "y--"})
         # Set legend for last curve
-        plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
-        plt.tight_layout()
+        plt.legend(bbox_to_anchor=(1.0, 1.02)).get_texts()[-1].set_text("Moon")
+        # plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
+        # plt.tight_layout()
     else:
         plot_sky(moon_vals_pm5, observer, time_interval_pm5)
         plt.legend(bbox_to_anchor=(0.25,0)).get_texts()[-1].set_text("Moon")
