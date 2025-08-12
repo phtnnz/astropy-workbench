@@ -148,7 +148,7 @@ def main():
 
                 if args.altitude:
                     # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
-                    plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
+                    plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs=dict(fmt=""))
                 else:
                     plot_sky(target, observer, time_interval_pm5)
 
@@ -171,13 +171,13 @@ def main():
 
         if args.altitude:
             # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
-            plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": ""})
+            plot_altitude(target, observer, time_interval_full, brightness_shading=True, style_kwargs=dict(fmt=""))
         else:
             plot_sky(target, observer, time_interval_pm5)
 
     # Add moon plot and legend
     if args.altitude:
-        plot_altitude(moon_vals_full, observer, time_interval_full, brightness_shading=True, style_kwargs={"fmt": "y--"})
+        plot_altitude(moon_vals_full, observer, time_interval_full, brightness_shading=True, style_kwargs=dict(fmt="y--"))
         # Set legend for last curve
         plt.legend(bbox_to_anchor=(1.0, 1.02)).get_texts()[-1].set_text("Moon")
         # plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
