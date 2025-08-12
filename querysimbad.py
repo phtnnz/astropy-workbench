@@ -91,6 +91,8 @@ def query_simbad(obj: str, w_velocity: bool=True) -> SkyCoord:
         dist_u = u.pc
     elif dist_u.strip() == "Mpc":
         dist_u = u.Mpc
+    elif dist_u.strip() == "kpc":
+        dist_u = u.kpc
     else:
         error(f"query_simbad: unknown distance unit {dist_u}")
     ic(dist, dist_u)
