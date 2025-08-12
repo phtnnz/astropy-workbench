@@ -63,7 +63,7 @@ def ra_from_lst_ha(lst: Angle, ha: Angle) -> Angle:
 
 
 
-def coord_to_string(coord: SkyCoord) -> str:
+def coord_to_string(coord: SkyCoord, short: bool=False) -> str:
     """
     Format SkyCoord as string
 
@@ -72,9 +72,9 @@ def coord_to_string(coord: SkyCoord) -> str:
     :return: _description_
     :rtype: str
     """
-    return ra_dec_to_string(coord.ra, coord.dec)
+    return ra_dec_to_string(coord.ra, coord.dec, short)
 
-def ra_dec_to_string(ra: Angle, dec: Angle) -> str:
+def ra_dec_to_string(ra: Angle, dec: Angle, short: bool=False) -> str:
     """
     Format RA and DEC as string
 
@@ -85,7 +85,10 @@ def ra_dec_to_string(ra: Angle, dec: Angle) -> str:
     :return: formatted string "RA=... DEC=..."
     :rtype: str
     """
-    return f"RA={ra.to_string(unit=u.hour, precision=2)} DEC={dec.to_string(unit=u.degree, precision=2)}"
+    if short:
+        return f"{ra.to_string(unit=u.hour, precision=0)} {dec.to_string(unit=u.degree, precision=0)}"
+    else:
+        return f"RA={ra.to_string(unit=u.hour, precision=2)} DEC={dec.to_string(unit=u.degree, precision=2)}"
 
 def angle_to_string(a: Angle, decimal: bool=False) -> str:
     """
