@@ -160,7 +160,7 @@ def main():
             ic(loc, loc.to_geodetic(), loc.info)
             verbose(f"station {station}: {loc.info.name}")
             verbose(f"    lon={loc.lon.to_string(unit=u.degree, precision=2)} lat={loc.lat.to_string(unit=u.degree, precision=2)} height={loc.height.to_string(unit=u.m, precision=0)}")
-            verbose(f"    lon={loc.lon.to_string(unit=u.degree, decimal=True, precision=3)}° lat={loc.lat.to_string(unit=u.degree, decimal=True, precision=3)}° height={loc.height.to_string(unit=u.m, precision=0)}")
+            verbose(f"    lon={loc.lon.to_string(unit=u.degree, decimal=True, precision=6)}° lat={loc.lat.to_string(unit=u.degree, decimal=True, precision=6)}° height={loc.height.to_string(unit=u.m, precision=0)}")
 
 
 if __name__ == "__main__":
