@@ -53,7 +53,7 @@ from astroplan.plots import plot_airmass, plot_altitude, plot_sky, plot_finder_i
 
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import get_location, get_coord, coord_to_string
+from astroutils import get_location, get_coord, coord_to_string, location_to_string
 
 
 
@@ -93,6 +93,7 @@ def main():
     if args.location:
         loc = get_location(args.location)
     ic(loc, loc.to_geodetic())
+    verbose(f"location: {location_to_string(loc)}")
 
     if args.time:
         time = Time(args.time, location=loc)
