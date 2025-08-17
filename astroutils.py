@@ -154,6 +154,11 @@ def get_location(name: str) -> EarthLocation:
 
 
 
+def location_to_string(loc: EarthLocation) -> str:
+    return f"lon={loc.to_geodetic().lon.to_string(unit=u.degree, precision=1)} lat={loc.to_geodetic().lat.to_string(unit=u.degree, precision=1)} height={loc.to_geodetic().height.to_string(precision=0)}"
+
+
+
 def get_coord(name: str, simbad=False) -> SkyCoord:
     """
     Get coordinates for object, either by converting "RA DEC" string, or querying Simbad
