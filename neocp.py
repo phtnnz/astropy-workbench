@@ -60,6 +60,35 @@ class Options:
 
 
 
+def sort_by_alt_max_time(table_dict: dict) -> dict:
+    time_dict = {}
+
+    for id, qt in table_dict.items():
+        max_alt = -1
+        max_time = None
+        for row in qt:
+            if row["altaz"].alt.degree > max_alt:
+                max_alt = row["altaz"].alt.degree
+                max_time = row["datetime"]
+        ic(max_alt, max_time)
+        time_dict[id] = max_time
+    
+    # Sort dict by time (item[0] = id, item[1] = time)
+    time_sorted = { id: time for id, time in sorted(time_dict.items(), key=lambda item: item[1]) }
+
+    # Return table_dict sorted by time
+    return { id: table_dict[id] for id in time_sorted.keys() }
+
+
+
+def print_table_dict(table_dict: dict) -> None:
+    for id, qt in table_dict.items():
+        print("------------------------------------------------------------------------------------------------------")
+        print(f"NEOCP {id} ephemerides")
+        print(qt)
+
+
+
 def convert_all_to_qtable(eph_dict: dict) -> dict:
     qtable_dict = {}
     for id, eph in eph_dict.items():
@@ -71,9 +100,6 @@ def convert_all_to_qtable(eph_dict: dict) -> dict:
         if mag > Options.mag_limit * u.mag:
             verbose(f"skipping NEOCP {id=} {mag=}")
             continue
-        verbose("------------------------------------------------------------------------------------------------------")
-        verbose(f"NEOCP {id} ephemerides")
-        print(qt)
         qtable_dict[id] = qt
     return qtable_dict
 
@@ -190,7 +216,8 @@ def main():
         content = file.readlines()
         eph_dict = parse_neocp_eph(content)
         table_dict = convert_all_to_qtable(eph_dict)
-
+        table_dict_sorted = sort_by_alt_max_time(table_dict)
+        print_table_dict(table_dict_sorted)
 
 
 if __name__ == "__main__":
