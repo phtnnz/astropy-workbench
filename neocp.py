@@ -39,6 +39,7 @@ ic.disable()
 # AstroPy
 from astropy.coordinates import SkyCoord, AltAz
 import astropy.units as u
+from astropy.units import Quantity
 from astropy.time        import Time
 import numpy as np
 from astropy.table import QTable
@@ -54,9 +55,43 @@ from astroutils import get_location, get_coord, coord_to_string, location_to_str
 
 
 
+# Exposure times / s
+EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
+
+
 # Command line options
 class Options:
     mag_limit = 20.5        # -L --mag-limit
+    arcsec_tolerance = 3    # Max trail tolerance in arcsec
+    resolution = 1.33       # arcsec / pixel resolution of camera/telescope
+
+
+
+def max_motion(qt: QTable) -> Quantity:
+    max_motion = -1 * u.arcsec / u.min
+    for row in qt:
+        if row["motion"] > max_motion:
+            max_motion = row["motion"]
+    return max_motion
+
+def exp_time_from_motion(motion: Quantity) -> Quantity:
+    exp = Options.arcsec_tolerance * u.arcsec / motion
+    exp_max = EXP_TIMES[0]
+    for exp1 in EXP_TIMES:
+        if exp1 > exp.to(u.s).value:
+            break
+        exp_max = exp1
+    return exp_max * u.s
+
+
+
+def process_objects(table_dict: dict) -> None:
+    for id, qt in table_dict.items():
+        time0 = qt["datetime"][0]
+        alt0  = qt["altaz"][0].alt
+        max_m = max_motion(qt)
+        exp   = exp_time_from_motion(max_m)
+        print(id, time0, alt0, max_m, exp)
 
 
 
@@ -218,6 +253,7 @@ def main():
         table_dict = convert_all_to_qtable(eph_dict)
         table_dict_sorted = sort_by_alt_max_time(table_dict)
         print_table_dict(table_dict_sorted)
+        process_objects(table_dict_sorted)
 
 
 if __name__ == "__main__":
