@@ -16,7 +16,7 @@
 
 # ChangeLog
 # Version 0.0 / 2025-08-25
-#       First attempt at parsing MPC NEOCP ephemerids
+#       First attempt at parsing MPC NEOCP ephemerides
 
 VERSION = "0.0 / 2025-08-25"
 AUTHOR  = "Martin Junius"
@@ -56,13 +56,25 @@ from astroutils import get_location, get_coord, coord_to_string, location_to_str
 
 # Command line options
 class Options:
-    pass
+    mag_limit = 20.5        # -L --mag-limit
+
 
 
 def convert_all_to_qtable(eph_dict: dict) -> dict:
     qtable_dict = {}
     for id, eph in eph_dict.items():
-        qtable_dict[id] = eph_to_qtable(id, eph)
+        qt = eph_to_qtable(id, eph)
+        if len(qt["mag"]) == 0:
+            verbose(f"skipping NEOCP {id=} (empty)")
+            continue
+        mag = qt["mag"][0]
+        if mag > Options.mag_limit * u.mag:
+            verbose(f"skipping NEOCP {id=} {mag=}")
+            continue
+        verbose("------------------------------------------------------------------------------------------------------")
+        verbose(f"NEOCP {id} ephemerides")
+        print(qt)
+        qtable_dict[id] = qt
     return qtable_dict
 
 
@@ -83,19 +95,20 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         # Date       UT      R.A. (J2000) Decl.  Elong.  V        Motion     Object     Sun         Moon        Uncertainty
         #             h m                                      "/min   P.A.  Azi. Alt.  Alt.  Phase Dist. Alt.        
         # 2025 08 26 0400   02 48 19.2 -26 44 25 114.9  19.5    1.79  239.8  064  +81   -17    0.09  133  -38
-        # ^0         ^11    ^18        ^29              ^47   ^53            ^67  ^72                ^93  ^98
+        # ^0         ^11    ^18        ^29              ^46   ^53            ^67  ^72                ^91  ^96
         time      = Time( line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15] )
         coord     = SkyCoord( line[18:28], line[29:38], unit=(u.hour, u.deg) )
-        mag       = float(line[47:51]) * u.mag
+        mag       = float(line[46:50]) * u.mag
         motion    = float(line[53:59].strip()) * u.arcsec / u.min
         altaz     = AltAz(float(line[67:70]) * u.degree, float(line[72:75]) * u.degree)
-        moon_dist = float(line[93:96]) * u.degree
-        moon_alt  = float(line[98:101]) * u.degree
-        ic(time, coord, mag, motion, altaz, moon_dist, moon_alt)
+        moon_dist = float(line[91:94]) * u.degree
+        moon_alt  = float(line[96:99]) * u.degree
+        # ic(time, coord, mag, motion, altaz, moon_dist, moon_alt)
         qt.add_row([ time, coord, mag, motion, altaz, moon_dist, moon_alt ])
 
     ic(qt)
     # qt.write(sys.stdout, format="ascii")
+    return qt
 
 
 
@@ -116,7 +129,7 @@ def parse_neocp_eph(content: list) -> dict:
             code = m.group(1)
             ic(code)
     
-        # <hr> marks start of NEOCP ephemerids
+        # <hr> marks start of NEOCP ephemerides
         m = re.search(r"<p></p><hr><p>", line)
         if m:
             ic(line)
@@ -128,7 +141,7 @@ def parse_neocp_eph(content: list) -> dict:
                 neocp_id = m.group(1)
                 ic(neocp_id)
 
-                # Read lines until </pre>, ephemerids data starts with date
+                # Read lines until </pre>, ephemerides data starts with date
                 neocp_eph[neocp_id] = []
                 while (line := next(content_iter, None).strip()) != None:
                     m = re.match(r"</pre>", line)
@@ -149,11 +162,6 @@ def parse_neocp_eph(content: list) -> dict:
 
                 # Early return, just the 1st entry in the list for debugging
                 # return neocp_eph
-
-                # m = re.match(r"", line)
-                # if m:
-                #     ic(line)
-
     return neocp_eph
 
 
@@ -161,10 +169,11 @@ def parse_neocp_eph(content: list) -> dict:
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
-        description = "Parse NEOCP ephemerids",
+        description = "Parse NEOCP ephemerides",
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
+    arg.add_argument("-L", "--mag-limit", help=f"set mag limit for NEOCP, default {Options.mag_limit}")
     arg.add_argument("resultpage", help="NEOCP query results page (.htm)")
 
     args = arg.parse_args()
