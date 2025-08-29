@@ -37,7 +37,7 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import SkyCoord, AltAz
+from astropy.coordinates import SkyCoord, AltAz, Angle
 import astropy.units as u
 from astropy.units import Quantity
 from astropy.time        import Time
@@ -57,6 +57,40 @@ from astroutils import get_location, get_coord, coord_to_string, location_to_str
 
 # Exposure times / s
 EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
+
+# MPC pages:
+# NEOCP form
+#       https://minorplanetcenter.net/iau/NEO/toconfirm_tabular.html
+# NEOCP list
+#       https://minorplanetcenter.net/iau/NEO/neocp.txt
+# NEOCP query ephemerides
+#       https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi
+#
+# Example request for M49
+# W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
+#
+# W	"a"                 # all objects with ...
+# mb	"-30"           # max brightness (V)
+# mf	"20.5"          # min brightness (V)
+# dl	"-90"           # min DEC
+# du	"+40"           # max DEC
+# nl	"75"            # min NEO score
+# nu	"100"           # max NEO score
+# sort	"d"
+# Parallax	"1"         # 0=geocentric, 1=code, 2=Lon/Lat/Alt
+# obscode	"M49"       # observatory code
+# long	""
+# lat	""
+# alt	""
+# int	"1"             # interval 0=1h, 1=30m, 2=10m, 3=1m
+# start	"0"             # start now + X hours
+# raty	"a"             # format: h=trunc. sexagesimal, a=full, d=decimal
+# mot	"m"             # motion: s="/sec, m="/min, h="/hr, d=degree/day
+# dmot	"p"             # motion: p=total, r=separate RA/DEC coord. mo tion, s=separate RA/DEC sky motion
+# out	"f"             # f=full output, b=brief output
+# sun	"n"             # suppress output: x=never, s=sunset/rise, c=civil, n=nautical, a=astronomical
+# oalt	"26"            # suppress below min altitude
+
 
 
 # Command line options
@@ -148,6 +182,7 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
     qt["coord"]     = SkyCoord(0, 0, unit=(u.hour, u.degree))
     qt["mag"]       = 0 * u.mag
     qt["motion"]    = 0 * u.arcsec / u.min
+    qt["pa"]        = 0 * u.degree
     qt["altaz"]     = AltAz(0 * u.degree, 0 * u.degree)
     qt["moon_dist"] = 0 * u.degree
     qt["moon_alt"]  = 0 * u.degree
@@ -156,16 +191,21 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         # Date       UT      R.A. (J2000) Decl.  Elong.  V        Motion     Object     Sun         Moon        Uncertainty
         #             h m                                      "/min   P.A.  Azi. Alt.  Alt.  Phase Dist. Alt.        
         # 2025 08 26 0400   02 48 19.2 -26 44 25 114.9  19.5    1.79  239.8  064  +81   -17    0.09  133  -38
-        # ^0         ^11    ^18        ^29              ^46   ^53            ^67  ^72                ^91  ^96
+        # ^0         ^11    ^18        ^29              ^46   ^52     ^60    ^67  ^72                ^91  ^96
         time      = Time( line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15] )
         coord     = SkyCoord( line[18:28], line[29:38], unit=(u.hour, u.deg) )
         mag       = float(line[46:50]) * u.mag
-        motion    = float(line[53:59].strip()) * u.arcsec / u.min
-        altaz     = AltAz(float(line[67:70]) * u.degree, float(line[72:75]) * u.degree)
+        motion    = float(line[52:58].strip()) * u.arcsec / u.min
+        pa        = float(line[60:65].strip()) * u. degree
+        # NEOCP ephemerides counts az from S=0 degree, Astropy N=0
+        az        = Angle(float(line[67:70]) * u.degree - 180 * u.degree)
+        az.wrap_at(360 * u.degree, inplace=True)
+        alt       = Angle(float(line[72:75]) * u.degree)
+        altaz     = AltAz(az=az, alt=alt)
         moon_dist = float(line[91:94]) * u.degree
         moon_alt  = float(line[96:99]) * u.degree
         # ic(time, coord, mag, motion, altaz, moon_dist, moon_alt)
-        qt.add_row([ time, coord, mag, motion, altaz, moon_dist, moon_alt ])
+        qt.add_row([ time, coord, mag, motion, pa, altaz, moon_dist, moon_alt ])
 
     ic(qt)
     # qt.write(sys.stdout, format="ascii")
