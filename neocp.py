@@ -26,6 +26,7 @@ import sys
 import argparse
 import csv
 import re
+import requests
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 # Required on Windows
@@ -54,9 +55,12 @@ from verbose import verbose, warning, error
 from astroutils import get_location, get_coord, coord_to_string, location_to_string
 
 
+# Requests timeout
+TIMEOUT = 60
 
 # Exposure times / s
 EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
+
 
 # MPC pages:
 # NEOCP form
@@ -68,28 +72,12 @@ EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
 #
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
-#
-# W	"a"                 # all objects with ...
-# mb	"-30"           # max brightness (V)
-# mf	"20.5"          # min brightness (V)
-# dl	"-90"           # min DEC
-# du	"+40"           # max DEC
-# nl	"75"            # min NEO score
-# nu	"100"           # max NEO score
-# sort	"d"
-# Parallax	"1"         # 0=geocentric, 1=code, 2=Lon/Lat/Alt
-# obscode	"M49"       # observatory code
-# long	""
-# lat	""
-# alt	""
-# int	"1"             # interval 0=1h, 1=30m, 2=10m, 3=1m
-# start	"0"             # start now + X hours
-# raty	"a"             # format: h=trunc. sexagesimal, a=full, d=decimal
-# mot	"m"             # motion: s="/sec, m="/min, h="/hr, d=degree/day
-# dmot	"p"             # motion: p=total, r=separate RA/DEC coord. mo tion, s=separate RA/DEC sky motion
-# out	"f"             # f=full output, b=brief output
-# sun	"n"             # suppress output: x=never, s=sunset/rise, c=civil, n=nautical, a=astronomical
-# oalt	"26"            # suppress below min altitude
+
+URL_NEOCP_PAGE  = "https://minorplanetcenter.net/iau/NEO/toconfirm_tabular.html"
+URL_NEOCP_QUERY = "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi"
+URL_NEOCP_LIST  = "https://minorplanetcenter.net/iau/NEO/neocp.txt"
+LOCAL_QUERY = "downloads/NEOCP-ephemerides.html"
+LOCAL_LIST  = "downloads/NEOCP-list.txt"
 
 
 
@@ -98,8 +86,63 @@ class Options:
     mag_limit = 20.5        # -L --mag-limit
     arcsec_tolerance = 3    # Max trail tolerance in arcsec
     resolution = 1.33       # arcsec / pixel resolution of camera/telescope
-    code = "M49"        # -l --location
+    code = "M49"            # -l --location
     loc = get_location(code)
+
+
+
+def neocp_query_ephemeris(filename: str) -> None:
+    ##FIXME: get from config files
+    url = URL_NEOCP_QUERY
+    data = { 
+        "W":	"a",                    # all objects with ...
+        "mb":	"-30",                  # max brightness (V)
+        "mf":	str(Options.mag_limit), # min brightness (V)
+        "dl":	"-90",      ##   # min DEC
+        "du":	"+40",      ##   # max DEC
+        "nl":	"75",       ##   # min NEO score
+        "nu":	"100",           # max NEO score
+        "sort":	"d",
+        "Parallax":	"1",                # 0=geocentric, 1=code, 2=Lon/Lat/Alt
+        "obscode":	Options.code,       # observatory code
+        "long":	"",
+        "lat":	"",
+        "alt":	"",
+        "int":	"1",             # interval 0=1h, 1=30m, 2=10m, 3=1m
+        "start":"1",        ##   # start now + X hours
+        "raty":	"a",             # format: h=trunc. sexagesimal, a=full, d=decimal
+        "mot":	"m",             # motion: s="/sec, m="/min, h="/hr, d=degree/day
+        "dmot":	"p",             # motion: p=total, r=separate RA/DEC coord. mo tion, s=separate RA/DEC sky motion
+        "out":	"f",             # f=full output, b=brief output
+        "sun":	"n",             # suppress output: x=never, s=sunset/rise, c=civil, n=nautical, a=astronomical
+        "oalt":	"26"        ##   # suppress below min altitude
+    }
+
+    ic(url, data)
+    response = requests.get(url, params=data, timeout=TIMEOUT)
+    ic(response.status_code)
+    if response.status_code != 200:
+        error(f"query to {url} failed")
+
+    with open(filename, mode="w", encoding=response.encoding) as file:
+        file.write(response.text)
+
+
+
+def neocp_query_list(filename: str) -> None:
+    ##FIXME: get from config files
+    url = URL_NEOCP_LIST
+
+    ic(url)
+    response = requests.get(url, timeout=TIMEOUT)
+    ic(response.status_code)
+    if response.status_code != 200:
+        error(f"query to {url} failed")
+
+    with open(filename, mode="w", encoding=response.encoding) as file:
+        file.write(response.text)
+
+
 
 
 def max_motion(qt: QTable) -> Quantity:
@@ -178,7 +221,8 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
     ic(id)
     qt = QTable()
     qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
-    # Initialize columns
+    # Initialize empty columns with proper Quantity type, same as .add_column()
+    # A bit ugly, but I found no other to handle this
     qt["obstime"]   = Time("2000-01-01 00:00")
     qt["ra"]        = 0 * u.hourangle
     qt["dec"]       = 0 * u.degree
@@ -239,12 +283,12 @@ def parse_neocp_eph(content: list) -> dict:
             ic(code)
     
         # <hr> marks start of NEOCP ephemerides
-        m = re.search(r"<p></p><hr><p>", line)
+        m = re.search(r"<p>(?:</p>)?<hr><p>", line)
         if m:
             ic(line)
 
             line = next(content_iter, None).strip()
-            m = re.match(r"</p><p><b>(.+)</b>", line)
+            m = re.match(r"(?:</p>)?<p><b>(.+)</b>", line)
             if m:
                 ic(line)
                 neocp_id = m.group(1)
@@ -285,8 +329,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-L", "--mag-limit", help=f"set mag limit for NEOCP, default {Options.mag_limit}")
     arg.add_argument("-l", "--location", help="MPC station code")
-
-    arg.add_argument("resultpage", help="NEOCP query results page (.htm)")
+    arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
 
     args = arg.parse_args()
 
@@ -305,14 +348,17 @@ def main():
         ic(loc, loc.to_geodetic())
     verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
+    if args.update_neocp:
+        neocp_query_ephemeris(LOCAL_QUERY)
+        neocp_query_list(LOCAL_LIST)
 
-    with open(args.resultpage, "r") as file:
+    with open(LOCAL_QUERY, "r") as file:
         content = file.readlines()
         eph_dict = parse_neocp_eph(content)
         table_dict = convert_all_to_qtable(eph_dict)
-        table_dict_sorted = sort_by_alt_max_time(table_dict)
-        print_table_dict(table_dict_sorted)
-        process_objects(table_dict_sorted)
+        print_table_dict(table_dict)
+        # table_dict_sorted = sort_by_alt_max_time(table_dict)
+        # process_objects(table_dict_sorted)
 
 
 if __name__ == "__main__":
