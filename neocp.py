@@ -37,7 +37,7 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import SkyCoord, AltAz, Angle, EarthLocation
+from astropy.coordinates import SkyCoord, AltAz, Angle, EarthLocation, FK5
 import astropy.units as u
 from astropy.units import Quantity
 from astropy.time        import Time
@@ -122,11 +122,11 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
 
 def process_objects(table_dict: dict) -> None:
     for id, qt in table_dict.items():
-        time0 = qt["datetime"][0]
+        time0 = qt["obstime"][0]
         alt0  = qt["alt"][0]
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
-        print(id, time0, alt0, max_m, exp)
+        ic(id, time0, alt0, max_m, exp)
 
 
 
@@ -139,7 +139,7 @@ def sort_by_alt_max_time(table_dict: dict) -> dict:
         for row in qt:
             if row["alt"] > max_alt:
                 max_alt = row["alt"]
-                max_time = row["datetime"]
+                max_time = row["obstime"]
         ic(max_alt, max_time)
         time_dict[id] = max_time
     
@@ -179,7 +179,7 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
     qt = QTable()
     qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
     # Initialize columns
-    qt["datetime"]  = Time("2000-01-01 00:00")
+    qt["obstime"]   = Time("2000-01-01 00:00")
     qt["ra"]        = 0 * u.hourangle
     qt["dec"]       = 0 * u.degree
     qt["mag"]       = 0 * u.mag
@@ -201,7 +201,7 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         mag       = float(line[46:50]) * u.mag
         motion    = float(line[52:58].strip()) * u.arcsec / u.min
         pa        = float(line[60:65].strip()) * u. degree
-        # NEOCP ephemerides counts az from S=0 degree, Astropy N=0
+        # NEOCP ephemerides counts az from S=0, Astropy N=0
         az        = Angle(float(line[67:70]) * u.degree - 180 * u.degree)
         az.wrap_at(360 * u.degree, inplace=True)
         alt       = Angle(float(line[72:75]) * u.degree)
@@ -209,6 +209,11 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         moon_alt  = float(line[96:99]) * u.degree
         ic(time, ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
         qt.add_row([ time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
+
+        # # Test: compare alt/az in ephemerides to values computed from ra/dec
+        # coord=SkyCoord(ra, dec, frame=FK5, equinox="J2000", obstime=time)
+        # altaz=coord.transform_to(AltAz(obstime=time, location=Options.loc))
+        # ic(alt, az, altaz.alt, altaz.az)                                 
 
     ic(qt)
     # qt.write(sys.stdout, format="ascii")
@@ -264,9 +269,9 @@ def parse_neocp_eph(content: list) -> dict:
                         ic(line)
                         neocp_eph[neocp_id].append(line)
 
-                ##MJ##
+                ##DEBUG##
                 # Early return, just the 1st entry in the list for debugging
-                return neocp_eph
+                # return neocp_eph
     return neocp_eph
 
 
