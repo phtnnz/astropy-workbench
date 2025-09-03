@@ -37,7 +37,7 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import SkyCoord, AltAz, Angle
+from astropy.coordinates import SkyCoord, AltAz, Angle, EarthLocation
 import astropy.units as u
 from astropy.units import Quantity
 from astropy.time        import Time
@@ -98,7 +98,8 @@ class Options:
     mag_limit = 20.5        # -L --mag-limit
     arcsec_tolerance = 3    # Max trail tolerance in arcsec
     resolution = 1.33       # arcsec / pixel resolution of camera/telescope
-
+    code = "M49"        # -l --location
+    loc = get_location(code)
 
 
 def max_motion(qt: QTable) -> Quantity:
@@ -122,7 +123,7 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
 def process_objects(table_dict: dict) -> None:
     for id, qt in table_dict.items():
         time0 = qt["datetime"][0]
-        alt0  = qt["altaz"][0].alt
+        alt0  = qt["alt"][0]
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
         print(id, time0, alt0, max_m, exp)
@@ -133,11 +134,11 @@ def sort_by_alt_max_time(table_dict: dict) -> dict:
     time_dict = {}
 
     for id, qt in table_dict.items():
-        max_alt = -1
+        max_alt = -1 * u.degree
         max_time = None
         for row in qt:
-            if row["altaz"].alt.degree > max_alt:
-                max_alt = row["altaz"].alt.degree
+            if row["alt"] > max_alt:
+                max_alt = row["alt"]
                 max_time = row["datetime"]
         ic(max_alt, max_time)
         time_dict[id] = max_time
@@ -179,11 +180,13 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
     qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
     # Initialize columns
     qt["datetime"]  = Time("2000-01-01 00:00")
-    qt["coord"]     = SkyCoord(0, 0, unit=(u.hour, u.degree))
+    qt["ra"]        = 0 * u.hourangle
+    qt["dec"]       = 0 * u.degree
     qt["mag"]       = 0 * u.mag
     qt["motion"]    = 0 * u.arcsec / u.min
     qt["pa"]        = 0 * u.degree
-    qt["altaz"]     = AltAz(0 * u.degree, 0 * u.degree)
+    qt["alt"]       = 0 * u.degree
+    qt["az"]        = 0 * u.degree
     qt["moon_dist"] = 0 * u.degree
     qt["moon_alt"]  = 0 * u.degree
 
@@ -192,8 +195,9 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         #             h m                                      "/min   P.A.  Azi. Alt.  Alt.  Phase Dist. Alt.        
         # 2025 08 26 0400   02 48 19.2 -26 44 25 114.9  19.5    1.79  239.8  064  +81   -17    0.09  133  -38
         # ^0         ^11    ^18        ^29              ^46   ^52     ^60    ^67  ^72                ^91  ^96
-        time      = Time( line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15] )
-        coord     = SkyCoord( line[18:28], line[29:38], unit=(u.hour, u.deg) )
+        time      = Time(line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15])
+        ra        = Angle(line[18:28], unit=u.hourangle)
+        dec       = Angle(line[29:38], unit=u.deg)
         mag       = float(line[46:50]) * u.mag
         motion    = float(line[52:58].strip()) * u.arcsec / u.min
         pa        = float(line[60:65].strip()) * u. degree
@@ -201,11 +205,10 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         az        = Angle(float(line[67:70]) * u.degree - 180 * u.degree)
         az.wrap_at(360 * u.degree, inplace=True)
         alt       = Angle(float(line[72:75]) * u.degree)
-        altaz     = AltAz(az=az, alt=alt)
         moon_dist = float(line[91:94]) * u.degree
         moon_alt  = float(line[96:99]) * u.degree
-        # ic(time, coord, mag, motion, altaz, moon_dist, moon_alt)
-        qt.add_row([ time, coord, mag, motion, pa, altaz, moon_dist, moon_alt ])
+        ic(time, ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
+        qt.add_row([ time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
 
     ic(qt)
     # qt.write(sys.stdout, format="ascii")
@@ -261,8 +264,9 @@ def parse_neocp_eph(content: list) -> dict:
                         ic(line)
                         neocp_eph[neocp_id].append(line)
 
+                ##MJ##
                 # Early return, just the 1st entry in the list for debugging
-                # return neocp_eph
+                return neocp_eph
     return neocp_eph
 
 
@@ -275,6 +279,8 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-L", "--mag-limit", help=f"set mag limit for NEOCP, default {Options.mag_limit}")
+    arg.add_argument("-l", "--location", help="MPC station code")
+
     arg.add_argument("resultpage", help="NEOCP query results page (.htm)")
 
     args = arg.parse_args()
@@ -286,6 +292,14 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
+
+    if args.location:
+        loc = get_location(args.location)
+        Options.code = args.location
+        Options.loc  = loc
+        ic(loc, loc.to_geodetic())
+    verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
+
 
     with open(args.resultpage, "r") as file:
         content = file.readlines()
