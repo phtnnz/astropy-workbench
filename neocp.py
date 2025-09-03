@@ -40,7 +40,7 @@ ic.disable()
 # AstroPy
 from astropy.coordinates import SkyCoord, AltAz, Angle, EarthLocation, FK5
 import astropy.units as u
-from astropy.units import Quantity
+from astropy.units import Quantity, Magnitude
 from astropy.time        import Time
 import numpy as np
 from astropy.table import QTable
@@ -241,16 +241,16 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         # ^0         ^11    ^18        ^29              ^46   ^52     ^60    ^67  ^72                ^91  ^96
         time      = Time(line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15])
         ra        = Angle(line[18:28], unit=u.hourangle)
-        dec       = Angle(line[29:38], unit=u.deg)
-        mag       = float(line[46:50]) * u.mag
-        motion    = float(line[52:58].strip()) * u.arcsec / u.min
-        pa        = float(line[60:65].strip()) * u. degree
+        dec       = Angle(line[29:38], unit=u.degree)
+        mag       = Magnitude(line[46:50], unit=u.mag)
+        motion    = Quantity(line[52:58].strip(), unit=u.arcsec / u.min)
+        pa        = Angle(line[60:65], unit=u.degree)
         # NEOCP ephemerides counts az from S=0, Astropy N=0
-        az        = Angle(float(line[67:70]) * u.degree - 180 * u.degree)
+        az        = Angle(line[67:70], unit=u.degree) - 180*u.degree
         az.wrap_at(360 * u.degree, inplace=True)
-        alt       = Angle(float(line[72:75]) * u.degree)
-        moon_dist = float(line[91:94]) * u.degree
-        moon_alt  = float(line[96:99]) * u.degree
+        alt       = Angle(line[72:75], unit=u.degree)
+        moon_dist = Angle(line[91:94], unit=u.degree)
+        moon_alt  = Angle(line[96:99], unit=u.degree)
         ic(time, ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
         qt.add_row([ time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
 
