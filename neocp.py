@@ -46,9 +46,9 @@ import numpy as np
 from astropy.table import QTable
 
 # Astroplan
-# import matplotlib.pyplot as plt
-# from astroplan import FixedTarget, Observer
-# from astroplan.plots import plot_airmass, plot_altitude, plot_sky, plot_finder_image, plot_parallactic
+import matplotlib.pyplot as plt
+from astroplan import FixedTarget, Observer
+from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
 from verbose import verbose, warning, error
@@ -144,6 +144,40 @@ def neocp_query_list(filename: str) -> None:
 
 
 
+def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
+    altaz = AltAz(alt=qt["alt"], az=qt["az"], obstime=qt["obstime"], location=Options.loc)
+    # Quick hack to get a proper label from plot_altitude
+    altaz.name = id
+    ic(altaz)
+    return altaz
+
+
+
+def plot_alt_objects(table_dict: dict) -> None:
+    # Get next midnight
+    time = Time(Time.now(), location=Options.loc)
+    observer = Observer(location=Options.loc, description=Options.code)
+    midnight = observer.midnight(Time.now(), which="next")
+    ic(midnight)
+
+    # Intervals around midnight
+    time_interval = midnight + np.linspace(-8, 8, 160)*u.hour
+    moon          = observer.moon_altaz(time_interval)
+    # Quick hack to get a proper label from plot_altitude
+    moon.name     = "Moon"
+
+    # Plot all NEOCP objects in dict
+    for id, qt in table_dict.items():
+        altaz = qtable_to_altaz(id, qt)
+        plot_altitude(altaz, observer, altaz.obstime, style_kwargs=dict(fmt="o"))
+
+    plot_altitude(moon, observer, time_interval, brightness_shading=True, style_kwargs=dict(fmt="y--"))
+    plt.legend(bbox_to_anchor=(1.0, 1.02))
+
+    plt.savefig("tmp/plot.png", bbox_inches="tight")
+    plt.close()
+
+
 
 def max_motion(qt: QTable) -> Quantity:
     max_motion = -1 * u.arcsec / u.min
@@ -196,7 +230,7 @@ def sort_by_alt_max_time(table_dict: dict) -> dict:
 
 def print_table_dict(table_dict: dict) -> None:
     for id, qt in table_dict.items():
-        print("------------------------------------------------------------------------------------------------------")
+        print("===================================================================================================================")
         print(f"NEOCP {id} ephemerides")
         print(qt)
 
@@ -359,6 +393,8 @@ def main():
         print_table_dict(table_dict)
         # table_dict_sorted = sort_by_alt_max_time(table_dict)
         # process_objects(table_dict_sorted)
+        plot_alt_objects(table_dict)
+
 
 
 if __name__ == "__main__":
