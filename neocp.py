@@ -17,8 +17,10 @@
 # ChangeLog
 # Version 0.0 / 2025-08-25
 #       First attempt at parsing MPC NEOCP ephemerides
+# Version 0.1 / 2025-09-04
+#       Retrieval from MPC, altitude and sky plots
 
-VERSION = "0.0 / 2025-08-25"
+VERSION = "0.1 / 2025-09-04"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -390,6 +392,8 @@ def main():
     arg.add_argument("-L", "--mag-limit", help=f"set mag limit for NEOCP, default {Options.mag_limit}")
     arg.add_argument("-l", "--location", help="MPC station code")
     arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
+    arg.add_argument("-P", "--plot_objects", action="store_true", help="create plot with objects")
+    arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot (default altitude ploat)")
 
     args = arg.parse_args()
 
@@ -419,7 +423,13 @@ def main():
         print_table_dict(table_dict)
         # table_dict_sorted = sort_by_alt_max_time(table_dict)
         # process_objects(table_dict_sorted)
-        plot_sky_objects(table_dict)
+
+        # Plot objects and Moon
+        if args.plot_objects or args.sky_plot:
+            if args.sky_plot:
+                plot_sky_objects(table_dict)
+            else:
+                plot_alt_objects(table_dict)
 
 
 
