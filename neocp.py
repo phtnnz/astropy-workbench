@@ -171,8 +171,34 @@ def plot_alt_objects(table_dict: dict) -> None:
         altaz = qtable_to_altaz(id, qt)
         plot_altitude(altaz, observer, altaz.obstime, style_kwargs=dict(fmt="o"))
 
-    plot_altitude(moon, observer, time_interval, brightness_shading=True, style_kwargs=dict(fmt="y--"))
+    plot_altitude(moon, observer, moon.obstime, brightness_shading=True, style_kwargs=dict(fmt="y--"))
     plt.legend(bbox_to_anchor=(1.0, 1.02))
+
+    plt.savefig("tmp/plot.png", bbox_inches="tight")
+    plt.close()
+
+
+
+def plot_sky_objects(table_dict: dict) -> None:
+    # Get next midnight
+    time = Time(Time.now(), location=Options.loc)
+    observer = Observer(location=Options.loc, description=Options.code)
+    midnight = observer.midnight(Time.now(), which="next")
+    ic(midnight)
+
+    # Intervals around midnight
+    time_interval = midnight + np.linspace(-5, 5, 11)*u.hour
+    moon          = observer.moon_altaz(time_interval)
+    # Quick hack to get a proper label from plot_altitude
+    moon.name     = "Moon"
+
+    # Plot all NEOCP objects in dict
+    for id, qt in table_dict.items():
+        altaz = qtable_to_altaz(id, qt)
+        plot_sky(altaz, observer, altaz.obstime)
+
+    plot_sky(moon, observer, moon.obstime, style_kwargs=dict(color="y", marker="x"))
+    plt.legend(bbox_to_anchor=(1.48, 1.11))
 
     plt.savefig("tmp/plot.png", bbox_inches="tight")
     plt.close()
@@ -393,7 +419,7 @@ def main():
         print_table_dict(table_dict)
         # table_dict_sorted = sort_by_alt_max_time(table_dict)
         # process_objects(table_dict_sorted)
-        plot_alt_objects(table_dict)
+        plot_sky_objects(table_dict)
 
 
 
