@@ -90,23 +90,33 @@ class Options:
     resolution = 1.33       # arcsec / pixel resolution of camera/telescope
     code = "M49"            # -l --location
     loc = get_location(code)
+    min_alt = 26            # min altitude
 
 
 
-def neocp_query_ephemeris(filename: str) -> None:
+def neocp_query_ephemerides(filename: str) -> None:
     ##FIXME: get from config files
+
+    # Compute min/max DEC from min altitude and latitude
+    lat = Options.loc.lat.degree
+    min_dec = -90 + Options.min_alt + lat
+    max_dec = +90 - Options.min_alt + lat
+    min_dec = -90 if min_dec < -90 else int(min_dec)
+    max_dec = +90 if max_dec > +90 else int(max_dec)
+    ic(lat, min_dec, max_dec)
+
     url = URL_NEOCP_QUERY
     data = { 
-        "W":	"a",                    # all objects with ...
-        "mb":	"-30",                  # max brightness (V)
-        "mf":	str(Options.mag_limit), # min brightness (V)
-        "dl":	"-90",      ##   # min DEC
-        "du":	"+40",      ##   # max DEC
-        "nl":	"0",        ##   # min NEO score
-        "nu":	"100",           # max NEO score
+        "W":	"a",                # all objects with ...
+        "mb":	"-30",              # max brightness (V)
+        "mf":	Options.mag_limit,  # min brightness (V)
+        "dl":	min_dec,            # min DEC
+        "du":	max_dec,            # max DEC
+        "nl":	"0",                # min NEO score
+        "nu":	"100",              # max NEO score
         "sort":	"d",
-        "Parallax":	"1",                # 0=geocentric, 1=code, 2=Lon/Lat/Alt
-        "obscode":	Options.code,       # observatory code
+        "Parallax":	"1",            # 0=geocentric, 1=code, 2=Lon/Lat/Alt
+        "obscode":	Options.code,   # observatory code
         "long":	"",
         "lat":	"",
         "alt":	"",
@@ -121,6 +131,7 @@ def neocp_query_ephemeris(filename: str) -> None:
     }
 
     ic(url, data)
+    # For some reason GET works, but POST doesn't?
     response = requests.get(url, params=data, timeout=TIMEOUT)
     ic(response.status_code)
     if response.status_code != 200:
@@ -307,7 +318,7 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         mag       = Magnitude(line[46:50], unit=u.mag)
         motion    = Quantity(line[52:58].strip(), unit=u.arcsec / u.min)
         pa        = Angle(line[60:65], unit=u.degree)
-        # NEOCP ephemerides counts az from S=0, Astropy N=0
+        # NEOCP ephemerides count azimuth from S=0, Astropy from N=0
         az        = Angle(line[67:70], unit=u.degree) - 180*u.degree
         az.wrap_at(360 * u.degree, inplace=True)
         alt       = Angle(line[72:75], unit=u.degree)
@@ -413,13 +424,14 @@ def main():
     verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
     if args.update_neocp:
-        neocp_query_ephemeris(LOCAL_QUERY)
+        neocp_query_ephemerides(LOCAL_QUERY)
         neocp_query_list(LOCAL_LIST)
 
     with open(LOCAL_QUERY, "r") as file:
         content = file.readlines()
+        eph_dict = parse_neocp_eph(content)
 
-    eph_dict = parse_neocp_eph(content)
+
     table_dict = convert_all_to_qtable(eph_dict)
     print_table_dict(table_dict)
     # table_dict_sorted = sort_by_alt_max_time(table_dict)
