@@ -102,7 +102,7 @@ def neocp_query_ephemeris(filename: str) -> None:
         "mf":	str(Options.mag_limit), # min brightness (V)
         "dl":	"-90",      ##   # min DEC
         "du":	"+40",      ##   # max DEC
-        "nl":	"75",       ##   # min NEO score
+        "nl":	"0",        ##   # min NEO score
         "nu":	"100",           # max NEO score
         "sort":	"d",
         "Parallax":	"1",                # 0=geocentric, 1=code, 2=Lon/Lat/Alt
@@ -418,18 +418,19 @@ def main():
 
     with open(LOCAL_QUERY, "r") as file:
         content = file.readlines()
-        eph_dict = parse_neocp_eph(content)
-        table_dict = convert_all_to_qtable(eph_dict)
-        print_table_dict(table_dict)
-        # table_dict_sorted = sort_by_alt_max_time(table_dict)
-        # process_objects(table_dict_sorted)
 
-        # Plot objects and Moon
-        if args.plot_objects or args.sky_plot:
-            if args.sky_plot:
-                plot_sky_objects(table_dict)
-            else:
-                plot_alt_objects(table_dict)
+    eph_dict = parse_neocp_eph(content)
+    table_dict = convert_all_to_qtable(eph_dict)
+    print_table_dict(table_dict)
+    # table_dict_sorted = sort_by_alt_max_time(table_dict)
+    # process_objects(table_dict_sorted)
+
+    # Plot objects and Moon
+    if args.plot_objects or args.sky_plot:
+        if args.sky_plot:
+            plot_sky_objects(table_dict)
+        else:
+            plot_alt_objects(table_dict)
 
 
 
