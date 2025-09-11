@@ -236,13 +236,19 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
 
 
 
-def process_objects(table_dict: dict) -> None:
+def process_objects(table_dict: dict, list_dict: dict) -> None:
     for id, qt in table_dict.items():
-        time0 = qt["obstime"][0]
-        alt0  = qt["alt"][0]
+        item = list_dict[id]
+        score   = item["score"]
+        mag     = item["mag"]
+        nobs    = item["nobs"]
+        arc     = item["arc"]
+        notseen = item["notseen"]
+
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
-        ic(id, time0, alt0, max_m, exp)
+
+        ic(id, score, mag, nobs, arc, notseen, max_m, exp)
 
 
 
@@ -275,7 +281,7 @@ def print_table_dict(table_dict: dict) -> None:
 
 
 
-def convert_all_to_qtable(eph_dict: dict) -> dict:
+def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
     qtable_dict = {}
     for id, eph in eph_dict.items():
         qt = eph_to_qtable(id, eph)
@@ -339,7 +345,7 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
 
 
 
-def parse_neocp_eph(content: list) -> dict:
+def parse_html_eph(content: list) -> dict:
     neocp_id = None
     neocp_eph = {}
 
@@ -393,6 +399,34 @@ def parse_neocp_eph(content: list) -> dict:
 
 
 
+def parse_neocp_list(content: list) -> dict:
+    neocp_list = {}
+
+    for line in content:
+        # Format example:
+        # ZTF105X  76 2025 09 10.2  22.6070  +0.8481 18.2 Updated Sept. 11.49 UT          26   1.25 24.5  0.038
+        # P12e56E 100 2025 08 30.4  23.2926 -12.0924 18.9 Updated Sept. 11.20 UT           6   0.09 23.0 12.007
+        # H452509  63 2016 06 04.3  11.5743  +5.6542 34.1 Updated Sept. 10.20 UT           5   0.09 25.6 3386.166
+        # ^0      ^8  ^12           ^26     ^34      ^43  ^48                     ???    ^79  ^84   ^90  ^95
+        # Temp.   Score             RA      DEC      MagV                         Note   Nobs       H    Not Seen/dys
+        # Desig.   	  Discovery                           Updated                             Arc
+        line = line.rstrip()
+        ic(line)
+        vals = {}
+        vals["score"] = int(line[8:11])
+        vals["mag"]   = float(line[43:47]) * u.mag
+        vals["nobs"]  = int(line[79:82])
+        vals["arc"]   = float(line[84:89]) * u.arcmin
+        vals["notseen"] = float(line[95:]) * u.day
+
+        id = line[0:7]
+        ic(id, vals)
+        neocp_list[id] = vals
+
+    return neocp_list
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -403,8 +437,8 @@ def main():
     arg.add_argument("-L", "--mag-limit", help=f"set mag limit for NEOCP, default {Options.mag_limit}")
     arg.add_argument("-l", "--location", help="MPC station code")
     arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
-    arg.add_argument("-P", "--plot_objects", action="store_true", help="create plot with objects")
-    arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot (default altitude ploat)")
+    arg.add_argument("-P", "--plot-objects", action="store_true", help="create plot with objects")
+    arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot (default altitude plot)")
 
     args = arg.parse_args()
 
@@ -427,15 +461,20 @@ def main():
         neocp_query_ephemerides(LOCAL_QUERY)
         neocp_query_list(LOCAL_LIST)
 
+    # Parse ephemerides
     with open(LOCAL_QUERY, "r") as file:
         content = file.readlines()
-        eph_dict = parse_neocp_eph(content)
+        eph_dict = parse_html_eph(content)
+        table_dict = convert_eph_list_to_qtable(eph_dict)
 
+    # Parse list
+    with open(LOCAL_LIST, "r") as file:
+        content = file.readlines()
+        list_dict = parse_neocp_list(content)
 
-    table_dict = convert_all_to_qtable(eph_dict)
     print_table_dict(table_dict)
-    # table_dict_sorted = sort_by_alt_max_time(table_dict)
-    # process_objects(table_dict_sorted)
+
+    process_objects(table_dict, list_dict)
 
     # Plot objects and Moon
     if args.plot_objects or args.sky_plot:
