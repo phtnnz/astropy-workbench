@@ -36,6 +36,7 @@ from verbose import verbose, warning, error
 from jsonconfig import JSONConfig
 
 # AstroPy
+import numpy as np
 from astropy.coordinates import SkyCoord, get_constellation
 import astropy.units as u
 from astropy import wcs
@@ -106,12 +107,29 @@ def main():
     ic(wcs_header)
     if wcs_header:
         # Successful, wcs_header is of type astropy.io.fits.Header
+        # See https://danmoser.github.io/notes/gai_fits-imgs.html for FITS WCS header
         center_ra  = wcs_header["CRVAL1"]
         center_dec = wcs_header["CRVAL2"]
         center_x   = wcs_header["CRPIX1"]
         center_y   = wcs_header["CRPIX2"]
         image_w    = wcs_header["IMAGEW"]
         image_h    = wcs_header["IMAGEH"]
+        cd1_1      = wcs_header["CD1_1"]
+        cd1_2      = wcs_header["CD1_2"]
+        cd2_1      = wcs_header["CD2_1"]
+        cd2_2      = wcs_header["CD2_2"]
+
+        # transformation matrix
+        # CD1_1 = CDELT1 * cos (CROTA2)
+        # CD1_2 = -CDELT2 * sin (CROTA2)
+        # CD2_1 = CDELT1 * sin (CROTA2)
+        # CD2_2 = CDELT2 * cos (CROTA2)
+        cdelt1 = np.sqrt(np.square(cd1_1) + np.square(cd2_1)) * 3600 # arcsec / pixel
+        cdelt2 = np.sqrt(np.square(cd1_2) + np.square(cd2_2)) * 3600
+        scale = (cdelt1 + cdelt2) / 2   # yields same value as reported by astrometry.net
+        crota2_a = np.atan2(cd2_1, cd1_1) * 180 / np.pi     # degree
+        crota2_b = -np.atan2(cd1_2, cd2_2) * 180 / np.pi
+        ic(cdelt1, cdelt2, scale, crota2_a, crota2_b)
 
         scale = None
         cpu_time = None
@@ -122,10 +140,12 @@ def main():
                 cpu_time = comment[len("cpu time: "):]
 
         verbose(f"center RA={center_ra} DEC={center_dec} pos={center_x}({image_w})/{center_y}({image_h}) {scale} cpu={cpu_time}")
+        verbose(f"transformation matrix: {cd1_1:.8f} {cd1_2:.8f}")
+        verbose(f"                       {cd2_1:.8f} {cd2_2:.8f}")
 
         # Convert to WCS
         w = wcs.WCS(wcs_header)
-        ic(w, w.wcs, w.wcs.name)
+        ic(w)
     else:
         # Code to execute when solve fails
         warning("plate solve failed")
