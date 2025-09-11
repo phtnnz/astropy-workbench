@@ -31,6 +31,7 @@ import re
 import requests
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+from typing import Tuple
 # Required on Windows
 import tzdata
 
@@ -236,6 +237,33 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
 
 
 
+def is_east(az: Angle) -> bool:
+    az180     = 180 * u.degree
+    return True if az >= 0 and az < az180 else False
+
+def is_west(az: Angle) -> bool:
+    az180     = 180 * u.degree
+    az360     = 360 * u.degree
+    return True if az >= az180 and az < az360 else False
+
+def flip_time(qt: QTable) -> Tuple[Time, Time]:
+    prev_time = None
+    prev_az   = None
+
+    for row in qt:
+        time = row["obstime"]
+        az   = row["az"]
+        # ic(time, az)
+        if not prev_az == None:
+            if is_east(prev_az) and is_west(az):     # South flip
+                return (prev_time, time)
+            if is_west(prev_az) and is_east(az):     # North flip
+                return (prev_time, time)
+        prev_time = time
+        prev_az   = az
+
+
+
 def process_objects(table_dict: dict, list_dict: dict) -> None:
     for id, qt in table_dict.items():
         item = list_dict[id]
@@ -245,25 +273,20 @@ def process_objects(table_dict: dict, list_dict: dict) -> None:
         arc     = item["arc"]
         notseen = item["notseen"]
 
+        time_before, time_after = flip_time(qt)
+    
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
 
-        ic(id, score, mag, nobs, arc, notseen, max_m, exp)
+        ic(id, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp)
 
 
 
-def sort_by_alt_max_time(table_dict: dict) -> dict:
+def sort_by_flip_time(table_dict: dict) -> dict:
     time_dict = {}
 
     for id, qt in table_dict.items():
-        max_alt = -1 * u.degree
-        max_time = None
-        for row in qt:
-            if row["alt"] > max_alt:
-                max_alt = row["alt"]
-                max_time = row["obstime"]
-        ic(max_alt, max_time)
-        time_dict[id] = max_time
+        time_dict[id] = flip_time(qt)
     
     # Sort dict by time (item[0] = id, item[1] = time)
     time_sorted = { id: time for id, time in sorted(time_dict.items(), key=lambda item: item[1]) }
@@ -475,6 +498,7 @@ def main():
     print_table_dict(table_dict)
 
     process_objects(table_dict, list_dict)
+    table_dict = sort_by_flip_time(table_dict)
 
     # Plot objects and Moon
     if args.plot_objects or args.sky_plot:
