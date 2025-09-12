@@ -124,6 +124,9 @@ def main():
     moon_vals_full = observer.moon_altaz(time_interval_full)
     time_interval_pm5 = time + np.linspace(-5, 5, 11)*u.hour
     moon_vals_pm5 = observer.moon_altaz(time_interval_pm5)
+    # Quick hack to set label in legend
+    moon_vals_full.name = "Moon"
+    moon_vals_pm5.name = "Moon"
     ic(time_interval_pm5, moon_vals_pm5)
 
     # plot objects from file
@@ -182,12 +185,12 @@ def main():
     if args.altitude:
         plot_altitude(moon_vals_full, observer, time_interval_full, brightness_shading=True, style_kwargs=dict(fmt="y--"))
         # Set legend for last curve
-        plt.legend(bbox_to_anchor=(1.0, 1.02)).get_texts()[-1].set_text("Moon")
+        plt.legend(bbox_to_anchor=(1.0, 1.02))
         # plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
         # plt.tight_layout()
     else:
         plot_sky(moon_vals_pm5, observer, time_interval_pm5, style_kwargs=dict(color="y", marker="x"))
-        plt.legend(bbox_to_anchor=(1.48, 1.11)).get_texts()[-1].set_text("Moon")
+        plt.legend(bbox_to_anchor=(1.48, 1.11))
 
     plt.savefig("tmp/plot.png", bbox_inches="tight")
     plt.close()
