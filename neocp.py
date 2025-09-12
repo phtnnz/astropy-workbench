@@ -19,8 +19,10 @@
 #       First attempt at parsing MPC NEOCP ephemerides
 # Version 0.1 / 2025-09-04
 #       Retrieval from MPC, altitude and sky plots
+# Version 0.2 / 2025-09-12
+#       Parse NEOCP and PCCP lists for additional data, separate altitude/sky plots
 
-VERSION = "0.1 / 2025-09-04"
+VERSION = "0.2 / 2025-09-12"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -68,19 +70,27 @@ EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
 # MPC pages:
 # NEOCP form
 #       https://minorplanetcenter.net/iau/NEO/toconfirm_tabular.html
-# NEOCP list
+# PCCP form
+#       https://minorplanetcenter.net/iau/NEO/pccp_tabular.html
+# NEOCP list (contains also PCCP objects)
 #       https://minorplanetcenter.net/iau/NEO/neocp.txt
-# NEOCP query ephemerides
+# PCCP list
+#       https://minorplanetcenter.net/iau/NEO/pccp.txt
+#
+# NEOCP/PCCP query ephemerides
 #       https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi
 #
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-URL_NEOCP_PAGE  = "https://minorplanetcenter.net/iau/NEO/toconfirm_tabular.html"
-URL_NEOCP_QUERY = "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi"
-URL_NEOCP_LIST  = "https://minorplanetcenter.net/iau/NEO/neocp.txt"
-LOCAL_QUERY = "downloads/NEOCP-ephemerides.html"
-LOCAL_LIST  = "downloads/NEOCP-list.txt"
+URL_NEOCP_QUERY   = "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi"
+LOCAL_NEOCP_QUERY = "downloads/NEOCP-ephemerides.html"
+
+URL_NEOCP_LIST    = "https://minorplanetcenter.net/iau/NEO/neocp.txt"
+LOCAL_NEOCP_LIST  = "downloads/NEOCP-list.txt"
+
+URL_PCCP_LIST     = "https://minorplanetcenter.net/iau/NEO/pccp.txt"
+LOCAL_PCCP_LIST   = "downloads/PCCP-list.txt"
 
 
 
@@ -95,8 +105,9 @@ class Options:
 
 
 
-def neocp_query_ephemerides(filename: str) -> None:
-    ##FIXME: get from config files
+def mpc_query_ephemerides(url: str, filename: str) -> None:
+    ##FIXME: get query params from config file
+    ic(url, filename)
 
     # Compute min/max DEC from min altitude and latitude
     lat = Options.loc.lat.degree
@@ -106,7 +117,6 @@ def neocp_query_ephemerides(filename: str) -> None:
     max_dec = +90 if max_dec > +90 else int(max_dec)
     ic(lat, min_dec, max_dec)
 
-    url = URL_NEOCP_QUERY
     data = { 
         "W":	"a",                # all objects with ...
         "mb":	"-30",              # max brightness (V)
@@ -143,11 +153,8 @@ def neocp_query_ephemerides(filename: str) -> None:
 
 
 
-def neocp_query_list(filename: str) -> None:
-    ##FIXME: get from config files
-    url = URL_NEOCP_LIST
-
-    ic(url)
+def mpc_query_list(url: str, filename: str) -> None:
+    ic(url, filename)
     response = requests.get(url, timeout=TIMEOUT)
     ic(response.status_code)
     if response.status_code != 200:
@@ -167,7 +174,7 @@ def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
 
 
 
-def plot_alt_objects(table_dict: dict) -> None:
+def plot_alt_objects(table_dict: dict, filename: str) -> None:
     # Get next midnight
     time = Time(Time.now(), location=Options.loc)
     observer = Observer(location=Options.loc, description=Options.code)
@@ -188,12 +195,12 @@ def plot_alt_objects(table_dict: dict) -> None:
     plot_altitude(moon, observer, moon.obstime, brightness_shading=True, style_kwargs=dict(fmt="y--"))
     plt.legend(bbox_to_anchor=(1.0, 1.02))
 
-    plt.savefig("tmp/plot.png", bbox_inches="tight")
+    plt.savefig(f"tmp/{filename}", bbox_inches="tight")
     plt.close()
 
 
 
-def plot_sky_objects(table_dict: dict) -> None:
+def plot_sky_objects(table_dict: dict, filename: str) -> None:
     # Get next midnight
     time = Time(Time.now(), location=Options.loc)
     observer = Observer(location=Options.loc, description=Options.code)
@@ -214,7 +221,7 @@ def plot_sky_objects(table_dict: dict) -> None:
     plot_sky(moon, observer, moon.obstime, style_kwargs=dict(color="y", marker="x"))
     plt.legend(bbox_to_anchor=(1.48, 1.11))
 
-    plt.savefig("tmp/plot.png", bbox_inches="tight")
+    plt.savefig(f"tmp/{filename}", bbox_inches="tight")
     plt.close()
 
 
@@ -264,9 +271,13 @@ def flip_time(qt: QTable) -> Tuple[Time, Time]:
 
 
 
-def process_objects(table_dict: dict, list_dict: dict) -> None:
+def process_objects(table_dict: dict, neocp_dict: dict, pccp_dict: dict) -> None:
+    ic(table_dict.keys(), neocp_dict.keys(), pccp_dict.keys())
+
     for id, qt in table_dict.items():
-        item = list_dict[id]
+        item    = neocp_dict[id]
+        type    = "PCCP" if id in pccp_dict else "NEOCP"
+
         score   = item["score"]
         mag     = item["mag"]
         nobs    = item["nobs"]
@@ -278,7 +289,7 @@ def process_objects(table_dict: dict, list_dict: dict) -> None:
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
 
-        ic(id, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp)
+        ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp)
 
 
 
@@ -457,11 +468,10 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("-L", "--mag-limit", help=f"set mag limit for NEOCP, default {Options.mag_limit}")
     arg.add_argument("-l", "--location", help="MPC station code")
     arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
-    arg.add_argument("-P", "--plot-objects", action="store_true", help="create plot with objects")
-    arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot (default altitude plot)")
+    arg.add_argument("-A", "--alt-plot", action="store_true", help="create altitude plot with objects")
+    arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot with objects")
 
     args = arg.parse_args()
 
@@ -481,31 +491,36 @@ def main():
     verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
     if args.update_neocp:
-        neocp_query_ephemerides(LOCAL_QUERY)
-        neocp_query_list(LOCAL_LIST)
+        mpc_query_ephemerides(URL_NEOCP_QUERY, LOCAL_NEOCP_QUERY)
+        mpc_query_list(URL_NEOCP_LIST, LOCAL_NEOCP_LIST)
+        mpc_query_list(URL_PCCP_LIST, LOCAL_PCCP_LIST)
+        return
 
     # Parse ephemerides
-    with open(LOCAL_QUERY, "r") as file:
+    with open(LOCAL_NEOCP_QUERY, "r") as file:
         content = file.readlines()
         eph_dict = parse_html_eph(content)
         table_dict = convert_eph_list_to_qtable(eph_dict)
 
-    # Parse list
-    with open(LOCAL_LIST, "r") as file:
+    # Parse lists
+    with open(LOCAL_NEOCP_LIST, "r") as file:
         content = file.readlines()
-        list_dict = parse_neocp_list(content)
+        neocp_dict = parse_neocp_list(content)
+
+    with open(LOCAL_PCCP_LIST, "r") as file:
+        content = file.readlines()
+        pccp_dict = parse_neocp_list(content)
 
     print_table_dict(table_dict)
 
-    process_objects(table_dict, list_dict)
+    process_objects(table_dict, neocp_dict, pccp_dict)
     table_dict = sort_by_flip_time(table_dict)
 
     # Plot objects and Moon
-    if args.plot_objects or args.sky_plot:
-        if args.sky_plot:
-            plot_sky_objects(table_dict)
-        else:
-            plot_alt_objects(table_dict)
+    if args.sky_plot:
+        plot_sky_objects(table_dict, "plot-sky.png")
+    if args.alt_plot:
+        plot_alt_objects(table_dict, "plot_alt.png")
 
 
 
