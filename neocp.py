@@ -52,12 +52,12 @@ from astropy.table import QTable
 
 # Astroplan
 import matplotlib.pyplot as plt
-from astroplan import FixedTarget, Observer
+from astroplan import Observer
 from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import get_location, get_coord, coord_to_string, location_to_string
+from astroutils import get_location, location_to_string
 
 
 # Requests timeout
@@ -167,11 +167,10 @@ def mpc_query_list(url: str, filename: str) -> None:
 
 def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
     altaz = AltAz(alt=qt["alt"], az=qt["az"], obstime=qt["obstime"], location=Options.loc)
-    # Quick hack to get a proper label from plot_altitude
+    # Quick hack to get a proper label for plot_altitude()
     altaz.name = id
     ic(altaz)
     return altaz
-
 
 
 def plot_alt_objects(table_dict: dict, filename: str) -> None:
@@ -184,7 +183,7 @@ def plot_alt_objects(table_dict: dict, filename: str) -> None:
     # Intervals around midnight
     time_interval = midnight + np.linspace(-8, 8, 160)*u.hour
     moon          = observer.moon_altaz(time_interval)
-    # Quick hack to get a proper label from plot_altitude
+    # Quick hack to get a proper label for plot_altitude()
     moon.name     = "Moon"
 
     # Plot all NEOCP objects in dict
@@ -199,7 +198,6 @@ def plot_alt_objects(table_dict: dict, filename: str) -> None:
     plt.close()
 
 
-
 def plot_sky_objects(table_dict: dict, filename: str) -> None:
     # Get next midnight
     time = Time(Time.now(), location=Options.loc)
@@ -210,7 +208,7 @@ def plot_sky_objects(table_dict: dict, filename: str) -> None:
     # Intervals around midnight
     time_interval = midnight + np.linspace(-5, 5, 11)*u.hour
     moon          = observer.moon_altaz(time_interval)
-    # Quick hack to get a proper label from plot_altitude
+    # Quick hack to get a proper label for plot_sky()
     moon.name     = "Moon"
 
     # Plot all NEOCP objects in dict
@@ -253,7 +251,7 @@ def is_west(az: Angle) -> bool:
     az360     = 360 * u.degree
     return True if az >= az180 and az < az360 else False
 
-def flip_time(qt: QTable) -> Tuple[Time, Time]:
+def flip_times(qt: QTable) -> Tuple[Time, Time]:
     prev_time = None
     prev_az   = None
 
@@ -284,11 +282,12 @@ def process_objects(table_dict: dict, neocp_dict: dict, pccp_dict: dict) -> None
         arc     = item["arc"]
         notseen = item["notseen"]
 
-        time_before, time_after = flip_time(qt)
+        time_before, time_after = flip_times(qt)
     
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
 
+        verbose(f"{id}: {type:5s} {score:3d}  {mag} {nobs:3d}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f} => {exp}")
         ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp)
 
 
@@ -297,7 +296,7 @@ def sort_by_flip_time(table_dict: dict) -> dict:
     time_dict = {}
 
     for id, qt in table_dict.items():
-        time_dict[id] = flip_time(qt)
+        time_dict[id] = flip_times(qt)
     
     # Sort dict by time (item[0] = id, item[1] = time)
     time_sorted = { id: time for id, time in sorted(time_dict.items(), key=lambda item: item[1]) }
@@ -312,6 +311,7 @@ def print_table_dict(table_dict: dict) -> None:
         print("===================================================================================================================")
         print(f"NEOCP {id} ephemerides")
         print(qt)
+    print("===================================================================================================================")
 
 
 
@@ -494,33 +494,32 @@ def main():
         mpc_query_ephemerides(URL_NEOCP_QUERY, LOCAL_NEOCP_QUERY)
         mpc_query_list(URL_NEOCP_LIST, LOCAL_NEOCP_LIST)
         mpc_query_list(URL_PCCP_LIST, LOCAL_PCCP_LIST)
-        return
 
     # Parse ephemerides
     with open(LOCAL_NEOCP_QUERY, "r") as file:
         content = file.readlines()
-        eph_dict = parse_html_eph(content)
-        table_dict = convert_eph_list_to_qtable(eph_dict)
+        ephemerides_txt = parse_html_eph(content)
+        ephemerides = convert_eph_list_to_qtable(ephemerides_txt)
 
     # Parse lists
     with open(LOCAL_NEOCP_LIST, "r") as file:
         content = file.readlines()
-        neocp_dict = parse_neocp_list(content)
+        neocp_list = parse_neocp_list(content)
 
     with open(LOCAL_PCCP_LIST, "r") as file:
         content = file.readlines()
-        pccp_dict = parse_neocp_list(content)
+        pccp_list = parse_neocp_list(content)
 
-    print_table_dict(table_dict)
+    print_table_dict(ephemerides)
 
-    process_objects(table_dict, neocp_dict, pccp_dict)
-    table_dict = sort_by_flip_time(table_dict)
+    ephemerides = sort_by_flip_time(ephemerides)
+    process_objects(ephemerides, neocp_list, pccp_list)
 
     # Plot objects and Moon
     if args.sky_plot:
-        plot_sky_objects(table_dict, "plot-sky.png")
+        plot_sky_objects(ephemerides, "plot-sky.png")
     if args.alt_plot:
-        plot_alt_objects(table_dict, "plot_alt.png")
+        plot_alt_objects(ephemerides, "plot_alt.png")
 
 
 
