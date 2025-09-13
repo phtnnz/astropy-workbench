@@ -96,13 +96,16 @@ LOCAL_PCCP_LIST   = "downloads/PCCP-list.txt"
 
 # Command line options
 class Options:
-    mag_limit = 20.5        # -L --mag-limit
-    arcsec_tolerance = 3    # Max trail tolerance in arcsec
+    ##FIXME: use config file
+    mag_limit = 20.5
+    pixel_tolerance = 2     # Max trail tolerance in pixels
     resolution = 1.33       # arcsec / pixel resolution of camera/telescope
     code = "M49"            # -l --location
     loc = get_location(code)
     min_alt = 26            # min altitude
-
+    dead_time_slew_center = 90 * u.second
+    dead_time_af          = 100 * u.second
+    dead_time_image       = 1.5 * u.second
 
 
 def mpc_query_ephemerides(url: str, filename: str) -> None:
@@ -232,7 +235,7 @@ def max_motion(qt: QTable) -> Quantity:
     return max_motion
 
 def exp_time_from_motion(motion: Quantity) -> Quantity:
-    exp = Options.arcsec_tolerance * u.arcsec / motion
+    exp = Options.pixel_tolerance * Options.resolution * u.arcsec / motion
     exp_max = EXP_TIMES[0]
     for exp1 in EXP_TIMES:
         if exp1 > exp.to(u.s).value:
@@ -269,13 +272,15 @@ def flip_times(qt: QTable) -> Tuple[Time, Time]:
 
 
 
-def process_objects(table_dict: dict, neocp_dict: dict, pccp_dict: dict) -> None:
-    ic(table_dict.keys(), neocp_dict.keys(), pccp_dict.keys())
+def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> None:
+    ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
-    verbose("             Score      MagV #Obs      Arc NotSeen  Time before            / after meridian                 Max motion  Exp Time")
-    for id, qt in table_dict.items():
-        item    = neocp_dict[id]
-        type    = "PCCP" if id in pccp_dict else "NEOCP"
+    verbose("             Score      MagV #Obs      Arc NotSeen  Time before            / after meridian                 Max motion")
+    verbose("                                                    Time start             / end")
+    verbose("                                                    # x Exp   = total exposure time")
+    for id, qt in ephemerides.items():
+        item    = neocp_list[id]
+        type    = "PCCP" if id in pccp_list else "NEOCP"
 
         score   = item["score"]
         mag     = item["mag"]
@@ -284,12 +289,27 @@ def process_objects(table_dict: dict, neocp_dict: dict, pccp_dict: dict) -> None
         notseen = item["notseen"]
 
         time_before, time_after = flip_times(qt)
+        time0 = qt["obstime"][0]
+        time1 = qt["obstime"][-1]
     
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
 
-        verbose(f"{id}: {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f} => {exp}")
-        ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp)
+        rel_brightness = 10 ** (0.4 * (mag.value - 18))
+        total_exp = 4 * u.min * rel_brightness
+        n_exp = int(total_exp / exp) + 1
+        if n_exp < 15:
+            n_exp = 15
+        if n_exp > 60:
+            n_exp = 60
+        total_exp = (n_exp * exp).to(u.min)
+        total_time = (  total_exp + Options.dead_time_slew_center + Options.dead_time_slew_center +
+                        n_exp * Options.dead_time_image )
+
+        verbose(f"{id}: {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
+        verbose(f"{id}:                                            {time0}/{time1}")
+        verbose(f"{id}:                                            {n_exp} x {exp:2.0f} = {total_exp:3.1f} / total {total_time:3.1f}")
+        ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp, total_exp, n_exp)
 
 
 
