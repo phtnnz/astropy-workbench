@@ -272,6 +272,7 @@ def flip_times(qt: QTable) -> Tuple[Time, Time]:
 def process_objects(table_dict: dict, neocp_dict: dict, pccp_dict: dict) -> None:
     ic(table_dict.keys(), neocp_dict.keys(), pccp_dict.keys())
 
+    verbose("             Score      MagV #Obs      Arc NotSeen  Time before            / after meridian                 Max motion  Exp Time")
     for id, qt in table_dict.items():
         item    = neocp_dict[id]
         type    = "PCCP" if id in pccp_dict else "NEOCP"
@@ -287,7 +288,7 @@ def process_objects(table_dict: dict, neocp_dict: dict, pccp_dict: dict) -> None
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
 
-        verbose(f"{id}: {type:5s} {score:3d}  {mag} {nobs:3d}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f} => {exp}")
+        verbose(f"{id}: {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f} => {exp}")
         ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp)
 
 
@@ -450,7 +451,8 @@ def parse_neocp_list(content: list) -> dict:
         vals["score"] = int(line[8:11])
         vals["mag"]   = float(line[43:47]) * u.mag
         vals["nobs"]  = int(line[79:82])
-        vals["arc"]   = float(line[84:89]) * u.arcmin
+        # Time difference between 1st and last observation in days
+        vals["arc"]   = float(line[84:89]) * u.day
         vals["notseen"] = float(line[95:]) * u.day
 
         id = line[0:7]
