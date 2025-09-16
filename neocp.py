@@ -341,6 +341,11 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
             warning(f"skipping {id}, only {perc_of_required:.0f}% of required total exposure time (< 25%)")
             continue
 
+        # Skip, if arc is less than threshold
+        if arc < 0.05 * u.day:
+            warning(f"skipping {id}, arc {arc:.2f} too small (< 0.05 d)")
+            continue
+
 
         verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
         verbose(f"                                                    {time0}/{time1}")
