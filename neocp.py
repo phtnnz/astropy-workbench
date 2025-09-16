@@ -107,6 +107,9 @@ class Options:
     dead_time_slew_center = 90 * u.second
     dead_time_af          = 100 * u.second
     dead_time_image       = 1.5 * u.second
+    min_n_obs = 4
+    max_notseen = 3 * u.day
+
 
 
 def mpc_query_ephemerides(url: str, filename: str) -> None:
@@ -277,7 +280,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
     verbose("             Score      MagV #Obs      Arc NotSeen  Time before            / after meridian                 Max motion")
-    verbose("                                                    Time start             / end")
+    verbose("                                                    Time start ephemeris   / end ephemeris")
+    verbose("                                                    Time start exposure    / end exposure")
     verbose("                                                    # x Exp   = total exposure time")
     for id, qt in ephemerides.items():
         item    = neocp_list[id]
@@ -299,17 +303,49 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         rel_brightness = 10 ** (0.4 * (mag.value - 18))
         total_exp = 4 * u.min * rel_brightness
         n_exp = int(total_exp / exp) + 1
+        perc_of_required = 100.
         if n_exp < 15:
+            perc_of_required = 15 / n_exp * 100
             n_exp = 15
         if n_exp > 60:
+            perc_of_required = 60 / n_exp * 100
             n_exp = 60
         total_exp = (n_exp * exp).to(u.min)
         total_time = (  total_exp + Options.dead_time_slew_center + Options.dead_time_slew_center +
                         n_exp * Options.dead_time_image )
 
+        # 1st try: before passing meridian
+        time_start_exp = time_before - total_time
+        time_end_exp   = time_before
+        # 2nd try: after passing meridian
+        if time_start_exp < time0:
+            time_start_exp = time_after
+            time_end_exp   = time_after + total_time
+        # Skip, if not enough time
+        if time_end_exp > time1:
+            warning(f"skipping {id}, not enough time before/after passing meridian")
+            continue
+
+        # Skip, if below threshold for # obs
+        if nobs < Options.min_n_obs:
+            warning(f"skipping {id}, only {nobs} obs (< {Options.min_n_obs})")
+            continue
+
+        # Skip, if not seen for more than threshold days
+        if notseen > Options.max_notseen:
+            warning(f"skipping {id}, not seen for {notseen:.1f} (> {Options.max_notseen:.1f})")
+            continue
+
+        # Skip, if percentage of total exposure time is less than threshold
+        if perc_of_required < 25:
+            warning(f"skipping {id}, only {perc_of_required:.0f}% of required total exposure time (< 25%)")
+            continue
+
+
         verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
         verbose(f"                                                    {time0}/{time1}")
-        verbose(f"                                                    {n_exp} x {exp:2.0f} = {total_exp:3.1f} / total {total_time:3.1f}")
+        verbose(f"                                                    {time_start_exp}/{time_end_exp}")
+        verbose(f"                                                    {n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}")
         ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp, total_exp, n_exp)
 
 
