@@ -83,15 +83,16 @@ EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-URL_NEOCP_QUERY   = "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi"
-LOCAL_NEOCP_QUERY = "downloads/NEOCP-ephemerides.html"
+URL_NEOCP_QUERY = "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi"
+LOCAL_EPH = "NEOCP-ephemerides.html"
 
-URL_NEOCP_LIST    = "https://minorplanetcenter.net/iau/NEO/neocp.txt"
-LOCAL_NEOCP_LIST  = "downloads/NEOCP-list.txt"
+URL_NEOCP_LIST = "https://minorplanetcenter.net/iau/NEO/neocp.txt"
+LOCAL_NEOCP  = "NEOCP-list.txt"
 
-URL_PCCP_LIST     = "https://minorplanetcenter.net/iau/NEO/pccp.txt"
-LOCAL_PCCP_LIST   = "downloads/PCCP-list.txt"
+URL_PCCP_LIST = "https://minorplanetcenter.net/iau/NEO/pccp.txt"
+LOCAL_PCCP   = "PCCP-list.txt"
 
+DOWNLOADS = "./downloads/"
 
 
 # Command line options
@@ -306,9 +307,9 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         total_time = (  total_exp + Options.dead_time_slew_center + Options.dead_time_slew_center +
                         n_exp * Options.dead_time_image )
 
-        verbose(f"{id}: {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
-        verbose(f"{id}:                                            {time0}/{time1}")
-        verbose(f"{id}:                                            {n_exp} x {exp:2.0f} = {total_exp:3.1f} / total {total_time:3.1f}")
+        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
+        verbose(f"                                                    {time0}/{time1}")
+        verbose(f"                                                    {n_exp} x {exp:2.0f} = {total_exp:3.1f} / total {total_time:3.1f}")
         ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp, total_exp, n_exp)
 
 
@@ -512,35 +513,50 @@ def main():
         ic(loc, loc.to_geodetic())
     verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
+    prefix = Time.now().strftime("%Y%m%d-")
+    local_eph   = DOWNLOADS + prefix + LOCAL_EPH
+    local_neocp = DOWNLOADS + prefix + LOCAL_NEOCP
+    local_pccp  = DOWNLOADS + prefix + LOCAL_PCCP
+    ic(prefix, local_eph, local_neocp, local_pccp)
+
     if args.update_neocp:
-        mpc_query_ephemerides(URL_NEOCP_QUERY, LOCAL_NEOCP_QUERY)
-        mpc_query_list(URL_NEOCP_LIST, LOCAL_NEOCP_LIST)
-        mpc_query_list(URL_PCCP_LIST, LOCAL_PCCP_LIST)
+        verbose(f"download ephemerides from {URL_NEOCP_QUERY}")
+        mpc_query_ephemerides(URL_NEOCP_QUERY, local_eph)
+        verbose(f"download NEOCP list from {URL_NEOCP_LIST}")
+        mpc_query_list(URL_NEOCP_LIST, local_neocp)
+        verbose(f"download PCCP list from {URL_PCCP_LIST}")
+        mpc_query_list(URL_PCCP_LIST, local_pccp)
 
     # Parse ephemerides
-    with open(LOCAL_NEOCP_QUERY, "r") as file:
+    verbose(f"processing {local_eph}")
+    with open(local_eph, "r") as file:
         content = file.readlines()
         ephemerides_txt = parse_html_eph(content)
         ephemerides = convert_eph_list_to_qtable(ephemerides_txt)
 
     # Parse lists
-    with open(LOCAL_NEOCP_LIST, "r") as file:
+    verbose(f"processing {local_neocp}")
+    with open(local_neocp, "r") as file:
         content = file.readlines()
         neocp_list = parse_neocp_list(content)
 
-    with open(LOCAL_PCCP_LIST, "r") as file:
+    verbose(f"processing {local_pccp}")
+    with open(local_pccp, "r") as file:
         content = file.readlines()
         pccp_list = parse_neocp_list(content)
 
-    print_table_dict(ephemerides)
-
     ephemerides = sort_by_flip_time(ephemerides)
+
+    verbose("processing objects")
+    print_table_dict(ephemerides)
     process_objects(ephemerides, neocp_list, pccp_list)
 
     # Plot objects and Moon
     if args.sky_plot:
+        verbose("sky plot for objects")
         plot_sky_objects(ephemerides, "plot-sky.png")
     if args.alt_plot:
+        verbose("altitude plot for objects")
         plot_alt_objects(ephemerides, "plot_alt.png")
 
 
