@@ -21,8 +21,10 @@
 #       Retrieval from MPC, altitude and sky plots
 # Version 0.2 / 2025-09-12
 #       Parse NEOCP and PCCP lists for additional data, separate altitude/sky plots
+# Version 0.3 / 2025-09-17
+#       Added CSV output for nina-create-sequence2
 
-VERSION = "0.2 / 2025-09-12"
+VERSION = "0.3 / 2025-09-17"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
