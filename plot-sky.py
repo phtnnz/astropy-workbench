@@ -137,7 +137,7 @@ def main():
             file.seek(0)
             reader = csv.DictReader(file, delimiter=sep)
             for row in reader:
-                name = row.get("Name") or row.get("name")
+                name = row.get("Name") or row.get("name") or row.get("target")
                 ra   = row.get("RA") or row.get("ra") or row.get("RAJ2000")
                 dec  = row.get("DE") or row.get("DEC") or row.get("de") or row.get("dec") or row.get("DEJ2000")
                 obj  = f"{ra} {dec}"
