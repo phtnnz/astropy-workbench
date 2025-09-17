@@ -274,6 +274,21 @@ def flip_times(qt: QTable) -> Tuple[Time, Time]:
         prev_time = time
         prev_az   = az
 
+    # No meridian passing found
+    return None, None
+
+
+
+def max_alt_times(qt: QTable) -> Tuple[Time, Time]:
+    max_alt = -90 * u.degree
+    time_max = None
+    for row in qt:
+        if row["alt"] > max_alt:
+            max_alt = row["alt"]
+            time_max = row["obstime"]
+    # Return tuple for compatibility with flip_times()
+    return time_max, time_max
+
 
 
 def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> None:
@@ -286,6 +301,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
     for id, qt in ephemerides.items():
         item    = neocp_list[id]
         type    = "PCCP" if id in pccp_list else "NEOCP"
+        ic(id, qt, item, type)
 
         score   = item["score"]
         mag     = item["mag"]
@@ -294,6 +310,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         notseen = item["notseen"]
 
         time_before, time_after = flip_times(qt)
+        if not time_before:     # No meridian passing
+             time_before, time_after = max_alt_times(qt)
         time0 = qt["obstime"][0]
         time1 = qt["obstime"][-1]
     
@@ -359,7 +377,10 @@ def sort_by_flip_time(table_dict: dict) -> dict:
     time_dict = {}
 
     for id, qt in table_dict.items():
-        time_dict[id] = flip_times(qt)
+        t, _ = flip_times(qt)
+        if not t:
+            t, _ = max_alt_times(qt)
+        time_dict[id] = t
     
     # Sort dict by time (item[0] = id, item[1] = time)
     time_sorted = { id: time for id, time in sorted(time_dict.items(), key=lambda item: item[1]) }
@@ -384,10 +405,6 @@ def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
         qt = eph_to_qtable(id, eph)
         if len(qt["mag"]) == 0:
             verbose(f"skipping NEOCP {id=} (empty)")
-            continue
-        mag = qt["mag"][0]
-        if mag > Options.mag_limit * u.mag:
-            verbose(f"skipping NEOCP {id=} {mag=}")
             continue
         qtable_dict[id] = qt
     return qtable_dict
