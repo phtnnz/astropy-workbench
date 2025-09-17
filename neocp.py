@@ -34,6 +34,7 @@ import requests
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Tuple
+from itertools import pairwise
 # Required on Windows
 import tzdata
 
@@ -48,7 +49,7 @@ import astropy.units as u
 from astropy.units import Quantity, Magnitude
 from astropy.time        import Time
 import numpy as np
-from astropy.table import QTable
+from astropy.table import QTable, Row
 
 # Astroplan
 import matplotlib.pyplot as plt
@@ -291,6 +292,15 @@ def max_alt_times(qt: QTable) -> Tuple[Time, Time]:
 
 
 
+def get_row_for_time(qt: QTable, t: Time) -> Row:
+    for r1, r2 in pairwise(qt):
+        if r1["obstime"] <= t and t <= r2["obstime"]:
+            return r1
+    # Not matching interval found
+    return None
+        
+
+
 def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> None:
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
@@ -298,6 +308,10 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
     verbose("                                                    Time start ephemeris   / end ephemeris")
     verbose("                                                    Time start exposure    / end exposure")
     verbose("                                                    # x Exp   = total exposure time")
+    verbose("                                                    RA, DEC")
+
+    csv_rows = []
+
     for id, qt in ephemerides.items():
         item    = neocp_list[id]
         type    = "PCCP" if id in pccp_list else "NEOCP"
@@ -314,6 +328,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
              time_before, time_after = max_alt_times(qt)
         time0 = qt["obstime"][0]
         time1 = qt["obstime"][-1]
+        ic(time_before, time_after, time0, time1)
     
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
@@ -339,6 +354,9 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         if time_start_exp < time0:
             time_start_exp = time_after
             time_end_exp   = time_after + total_time
+
+        ic(n_exp, exp, total_exp, perc_of_required, total_time, time_start_exp, time_end_exp)
+
         # Skip, if not enough time
         if time_end_exp > time1:
             warning(f"skipping {id}, not enough time before/after passing meridian")
@@ -364,12 +382,55 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
             warning(f"skipping {id}, arc {arc:.2f} too small (< 0.05 d)")
             continue
 
+        # Table row best matching time_start_exp
+        ##FIXME: better get row matching middle of actual exposure?
+        row = get_row_for_time(qt, time_start_exp)
+        ic(row)
+        ra, dec = row["ra"], row["dec"]
 
         verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
         verbose(f"                                                    {time0}/{time1}")
         verbose(f"                                                    {time_start_exp}/{time_end_exp}")
-        verbose(f"                                                    {n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}")
-        ic(id, type, score, mag, nobs, arc, notseen, time_before, time_after, max_m, exp, total_exp, n_exp)
+        total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
+        verbose(f"                                                    {total}")
+        verbose(f"                                                    RA {ra:.4f}, DEC {dec:.4f}")
+
+        # CSV output:
+        #   start time, end time, 
+        #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
+        #   type, mag, nobs, arc, notseen, total
+        csv_row = { "target": id,
+                    "observation date": time_start_exp.strftime("%Y-%m-%d"),
+                    "time ut": time_start_exp.strftime("%H:%M"),
+                    "ra": float(ra.value),
+                    "dec": float(dec.value),
+                    "exposure": float(exp.value),
+                    "number": n_exp,
+                    "filter": "L",
+                    "start time": str(time_start_exp),
+                    "end time": str(time_end_exp),
+                    "type": type,
+                    "mag": float(mag.value),
+                    "nobs": nobs,
+                    "arc": float(arc.value),
+                    "notseen": float(notseen.value),
+                    "total": total
+                    }
+        ic(csv_row)
+        csv_rows.append(csv_row)
+
+        ##MJ: only 1st object for debugging
+        # return
+
+    fieldnames = [  "start time", "end time", 
+                    "target", "observation date", "time ut", "ra", "dec", "exposure", "number", "filter",
+                    "type", "mag", "nobs", "arc", "notseen", "total" ]
+
+    ##FIXME: add -o --output option
+    with open("tmp/neocp-plan.csv", "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(csv_rows)
 
 
 
