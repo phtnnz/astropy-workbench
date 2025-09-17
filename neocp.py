@@ -300,7 +300,23 @@ def get_row_for_time(qt: QTable, t: Time) -> Row:
             return r1
     # Not matching interval found
     return None
-        
+
+
+
+def min_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
+    time_alt0 = None
+    time_alt1 = None
+
+    for row in qt:
+        if time_alt0 == None and row["alt"] >= alt:
+            time_alt0 = row["obstime"]
+        if time_alt0 != None and row["alt"] >= alt:
+            time_alt1 = row["obstime"]
+        if time_alt1 != None and row["alt"] < alt:
+            break
+    
+    return time_alt0, time_alt1
+
 
 
 def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> None:
@@ -330,7 +346,10 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
              time_before, time_after = max_alt_times(qt)
         time0 = qt["obstime"][0]
         time1 = qt["obstime"][-1]
-        ic(time_before, time_after, time0, time1)
+        time_alt0, time_alt1 = min_alt_times(qt, 40 * u.degree) ##FIXME: parameter in config
+        if not time_alt0:
+            time_alt0, time_alt1 = time0, time1
+        ic(time_before, time_after, time0, time1, time_alt0, time_alt1)
     
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)
