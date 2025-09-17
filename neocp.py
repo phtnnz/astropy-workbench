@@ -400,8 +400,10 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
         #   type, mag, nobs, arc, notseen, total
         csv_row = { "target": id,
-                    "observation date": time_start_exp.strftime("%Y-%m-%d"),
-                    "time ut": time_start_exp.strftime("%H:%M"),
+                    # "observation date": time_start_exp.strftime("%Y-%m-%d"),
+                    # "time ut": time_start_exp.strftime("%H:%M"),
+                    # "+0000" to enforce UTC
+                    "obstime": time_start_exp.strftime("%Y-%m-%d %H:%M:%S+0000"),
                     "ra": float(ra.value),
                     "dec": float(dec.value),
                     "exposure": float(exp.value),
@@ -423,7 +425,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         # return
 
     fieldnames = [  "start time", "end time", 
-                    "target", "observation date", "time ut", "ra", "dec", "exposure", "number", "filter",
+                    "target", "obstime", "ra", "dec", "exposure", "number", "filter",
                     "type", "mag", "nobs", "arc", "notseen", "total" ]
 
     ##FIXME: add -o --output option
