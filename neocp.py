@@ -120,7 +120,7 @@ class Options:
     safety_margin         = 5 * u.min
     min_n_obs = 4
     max_notseen = 3 * u.day
-    opt_alt = 50 * u.degree # min altitude for optimal results
+    opt_alt = 45 * u.degree # min altitude for optimal results
     min_n_exp = 15          # min number of exposures
     max_n_exp = 60          # max number of exposures
     min_perc_required = 50  # min percentage of required total exposure time
@@ -416,22 +416,26 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # Make sure to start after previous exposure
         if prev_time_end_exp != None and time_first < prev_time_end_exp:
             time_first = prev_time_end_exp
+        ic(prev_time_end_exp, time_first)
 
-        # 1st try: start at time_alt_first
-        time_start_exp = time_alt_first
-        time_end_exp   = time_alt_first + total_time
+        # 1st try: start at time_alt_first or time_first
+        time_start_exp = time_alt_first if time_alt_first >= time_first else time_first
+        time_end_exp   = time_start_exp + total_time
+        ic("1st try - alt first", time_start_exp, time_end_exp)
         # ok if end <= before or start >= after and start >= previous
 
         # 2nd try: start at time_before - total = before passing meridian
         if time_end_exp > time_before and time_start_exp < time_after:
             time_start_exp = time_before - total_time
             time_end_exp   = time_before
+            ic("2nd try - before meridian", time_start_exp, time_end_exp)
         # ok if start >= first
 
         # 3rd try: start at time_after = after passing meridian
         if time_start_exp < time_first:
             time_start_exp = time_after
             time_end_exp   = time_after + total_time
+            ic("3rd try - after meridian", time_start_exp, time_end_exp)
         # ok if end <= last
         ic(time_start_exp, time_end_exp)
 
