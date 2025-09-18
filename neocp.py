@@ -23,8 +23,11 @@
 #       Parse NEOCP and PCCP lists for additional data, separate altitude/sky plots
 # Version 0.3 / 2025-09-17
 #       Added CSV output for nina-create-sequence2
+# Version 0.4 / 2025-09-18
+#       Major improvement to planning, avoid overlap of observations,
+#       altitude/sky plot only for planned objects
 
-VERSION = "0.3 / 2025-09-17"
+VERSION = "0.4 / 2025-09-18"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -107,11 +110,17 @@ class Options:
     code = "M49"            # -l --location
     loc = get_location(code)
     min_alt = 26            # min altitude
-    dead_time_slew_center = 90 * u.second
-    dead_time_af          = 100 * u.second
-    dead_time_image       = 1.5 * u.second
+    dead_time_slew_center = 90 * u.s
+    dead_time_af          = 100 * u.s
+    dead_time_image       = 1.5 * u.s
+    dead_time_guiding     = 30 * u.s
+    safety_margin         = 5 * u.min
     min_n_obs = 4
     max_notseen = 3 * u.day
+    opt_alt = 50 * u.degree # min altitude for optimal results
+    min_n_exp = 15          # min number of exposures
+    max_n_exp = 60          # max number of exposures
+    min_perc_required = 50  # min percentage of required total exposure time
 
 
 
@@ -183,7 +192,7 @@ def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
     return altaz
 
 
-def plot_alt_objects(table_dict: dict, filename: str) -> None:
+def plot_alt_objects(ephemerides: dict, objects: list, filename: str) -> None:
     # Get next midnight
     time = Time(Time.now(), location=Options.loc)
     observer = Observer(location=Options.loc, description=Options.code)
@@ -196,8 +205,9 @@ def plot_alt_objects(table_dict: dict, filename: str) -> None:
     # Quick hack to get a proper label for plot_altitude()
     moon.name     = "Moon"
 
-    # Plot all NEOCP objects in dict
-    for id, qt in table_dict.items():
+    # Plot all NEOCP objects
+    for id in objects:
+        qt = ephemerides[id]
         altaz = qtable_to_altaz(id, qt)
         plot_altitude(altaz, observer, altaz.obstime, style_kwargs=dict(fmt="o"))
 
@@ -208,7 +218,7 @@ def plot_alt_objects(table_dict: dict, filename: str) -> None:
     plt.close()
 
 
-def plot_sky_objects(table_dict: dict, filename: str) -> None:
+def plot_sky_objects(ephemerides: dict, objects: list, filename: str) -> None:
     # Get next midnight
     time = Time(Time.now(), location=Options.loc)
     observer = Observer(location=Options.loc, description=Options.code)
@@ -221,8 +231,9 @@ def plot_sky_objects(table_dict: dict, filename: str) -> None:
     # Quick hack to get a proper label for plot_sky()
     moon.name     = "Moon"
 
-    # Plot all NEOCP objects in dict
-    for id, qt in table_dict.items():
+    # Plot all NEOCP objects
+    for id in objects:
+        qt = ephemerides[id]
         altaz = qtable_to_altaz(id, qt)
         plot_sky(altaz, observer, altaz.obstime)
 
@@ -303,7 +314,7 @@ def get_row_for_time(qt: QTable, t: Time) -> Row:
 
 
 
-def min_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
+def opt_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
     time_alt0 = None
     time_alt1 = None
 
@@ -319,7 +330,33 @@ def min_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
 
 
 
-def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> None:
+def get_times_from_eph(ephemerides: dict) -> dict:
+    times_list = {}
+
+    for id, qt in ephemerides.items():
+        time_before, time_after = flip_times(qt)
+        if not time_before:     # No meridian passing
+                time_before, time_after = max_alt_times(qt)
+        time_0 = qt["obstime"][0]
+        time_1 = qt["obstime"][-1]
+        time_alt0, time_alt1 = opt_alt_times(qt, Options.opt_alt)
+        if not time_alt0:
+            time_alt0, time_alt1 = time_0, time_1
+
+        times_list[id] = {}
+        times_list[id]["before"]     = time_before
+        times_list[id]["after"]      = time_after
+        times_list[id]["first"]      = time_0
+        times_list[id]["last"]       = time_1
+        times_list[id]["alt_first"]  = time_alt0
+        times_list[id]["alt_last"]   = time_alt1
+        ic(id, qt, times_list[id])
+
+    return times_list
+
+
+
+def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_list: dict) -> list:
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
     verbose("             Score      MagV #Obs      Arc NotSeen  Time before            / after meridian                 Max motion")
@@ -329,11 +366,14 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
     verbose("                                                    RA, DEC")
 
     csv_rows = []
+    objects  = []
+    prev_time_end_exp = None
 
     for id, qt in ephemerides.items():
         item    = neocp_list[id]
+        time    = times_list[id]
         type    = "PCCP" if id in pccp_list else "NEOCP"
-        ic(id, qt, item, type)
+        ic(id, qt, item, time, type)
 
         score   = item["score"]
         mag     = item["mag"]
@@ -341,67 +381,88 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         arc     = item["arc"]
         notseen = item["notseen"]
 
-        time_before, time_after = flip_times(qt)
-        if not time_before:     # No meridian passing
-             time_before, time_after = max_alt_times(qt)
-        time0 = qt["obstime"][0]
-        time1 = qt["obstime"][-1]
-        time_alt0, time_alt1 = min_alt_times(qt, 40 * u.degree) ##FIXME: parameter in config
-        if not time_alt0:
-            time_alt0, time_alt1 = time0, time1
-        ic(time_before, time_after, time0, time1, time_alt0, time_alt1)
+        time_before, time_after       = time["before"], time["after"]
+        time_first, time_last         = time["first"], time["last"]
+        time_alt_first, time_alt_last = time["alt_first"], time["alt_last"]
     
+        # Calculate single exposure, number of exposures, total exposure, total time
         max_m = max_motion(qt)
-        exp   = exp_time_from_motion(max_m)
+        exp   = exp_time_from_motion(max_m)         # Single exposure
 
         rel_brightness = 10 ** (0.4 * (mag.value - 18))
-        total_exp = 4 * u.min * rel_brightness
-        n_exp = int(total_exp / exp) + 1
-        perc_of_required = 100.
-        if n_exp < 15:
-            perc_of_required = 15 / n_exp * 100
-            n_exp = 15
-        if n_exp > 60:
-            perc_of_required = 60 / n_exp * 100
-            n_exp = 60
+        total_exp = 4 * u.min * rel_brightness      # Total exposure
+        n_exp = int(total_exp / exp) + 1            # Number of exposures
+        perc_of_required = 100.                     # Percentage actual / total exposure
+        ##FIXME: move min/max to config parameters
+        if n_exp < Options.min_n_exp:
+            perc_of_required = Options.min_n_exp / n_exp * 100
+            n_exp = Options.min_n_exp
+        if n_exp > Options.max_n_exp:
+            perc_of_required = Options.max_n_exp / n_exp * 100
+            n_exp = Options.max_n_exp
         total_exp = (n_exp * exp).to(u.min)
-        total_time = (  total_exp + Options.dead_time_slew_center + Options.dead_time_slew_center +
-                        n_exp * Options.dead_time_image )
+        total_time = (  total_exp 
+                      + Options.dead_time_slew_center + Options.dead_time_slew_center 
+                      + Options.dead_time_guiding + Options.safety_margin
+                      + n_exp * Options.dead_time_image )
+        ic(n_exp, exp, total_exp, total_time, perc_of_required)
 
-        # 1st try: before passing meridian
-        time_start_exp = time_before - total_time
-        time_end_exp   = time_before
-        # 2nd try: after passing meridian
-        if time_start_exp < time0:
+        # Make sure to start after previous exposure
+        if prev_time_end_exp != None and time_first < prev_time_end_exp:
+            time_first = prev_time_end_exp
+
+        # 1st try: start at time_alt_first
+        time_start_exp = time_alt_first
+        time_end_exp   = time_alt_first + total_time
+        # ok if end <= before or start >= after and start >= previous
+
+        # 2nd try: start at time_before - total = before passing meridian
+        if time_end_exp > time_before and time_start_exp < time_after:
+            time_start_exp = time_before - total_time
+            time_end_exp   = time_before
+        # ok if start >= first
+
+        # 3rd try: start at time_after = after passing meridian
+        if time_start_exp < time_first:
             time_start_exp = time_after
             time_end_exp   = time_after + total_time
+        # ok if end <= last
+        ic(time_start_exp, time_end_exp)
 
-        ic(n_exp, exp, total_exp, perc_of_required, total_time, time_start_exp, time_end_exp)
-
-        # Skip, if not enough time
-        if time_end_exp > time1:
-            warning(f"skipping {id}, not enough time before/after passing meridian")
-            continue
-
+        # Skip object for various reasons ...
         # Skip, if below threshold for # obs
         if nobs < Options.min_n_obs:
-            warning(f"skipping {id}, only {nobs} obs (< {Options.min_n_obs})")
+            warning(f"{id}: SKIPPED: only {nobs} obs (< {Options.min_n_obs})")
             continue
 
         # Skip, if not seen for more than threshold days
         if notseen > Options.max_notseen:
-            warning(f"skipping {id}, not seen for {notseen:.1f} (> {Options.max_notseen:.1f})")
+            warning(f"{id}: SKIPPED: not seen for {notseen:.1f} (> {Options.max_notseen:.1f})")
             continue
 
         # Skip, if percentage of total exposure time is less than threshold
-        if perc_of_required < 25:
-            warning(f"skipping {id}, only {perc_of_required:.0f}% of required total exposure time (< 25%)")
+        if perc_of_required < Options.min_perc_required:
+            warning(f"{id}: SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {Options.min_perc_required}%)")
             continue
 
         # Skip, if arc is less than threshold
         if arc < 0.05 * u.day:
-            warning(f"skipping {id}, arc {arc:.2f} too small (< 0.05 d)")
+            warning(f"{id}: SKIPPED: arc {arc:.2f} too small (< 0.05 d)")
             continue
+
+        # Skip, if failed to allocate total_time
+        if time_end_exp > time_last:
+            # Skip, if not enough time
+            warning(f"{id}: SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
+            warning(f"{id}: INFO:    type={type} mag={mag} nobs={nobs} arc={arc} notseen={notseen}")
+            continue
+
+        # Remember end of exposure
+        prev_time_end_exp = time_end_exp
+
+        # Save object
+        time["start"], time["end"] = time_start_exp, time_end_exp
+        objects.append(id)
 
         # Table row best matching time_start_exp
         ##FIXME: better get row matching middle of actual exposure?
@@ -410,7 +471,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         ra, dec = row["ra"], row["dec"]
 
         verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
-        verbose(f"                                                    {time0}/{time1}")
+        verbose(f"                                                    {time_first}/{time_last}")
         verbose(f"                                                    {time_start_exp}/{time_end_exp}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
         verbose(f"                                                    {total}")
@@ -454,6 +515,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict) -> Non
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(csv_rows)
+
+    return objects
 
 
 
@@ -675,6 +738,7 @@ def main():
         content = file.readlines()
         ephemerides_txt = parse_html_eph(content)
         ephemerides = convert_eph_list_to_qtable(ephemerides_txt)
+        times = get_times_from_eph(ephemerides)
 
     # Parse lists
     verbose(f"processing {local_neocp}")
@@ -691,15 +755,15 @@ def main():
 
     verbose("processing objects")
     print_table_dict(ephemerides)
-    process_objects(ephemerides, neocp_list, pccp_list)
+    objects = process_objects(ephemerides, neocp_list, pccp_list, times)
 
     # Plot objects and Moon
     if args.sky_plot:
         verbose("sky plot for objects")
-        plot_sky_objects(ephemerides, "plot-sky.png")
+        plot_sky_objects(ephemerides, objects, "plot-sky.png")
     if args.alt_plot:
         verbose("altitude plot for objects")
-        plot_alt_objects(ephemerides, "plot_alt.png")
+        plot_alt_objects(ephemerides, objects, "plot_alt.png")
 
 
 
