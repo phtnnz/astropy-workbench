@@ -103,6 +103,9 @@ DOWNLOADS = "./downloads/"
 
 # Command line options
 class Options:
+    csv: bool = False       # -C --csv
+    output: str = None      # -o --output
+
     ##FIXME: use config file
     mag_limit = 20.5
     pixel_tolerance = 2     # Max trail tolerance in pixels
@@ -507,16 +510,23 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ##MJ: only 1st object for debugging
         # return
 
+    # Output to CSV file for nina-create-sequence2
     fieldnames = [  "start time", "end time", 
                     "target", "obstime", "ra", "dec", "exposure", "number", "filter",
                     "type", "mag", "nobs", "arc", "notseen", "total" ]
+    if Options.csv:
+        ##FIXME: use improved csvoutput module
+        if Options.output:
+            with open(Options.output, "w", newline="") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(csv_rows)
+        else:
+            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
 
-    ##FIXME: add -o --output option
-    with open("tmp/neocp-plan.csv", "w", newline="") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(csv_rows)
-
+    # Return list of planned objects
     return objects
 
 
@@ -701,16 +711,21 @@ def main():
     arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
     arg.add_argument("-A", "--alt-plot", action="store_true", help="create altitude plot with objects")
     arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot with objects")
+    arg.add_argument("-o", "--output", help="write CSV to OUTPUT file")
+    arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
 
     args = arg.parse_args()
 
     if args.debug:
         ic.enable()
-        ic(sys.version_info)
+        ic(sys.version_info, sys.path)
         ic(args)
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
+
+    Options.csv    = args.csv
+    Options.output = args.output
 
     if args.location:
         loc = get_location(args.location)
