@@ -359,8 +359,8 @@ def get_times_from_eph(ephemerides: dict) -> dict:
 def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_list: dict) -> list:
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
-    verbose("             Score      MagV #Obs      Arc NotSeen  Time before            / after meridian                 Max motion")
-    verbose("                                                    Time start ephemeris   / end ephemeris")
+    verbose("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris   / end ephemeris                  Max motion")
+    verbose("                                                    Time before            / after meridian")
     verbose("                                                    Time start exposure    / end exposure")
     verbose("                                                    # x Exp   = total exposure time")
     verbose("                                                    RA, DEC")
@@ -384,7 +384,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         time_before, time_after       = time["before"], time["after"]
         time_first, time_last         = time["first"], time["last"]
         time_alt_first, time_alt_last = time["alt_first"], time["alt_last"]
-    
+
         # Calculate single exposure, number of exposures, total exposure, total time
         max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)         # Single exposure
@@ -406,6 +406,9 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
                       + Options.dead_time_guiding + Options.safety_margin
                       + n_exp * Options.dead_time_image )
         ic(n_exp, exp, total_exp, total_time, perc_of_required)
+
+        verbose("----------------------------------------------------------------------------------------------------------------------")
+        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:4.1f}")
 
         # Make sure to start after previous exposure
         if prev_time_end_exp != None and time_first < prev_time_end_exp:
@@ -454,7 +457,6 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         if time_end_exp > time_last:
             # Skip, if not enough time
             warning(f"{id}: SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
-            warning(f"{id}: INFO:    type={type} mag={mag} nobs={nobs} arc={arc} notseen={notseen}")
             continue
 
         # Remember end of exposure
@@ -470,8 +472,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ic(row)
         ra, dec = row["ra"], row["dec"]
 
-        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_before}/{time_after}  {max_m:4.1f}")
-        verbose(f"                                                    {time_first}/{time_last}")
+        verbose(f"                                                    {time_before}/{time_after}")
         verbose(f"                                                    {time_start_exp}/{time_end_exp}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
         verbose(f"                                                    {total}")
