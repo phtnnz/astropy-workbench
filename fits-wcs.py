@@ -84,7 +84,7 @@ def process_fits(file: str):
         # Skip files without solution
         if not hdr.get("CRVAL1"):
             warning(f"no WCS solution in FITS headers")
-            return
+            return None, None
 
         # See https://danmoser.github.io/notes/gai_fits-imgs.html for FITS WCS header
         obstime    = Time(hdr["DATE-OBS"])
@@ -125,6 +125,7 @@ def process_fits(file: str):
         if Options.list:
             print(f"{obstime}  {ra:.4f}  {dec:+.4f}  {crota2:.4f}")
 
+        return obstime, crota2
 
 
 
@@ -141,10 +142,20 @@ def process_file_or_dir(name: str):
     elif os.path.isdir(name):
         for dir, subdir_list, file_list in os.walk(name):
             verbose(f"found directory {dir}")
+            obstime_1st = None
+            rot_1st     = None
             for file in file_list:
                 file = os.path.join(dir, file)
                 if file.lower().endswith(".fits") or file.lower().endswith(".fit"):
-                    process_fits(file)
+                    obstime, rot = process_fits(file)
+                    if obstime_1st == None and obstime != None:
+                        obstime_1st = obstime
+                        rot_1st     = rot
+
+        if obstime_1st != None:
+            delta_time = obstime - obstime_1st
+            delta_rot  = rot     - rot_1st
+            print(delta_time, delta_rot)
 
     else:
         error(f"no such file or directory {name}")
