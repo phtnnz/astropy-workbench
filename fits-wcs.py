@@ -81,6 +81,11 @@ def process_fits(file: str):
         if Options.csv:
             csv_output.add_row(value_list)
 
+        # Skip files without solution
+        if not hdr.get("CRVAL1"):
+            warning(f"no WCS solution in FITS headers")
+            return
+
         # See https://danmoser.github.io/notes/gai_fits-imgs.html for FITS WCS header
         obstime    = Time(hdr["DATE-OBS"])
         center_ra  = hdr["CRVAL1"] * u.degree
