@@ -159,11 +159,11 @@ def process_file_or_dir(name: str):
 
         if obstime_1st != None and obstime_last != None:
             delta_time = obstime_last - obstime_1st
-            delta_min  = delta_time.to_value("sec") / 60 * u.min
+            delta_hour  = delta_time.to_value("sec") / 3600 * u.hour
             delta_rot  = rot_last     - rot_1st
-            print(delta_time, delta_min, delta_rot)
-            rel_rot    = delta_rot / delta_min
-            print(rel_rot)
+            rel_rot    = delta_rot / delta_hour
+            if Options.list:
+                print(f"Rotation: {rel_rot:.3f}")
 
     else:
         error(f"no such file or directory {name}")
