@@ -142,19 +142,24 @@ def process_file_or_dir(name: str):
     elif os.path.isdir(name):
         for dir, subdir_list, file_list in os.walk(name):
             verbose(f"found directory {dir}")
-            obstime_1st = None
-            rot_1st     = None
+            obstime_1st  = None
+            rot_1st      = None
+            obstime_last = None
+            rot_last     = None
             for file in file_list:
                 file = os.path.join(dir, file)
                 if file.lower().endswith(".fits") or file.lower().endswith(".fit"):
                     obstime, rot = process_fits(file)
-                    if obstime_1st == None and obstime != None:
-                        obstime_1st = obstime
-                        rot_1st     = rot
+                    if obstime != None:
+                        if obstime_1st == None:
+                            obstime_1st = obstime
+                            rot_1st     = rot
+                        obstime_last = obstime
+                        rot_last     = rot
 
-        if obstime_1st != None:
-            delta_time = obstime - obstime_1st
-            delta_rot  = rot     - rot_1st
+        if obstime_1st != None and obstime_last != None:
+            delta_time = obstime_last - obstime_1st
+            delta_rot  = rot_last     - rot_1st
             print(delta_time, delta_rot)
 
     else:
