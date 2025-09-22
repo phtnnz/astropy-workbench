@@ -159,8 +159,9 @@ def process_file_or_dir(name: str):
 
         if obstime_1st != None and obstime_last != None:
             delta_time = obstime_last - obstime_1st
+            delta_s    = delta_time.to_value("secs")
             delta_rot  = rot_last     - rot_1st
-            print(delta_time, delta_rot)
+            print(delta_time, delta_s, delta_rot)
 
     else:
         error(f"no such file or directory {name}")
