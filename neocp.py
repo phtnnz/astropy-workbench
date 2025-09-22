@@ -120,7 +120,7 @@ class Options:
     safety_margin         = 5 * u.min
     min_n_obs = 4
     max_notseen = 3 * u.day
-    opt_alt = 45 * u.degree # min altitude for optimal results
+    opt_alt = 50 * u.degree # min altitude for optimal results
     min_n_exp = 15          # min number of exposures
     max_n_exp = 60          # max number of exposures
     min_perc_required = 50  # min percentage of required total exposure time
@@ -478,12 +478,13 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         row = get_row_for_time(qt, time_start_exp)
         ic(row)
         ra, dec = row["ra"], row["dec"]
+        alt, az = row["alt"], row["az"]
 
         verbose(f"                                                    {time_before}/{time_after}")
         verbose(f"                                                    {time_start_exp}/{time_end_exp}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
         verbose(f"                                                    {total}")
-        verbose(f"                                                    RA {ra:.4f}, DEC {dec:.4f}")
+        verbose(f"                                                    RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
         # CSV output:
         #   start time, end time, 
