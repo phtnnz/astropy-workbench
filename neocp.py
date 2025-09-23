@@ -128,6 +128,16 @@ class Options:
 
 
 def mpc_query_ephemerides(url: str, filename: str) -> None:
+    """
+    Retrieve NEOCP ephemerides from MPC
+
+    Parameters
+    ----------
+    url : str
+        MPC web service URL
+    filename : str
+        Local file name in cache
+    """
     ##FIXME: get query params from config file
     ic(url, filename)
 
@@ -176,6 +186,16 @@ def mpc_query_ephemerides(url: str, filename: str) -> None:
 
 
 def mpc_query_list(url: str, filename: str) -> None:
+    """
+    Retrieve NEOCP/PCCP txt list from MPC
+
+    Parameters
+    ----------
+    url : str
+        MPC web service URL
+    filename : str
+        Local file name in cache
+    """
     ic(url, filename)
     response = requests.get(url, timeout=TIMEOUT)
     ic(response.status_code)
@@ -188,6 +208,21 @@ def mpc_query_list(url: str, filename: str) -> None:
 
 
 def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
+    """
+    Convert table rows "alt"/"az" to AltAz object
+
+    Parameters
+    ----------
+    id : str
+        NEOCP id = temporary designation
+    qt : QTable
+        Table with ephemeris, including alt/az
+
+    Returns
+    -------
+    AltAz
+        AltAz coordinates object for altitude/sky plot
+    """
     altaz = AltAz(alt=qt["alt"], az=qt["az"], obstime=qt["obstime"], location=Options.loc)
     # Quick hack to get a proper label for plot_altitude()
     altaz.name = id
@@ -196,6 +231,18 @@ def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
 
 
 def plot_alt_objects(ephemerides: dict, objects: list, filename: str) -> None:
+    """
+    Generate altitude plot
+
+    Parameters
+    ----------
+    ephemerides : dict
+        Dictionary with ephemerides for all objects
+    objects : list
+        Subset list of objects for plot
+    filename : str
+        File name for generated PNG
+    """
     # Get next midnight
     time = Time(Time.now(), location=Options.loc)
     observer = Observer(location=Options.loc, description=Options.code)
@@ -222,6 +269,18 @@ def plot_alt_objects(ephemerides: dict, objects: list, filename: str) -> None:
 
 
 def plot_sky_objects(ephemerides: dict, objects: list, filename: str) -> None:
+    """
+    Generate sky plot
+
+    Parameters
+    ----------
+    ephemerides : dict
+        Dictionary with ephemerides for all objects
+    objects : list
+        Subset list of objects for plot
+    filename : str
+        File name for generated PNG
+    """
     # Get next midnight
     time = Time(Time.now(), location=Options.loc)
     observer = Observer(location=Options.loc, description=Options.code)
