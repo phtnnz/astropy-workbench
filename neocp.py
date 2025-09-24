@@ -103,6 +103,9 @@ DOWNLOADS = "./downloads/"
 
 # Command line options
 class Options:
+    """
+    Command line options
+    """
     csv: bool = False       # -C --csv
     output: str = None      # -o --output
 
@@ -308,6 +311,19 @@ def plot_sky_objects(ephemerides: dict, objects: list, filename: str) -> None:
 
 
 def max_motion(qt: QTable) -> Quantity:
+    """
+    Get max value for "motion" from table
+
+    Parameters
+    ----------
+    qt : QTable
+        Ephemeris table
+
+    Returns
+    -------
+    Quantity
+        Max motion as arcsec/min
+    """
     max_motion = -1 * u.arcsec / u.min
     for row in qt:
         if row["motion"] > max_motion:
@@ -315,6 +331,19 @@ def max_motion(qt: QTable) -> Quantity:
     return max_motion
 
 def exp_time_from_motion(motion: Quantity) -> Quantity:
+    """
+    Compute exposure time depending on motion value,
+
+    Parameters
+    ----------
+    motion : Quantity
+        Motion value as arcsec/min
+
+    Returns
+    -------
+    Quantity
+        Exposure time as secs
+    """
     exp = Options.pixel_tolerance * Options.resolution * u.arcsec / motion
     exp_max = EXP_TIMES[0]
     for exp1 in EXP_TIMES:
@@ -326,15 +355,55 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
 
 
 def is_east(az: Angle) -> bool:
+    """
+    Test for east azimut position
+
+    Parameters
+    ----------
+    az : Angle
+        Azimut angle
+
+    Returns
+    -------
+    bool
+        True if east, False if west
+    """
     az180     = 180 * u.degree
     return True if az >= 0 and az < az180 else False
 
 def is_west(az: Angle) -> bool:
+    """
+    Test for west azimut position
+
+    Parameters
+    ----------
+    az : Angle
+        Azimut angle
+
+    Returns
+    -------
+    bool
+        True if west, False if east
+    """
     az180     = 180 * u.degree
     az360     = 360 * u.degree
     return True if az >= az180 and az < az360 else False
 
 def flip_times(qt: QTable) -> Tuple[Time, Time]:
+    """
+    Get time before and after meridian passing from ephemeris table
+
+    Parameters
+    ----------
+    qt : QTable
+        Ephemeris table
+
+    Returns
+    -------
+    Tuple[Time, Time]
+        Time before meridian, time after meridian passing
+        None, None if object doesn't pass meridian
+    """
     prev_time = None
     prev_az   = None
 
@@ -356,6 +425,20 @@ def flip_times(qt: QTable) -> Tuple[Time, Time]:
 
 
 def max_alt_times(qt: QTable) -> Tuple[Time, Time]:
+    """
+    Get time of maximum altitude from ephemeris table
+
+    Parameters
+    ----------
+    qt : QTable
+        Ephemeris table
+
+    Returns
+    -------
+    Tuple[Time, Time]
+        Time of max altitude, Time of max altitude
+        (twice for return tuple to be compatible with flip_times())
+    """
     max_alt = -90 * u.degree
     time_max = None
     for row in qt:
@@ -368,6 +451,22 @@ def max_alt_times(qt: QTable) -> Tuple[Time, Time]:
 
 
 def get_row_for_time(qt: QTable, t: Time) -> Row:
+    """
+    Get row from ephemeris table closest to specified time
+
+    Parameters
+    ----------
+    qt : QTable
+        Ephemeris table
+    t : Time
+        Time for retrieving row
+
+    Returns
+    -------
+    Row
+        Corresponding row from ephemeris table
+        None, if not found
+    """
     for r1, r2 in pairwise(qt):
         if r1["obstime"] <= t and t <= r2["obstime"]:
             return r1
@@ -377,6 +476,21 @@ def get_row_for_time(qt: QTable, t: Time) -> Row:
 
 
 def opt_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
+    """
+    Get times for object above specified altitude
+
+    Parameters
+    ----------
+    qt : QTable
+        Ephemeris table
+    alt : Angle
+        Altitude angle
+
+    Returns
+    -------
+    Tuple[Time, Time]
+        Start time above altitude, end time above altitude
+    """
     time_alt0 = None
     time_alt1 = None
 
@@ -393,6 +507,20 @@ def opt_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
 
 
 def get_times_from_eph(ephemerides: dict) -> dict:
+    """
+    Compile complete list of times (before, after, start, end, alt_first, alt_last)
+    for entire ephemerides dictionary
+
+    Parameters
+    ----------
+    ephemerides : dict
+        Ephemerides dictionary {id: qtable}
+
+    Returns
+    -------
+    dict
+        Times dictionary {id: {name: value}}
+    """
     times_list = {}
 
     for id, qt in ephemerides.items():
