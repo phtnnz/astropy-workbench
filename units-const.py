@@ -63,9 +63,11 @@ def test():
     # Some fun ...
     message("A bit less serious ... ;-)")
     furlong = 1/8 * imperial.mile
+    message(f"{furlong=}")
     fortnight = 14 * u.d
+    message(f"{fortnight=}")
     f_p_f = furlong / fortnight
-    message("1 furlong / fortnight  = ", f_p_f, " = ", f_p_f.to(u.m / u.d), " = ", f_p_f.to(u.m / u.s))
+    message("1 furlong / fortnight  = ", f_p_f, " = ", f_p_f.to(u.m / u.d), " = ", f_p_f.to(u.mm / u.s))
 
     
 
