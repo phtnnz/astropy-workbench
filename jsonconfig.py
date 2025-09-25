@@ -33,11 +33,13 @@
 #       Method .get() now supports nested keys, e.g. config.get("main", "sub", "setting")
 # Version 0.7 / 2025-09-25
 #       Map access to undefined attributes to .get()
+#       Top-level in JSON config must be a dictionary {}
 
 import os
 import sys
 import argparse
 import json
+from typing import Any
 # Windows specific
 import ctypes.wintypes
 
@@ -74,17 +76,17 @@ class JSONConfig:
         self.read_config(file, warn, err)
 
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         ic("getattr", name)
         value = self.get(name)
         self.__dict__[name] = value
         return value
     
 
-    def read_config(self, file, warn=True, err=True):
+    def read_config(self, file, warn: bool=True, err: bool=True):
         ic(file)
         file1 = self.search_config(file)
-        if(file1):
+        if file1:
             self.configfile = file1
             json  = self.read_json(file1)
             # Merge with existing config
@@ -99,7 +101,8 @@ class JSONConfig:
         verbose(f"config file {self.configfile}")
         verbose("config keys:", " ".join( [k for k in self.config.keys() if not k.startswith("#")] ))
 
-    def search_config(self, file):
+
+    def search_config(self, file: str) -> str:
         # If full path use as is
         if os.path.isfile(file):
             return file
@@ -145,17 +148,17 @@ class JSONConfig:
         return None
 
 
-    def read_json(self, file):
+    def read_json(self, file: str) -> dict:
         with open(file, 'r') as f:
             return json.load(f)
 
 
-    def write_json(self, file):
+    def write_json(self, file: str):
         with open(file, 'w') as f:
             json.dump(self.config, f, indent = 2)
 
 
-    def get(self, *keys):
+    def get(self, *keys: str) -> str:
         cf = self.config
         for k in keys:
             cf = cf.get(k)
@@ -164,16 +167,16 @@ class JSONConfig:
         return cf
 
 
-    def get_keys(self):
+    def get_keys(self) -> list[str]:
         return self.config.keys()
 
 
-    def get_json(self):
+    def get_json(self) -> dict:
         # For backwards compatibility
         return self.config
 
 
-    def get_documents_path(self):
+    def get_documents_path(self) -> str:
         # Windows hack to get path of Documents folder, which might reside on other drives than C:
         CSIDL_PERSONAL = 5       # My Documents
         SHGFP_TYPE_CURRENT = 0   # Get current, not default value
