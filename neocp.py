@@ -127,6 +127,7 @@ class Options:
     min_n_exp = 15          # min number of exposures
     max_n_exp = 60          # max number of exposures
     min_perc_required = 50  # min percentage of required total exposure time
+    min_moon_dist = 50 * u.degree     # min distance from moon
 
 
 
@@ -547,6 +548,25 @@ def get_times_from_eph(ephemerides: dict) -> dict:
 
 
 def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_list: dict) -> list:
+    """
+    Main planning for NEOCP observations
+
+    Parameters
+    ----------
+    ephemerides : dict
+        Ephemerides dictionary for all bjects
+    neocp_list : dict
+        NEOCP list data dictionary for all objects
+    pccp_list : dict
+        PCCP list data dictionary for all objects
+    times_list : dict
+        Times from ephemerides dictionary for all objects
+
+    Returns
+    -------
+    list
+        List of planned objects
+    """
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
     verbose("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris   / end ephemeris                  Max motion")
@@ -583,7 +603,6 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         total_exp = 4 * u.min * rel_brightness      # Total exposure
         n_exp = int(total_exp / exp) + 1            # Number of exposures
         perc_of_required = 100.                     # Percentage actual / total exposure
-        ##FIXME: move min/max to config parameters
         if n_exp < Options.min_n_exp:
             perc_of_required = Options.min_n_exp / n_exp * 100
             n_exp = Options.min_n_exp
@@ -600,6 +619,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         verbose("----------------------------------------------------------------------------------------------------------------------")
         verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:4.1f}")
 
+        ##### Plan exposure start and end time ... #####
         # Make sure to start after previous exposure
         if prev_time_end_exp != None and time_first < prev_time_end_exp:
             time_first = prev_time_end_exp
@@ -626,7 +646,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # ok if end <= last
         ic(time_start_exp, time_end_exp)
 
-        # Skip object for various reasons ...
+        ##### Skip object for various reasons ... #####
         # Skip, if below threshold for # obs
         if nobs < Options.min_n_obs:
             warning(f"{id}: SKIPPED: only {nobs} obs (< {Options.min_n_obs})")
@@ -649,21 +669,23 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
 
         # Skip, if failed to allocate total_time
         if time_end_exp > time_last:
-            # Skip, if not enough time
             warning(f"{id}: SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
             continue
 
-        # Remember end of exposure
-        prev_time_end_exp = time_end_exp
-
-        # Save object
-        time["start"], time["end"] = time_start_exp, time_end_exp
-        objects.append(id)
-
         # Table row best matching time_start_exp
-        ##FIXME: better get row matching middle of actual exposure?
         row = get_row_for_time(qt, time_start_exp)
         ic(row)
+        moon_dist = row["moon_dist"]
+        # Skip, if moon distance is too small
+        if moon_dist < Options.min_moon_dist:
+            warning(f"{id}: SKIPPED: moon distance {moon_dist:.0f} < {Options.min_moon_dist}")
+            continue
+
+        ##### Good to go! #####
+        # Remember end of exposure
+        prev_time_end_exp = time_end_exp
+        # Append to list of planned objects
+        objects.append(id)
         ra, dec = row["ra"], row["dec"]
         alt, az = row["alt"], row["az"]
 
@@ -968,10 +990,10 @@ def main():
     # Plot objects and Moon
     if args.sky_plot:
         verbose("sky plot for objects")
-        plot_sky_objects(ephemerides, objects, "plot-sky.png")
+        plot_sky_objects(ephemerides, objects, "neocp-plot-sky.png")
     if args.alt_plot:
         verbose("altitude plot for objects")
-        plot_alt_objects(ephemerides, objects, "plot_alt.png")
+        plot_alt_objects(ephemerides, objects, "neocp-plot-alt.png")
 
 
 
