@@ -34,6 +34,8 @@
 # Version 0.7 / 2025-09-25
 #       Map access to undefined attributes to .get()
 #       Top-level in JSON config must be a dictionary {}
+#       Added warning/error for missing keys, use .set_warn_on_missing() / 
+#       .set_error_on_missing() to enable
 
 import os
 import sys
@@ -86,6 +88,8 @@ class JSONConfig:
         ic("config init", file)
         self.config = {}
         self.read_config(file, warn, err)
+        self.warn_on_missing = False
+        self.error_on_missing = False
 
 
     def __getattr__(self, name: str) -> Any:
@@ -107,6 +111,20 @@ class JSONConfig:
         self.__dict__[name] = value
         return value
     
+
+    def set_warn_on_missing(self):
+        """
+        Set warning on missing key(s)
+        """
+        self.warn_on_missing = True
+
+
+    def set_error_on_missing(self):
+        """
+        Set warning on missing key(s)
+        """
+        self.error_on_missing = True
+        
 
     def read_config(self, file: str, warn: bool=True, err: bool=True):
         """
@@ -249,7 +267,11 @@ class JSONConfig:
         cf = self.config
         for k in keys:
             cf = cf.get(k)
-            if not cf:
+            if cf == None:
+                if self.warn_on_missing:
+                    warning("not such key(s):", *keys)
+                if self.error_on_missing:
+                    error("not such key(s):", *keys)
                 return None
         return cf
 
