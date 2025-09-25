@@ -26,8 +26,10 @@
 # Version 0.4 / 2025-09-18
 #       Major improvement to planning, avoid overlap of observations,
 #       altitude/sky plot only for planned objects
+# Version 0.5 / 2025-09-25
+#       Using config files neocp.json for all parameters
 
-VERSION = "0.4 / 2025-09-18"
+VERSION = "0.5 / 2025-09-25"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -52,7 +54,7 @@ ic.disable()
 from astropy.coordinates import SkyCoord, AltAz, Angle, EarthLocation, FK5
 import astropy.units as u
 from astropy.units import Quantity, Magnitude
-from astropy.time        import Time
+from astropy.time import Time
 import numpy as np
 from astropy.table import QTable, Row
 
@@ -63,15 +65,19 @@ from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import get_location, location_to_string
+from astroutils import mpc_station_location, location_to_string
+from jsonconfig import JSONConfig, config
+
+
+CONFIGFILE = "neocp.json"
+config = JSONConfig(CONFIGFILE)
+config.set_error_on_missing()
 
 
 # Requests timeout
-TIMEOUT = 60
-
+TIMEOUT = config.requests_timeout
 # Exposure times / s
-EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
-
+EXP_TIMES = config.exposure_times
 
 # MPC pages:
 # NEOCP form
@@ -89,16 +95,13 @@ EXP_TIMES = [ 5, 10, 15, 20, 30, 45, 60 ]
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-URL_NEOCP_QUERY = "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi"
-LOCAL_EPH = "NEOCP-ephemerides.html"
-
-URL_NEOCP_LIST = "https://minorplanetcenter.net/iau/NEO/neocp.txt"
-LOCAL_NEOCP  = "NEOCP-list.txt"
-
-URL_PCCP_LIST = "https://minorplanetcenter.net/iau/NEO/pccp.txt"
-LOCAL_PCCP   = "PCCP-list.txt"
-
-DOWNLOADS = "./downloads/"
+URL_NEOCP_QUERY = config.url_neocp_query
+LOCAL_EPH       = config.local_eph
+URL_NEOCP_LIST  = config.url_neocp_list
+LOCAL_NEOCP     = config.local_neocp
+URL_PCCP_LIST   = config.url_pccp_list
+LOCAL_PCCP      = config.local_pccp
+DOWNLOADS       = config.downloads
 
 
 # Command line options
@@ -106,15 +109,16 @@ class Options:
     """
     Command line options
     """
-    csv: bool = False       # -C --csv
-    output: str = None      # -o --output
+    csv: bool = False           # -C --csv
+    output: str = None          # -o --output
+
+    code: str = config.code     # -l --location
+    loc: EarthLocation = mpc_station_location(code)
 
     ##FIXME: use config file
     mag_limit = 20.5
     pixel_tolerance = 2     # Max trail tolerance in pixels
     resolution = 1.33       # arcsec / pixel resolution of camera/telescope
-    code = "M49"            # -l --location
-    loc = get_location(code)
     min_alt = 26            # min altitude
     dead_time_slew_center = 90 * u.s
     dead_time_af          = 100 * u.s
@@ -1016,7 +1020,7 @@ def main():
     Options.output = args.output
 
     if args.location:
-        loc = get_location(args.location)
+        loc = mpc_station_location(args.location)
         Options.code = args.location
         Options.loc  = loc
         ic(loc, loc.to_geodetic())
