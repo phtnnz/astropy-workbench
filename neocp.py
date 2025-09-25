@@ -111,27 +111,8 @@ class Options:
     """
     csv: bool = False           # -C --csv
     output: str = None          # -o --output
-
     code: str = config.code     # -l --location
     loc: EarthLocation = mpc_station_location(code)
-
-    ##FIXME: use config file
-    mag_limit = 20.5
-    pixel_tolerance = 2     # Max trail tolerance in pixels
-    resolution = 1.33       # arcsec / pixel resolution of camera/telescope
-    min_alt = 26            # min altitude
-    dead_time_slew_center = 90 * u.s
-    dead_time_af          = 100 * u.s
-    dead_time_image       = 1.5 * u.s
-    dead_time_guiding     = 30 * u.s
-    safety_margin         = 5 * u.min
-    min_n_obs = 4
-    max_notseen = 3 * u.day
-    opt_alt = 50 * u.degree # min altitude for optimal results
-    min_n_exp = 15          # min number of exposures
-    max_n_exp = 60          # max number of exposures
-    min_perc_required = 50  # min percentage of required total exposure time
-    min_moon_dist = 50 * u.degree     # min distance from moon
 
 
 
@@ -146,39 +127,42 @@ def mpc_query_ephemerides(url: str, filename: str) -> None:
     filename : str
         Local file name in cache
     """
-    ##FIXME: get query params from config file
     ic(url, filename)
 
     # Compute min/max DEC from min altitude and latitude
     lat = Options.loc.lat.degree
-    min_dec = -90 + Options.min_alt + lat
-    max_dec = +90 - Options.min_alt + lat
+    code = Options.code
+    mag_limit = config.mag_limit
+    min_alt = config.min_alt
+
+    min_dec = -90 + min_alt + lat
+    max_dec = +90 - min_alt + lat
     min_dec = -90 if min_dec < -90 else int(min_dec)
     max_dec = +90 if max_dec > +90 else int(max_dec)
     ic(lat, min_dec, max_dec)
 
     data = { 
-        "W":	"a",                # all objects with ...
-        "mb":	"-30",              # max brightness (V)
-        "mf":	Options.mag_limit,  # min brightness (V)
-        "dl":	min_dec,            # min DEC
-        "du":	max_dec,            # max DEC
-        "nl":	"0",                # min NEO score
-        "nu":	"100",              # max NEO score
+        "W":	"a",            # all objects with ...
+        "mb":	"-30",          # max brightness (V)
+        "mf":	mag_limit,      # min brightness (V)
+        "dl":	min_dec,        # min DEC
+        "du":	max_dec,        # max DEC
+        "nl":	"0",            # min NEO score
+        "nu":	"100",          # max NEO score
         "sort":	"d",
-        "Parallax":	"1",            # 0=geocentric, 1=code, 2=Lon/Lat/Alt
-        "obscode":	Options.code,   # observatory code
+        "Parallax":	"1",        # 0=geocentric, 1=code, 2=Lon/Lat/Alt
+        "obscode": code,        # observatory code
         "long":	"",
         "lat":	"",
         "alt":	"",
-        "int":	"1",             # interval 0=1h, 1=30m, 2=10m, 3=1m
-        "start":"1",        ##   # start now + X hours
-        "raty":	"a",             # format: h=trunc. sexagesimal, a=full, d=decimal
-        "mot":	"m",             # motion: s="/sec, m="/min, h="/hr, d=degree/day
-        "dmot":	"p",             # motion: p=total, r=separate RA/DEC coord. mo tion, s=separate RA/DEC sky motion
-        "out":	"f",             # f=full output, b=brief output
-        "sun":	"n",             # suppress output: x=never, s=sunset/rise, c=civil, n=nautical, a=astronomical
-        "oalt":	"26"        ##   # suppress below min altitude
+        "int":	"1",            # interval 0=1h, 1=30m, 2=10m, 3=1m
+        "start":"1",            # start now + X hours
+        "raty":	"a",            # format: h=trunc. sexagesimal, a=full, d=decimal
+        "mot":	"m",            # motion: s="/sec, m="/min, h="/hr, d=degree/day
+        "dmot":	"p",            # motion: p=total, r=separate RA/DEC coord. mo tion, s=separate RA/DEC sky motion
+        "out":	"f",            # f=full output, b=brief output
+        "sun":	"n",            # suppress output: x=never, s=sunset/rise, c=civil, n=nautical, a=astronomical
+        "oalt":	min_alt         # suppress below min altitude
     }
 
     ic(url, data)
@@ -349,7 +333,8 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
     Quantity
         Exposure time as secs
     """
-    exp = Options.pixel_tolerance * Options.resolution * u.arcsec / motion
+    exp = config.pixel_tolerance * config.resolution * u.arcsec / motion
+    #            ^ pixels                 ^ arcsec/pixel          ^ arcsec/min
     exp_max = EXP_TIMES[0]
     for exp1 in EXP_TIMES:
         if exp1 > exp.to(u.s).value:
@@ -534,7 +519,7 @@ def get_times_from_eph(ephemerides: dict) -> dict:
                 time_before, time_after = max_alt_times(qt)
         time_0 = qt["obstime"][0]
         time_1 = qt["obstime"][-1]
-        time_alt0, time_alt1 = opt_alt_times(qt, Options.opt_alt)
+        time_alt0, time_alt1 = opt_alt_times(qt, config.opt_alt * u.degree)
         if not time_alt0:
             time_alt0, time_alt1 = time_0, time_1
 
@@ -601,23 +586,28 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
 
         # Calculate single exposure, number of exposures, total exposure, total time
         max_m = max_motion(qt)
-        exp   = exp_time_from_motion(max_m)         # Single exposure
+        exp   = exp_time_from_motion(max_m)         # Single exposure / s
+
+        min_n_exp = config.min_n_exp
+        max_n_exp = config.max_n_exp
 
         rel_brightness = 10 ** (0.4 * (mag.value - 18))
         total_exp = 4 * u.min * rel_brightness      # Total exposure
         n_exp = int(total_exp / exp) + 1            # Number of exposures
         perc_of_required = 100.                     # Percentage actual / total exposure
-        if n_exp < Options.min_n_exp:
-            perc_of_required = Options.min_n_exp / n_exp * 100
-            n_exp = Options.min_n_exp
-        if n_exp > Options.max_n_exp:
-            perc_of_required = Options.max_n_exp / n_exp * 100
-            n_exp = Options.max_n_exp
+        if n_exp < min_n_exp:
+            perc_of_required = min_n_exp / n_exp * 100
+            n_exp = min_n_exp
+        if n_exp > max_n_exp:
+            perc_of_required = max_n_exp / n_exp * 100
+            n_exp = max_n_exp
         total_exp = (n_exp * exp).to(u.min)
         total_time = (  total_exp 
-                      + Options.dead_time_slew_center + Options.dead_time_slew_center 
-                      + Options.dead_time_guiding + Options.safety_margin
-                      + n_exp * Options.dead_time_image )
+                      + config.dead_time_slew_center * u.s 
+                      + config.dead_time_slew_center * u.s
+                      + config.dead_time_guiding * u.s  
+                      + config.safety_margin * u.s
+                      + n_exp * config.dead_time_image * u.s )
         ic(n_exp, exp, total_exp, total_time, perc_of_required)
 
         verbose("----------------------------------------------------------------------------------------------------------------------")
@@ -652,23 +642,25 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
 
         ##### Skip object for various reasons ... #####
         # Skip, if below threshold for # obs
-        if nobs < Options.min_n_obs:
-            warning(f"{id}: SKIPPED: only {nobs} obs (< {Options.min_n_obs})")
+        if nobs < config.min_n_obs:
+            warning(f"{id}: SKIPPED: only {nobs} obs (< {config.min_n_obs})")
             continue
 
         # Skip, if not seen for more than threshold days
-        if notseen > Options.max_notseen:
-            warning(f"{id}: SKIPPED: not seen for {notseen:.1f} (> {Options.max_notseen:.1f})")
+        max_notseen = config.max_notseen * u.day
+        if notseen > max_notseen:
+            warning(f"{id}: SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
             continue
 
         # Skip, if percentage of total exposure time is less than threshold
-        if perc_of_required < Options.min_perc_required:
-            warning(f"{id}: SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {Options.min_perc_required}%)")
+        if perc_of_required < config.min_perc_required:
+            warning(f"{id}: SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {config.min_perc_required}%)")
             continue
 
         # Skip, if arc is less than threshold
-        if arc < 0.05 * u.day:
-            warning(f"{id}: SKIPPED: arc {arc:.2f} too small (< 0.05 d)")
+        min_arc = config.min_arc * u.day
+        if arc < min_arc:
+            warning(f"{id}: SKIPPED: arc {arc:.2f} too small (< {min_arc})")
             continue
 
         # Skip, if failed to allocate total_time
@@ -681,8 +673,9 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ic(row)
         moon_dist = row["moon_dist"]
         # Skip, if moon distance is too small
-        if moon_dist < Options.min_moon_dist:
-            warning(f"{id}: SKIPPED: moon distance {moon_dist:.0f} < {Options.min_moon_dist}")
+        min_moon_dist = config.min_moon_dist * u.degree
+        if moon_dist < min_moon_dist:
+            warning(f"{id}: SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
             continue
 
         ##### Good to go! #####
