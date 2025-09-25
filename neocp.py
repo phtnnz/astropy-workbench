@@ -745,10 +745,23 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
 
 
 
-def sort_by_flip_time(table_dict: dict) -> dict:
+def sort_by_flip_time(ephemerides: dict) -> dict:
+    """
+    Sort ephemerides dictionary by time before meridian/max altitude time
+
+    Parameters
+    ----------
+    ephemerides : dict
+        Ephemerides dictionary
+
+    Returns
+    -------
+    dict
+        Sorted ephemerides dictionary
+    """
     time_dict = {}
 
-    for id, qt in table_dict.items():
+    for id, qt in ephemerides.items():
         t, _ = flip_times(qt)
         if not t:
             t, _ = max_alt_times(qt)
@@ -758,12 +771,20 @@ def sort_by_flip_time(table_dict: dict) -> dict:
     time_sorted = { id: time for id, time in sorted(time_dict.items(), key=lambda item: item[1]) }
 
     # Return table_dict sorted by time
-    return { id: table_dict[id] for id in time_sorted.keys() }
+    return { id: ephemerides[id] for id in time_sorted.keys() }
 
 
 
-def print_table_dict(table_dict: dict) -> None:
-    for id, qt in table_dict.items():
+def print_ephemerides(ephemerides: dict) -> None:
+    """
+    Print ephemerides for all objects
+
+    Parameters
+    ----------
+    ephemerides : dict
+        Ephemerides dictionary
+    """
+    for id, qt in ephemerides.items():
         print("===================================================================================================================")
         print(f"NEOCP {id} ephemerides")
         print(qt)
@@ -772,6 +793,19 @@ def print_table_dict(table_dict: dict) -> None:
 
 
 def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
+    """
+    Convert ephemerides from plain text format to table for all objects
+
+    Parameters
+    ----------
+    eph_dict : dict
+        Ephemerides dictionary in plain text format
+
+    Returns
+    -------
+    dict
+        Ephemerides dictionary in table form for further processing
+    """
     qtable_dict = {}
     for id, eph in eph_dict.items():
         qt = eph_to_qtable(id, eph)
@@ -783,6 +817,21 @@ def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
 
 
 def eph_to_qtable(id: str, eph: list) -> QTable:
+    """
+    Convert ephemeris in plain text format to table
+
+    Parameters
+    ----------
+    id : str
+        Object id
+    eph : list
+        Ephemeris as list of plain text lines from MPC query results
+
+    Returns
+    -------
+    QTable
+        Ephemeris table
+    """
     ic(id)
     qt = QTable()
     qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
@@ -830,8 +879,20 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
 
 
 
-
 def parse_html_eph(content: list) -> dict:
+    """
+    Parse HTML page with the result of the MPC NEOCP ephemerides query
+
+    Parameters
+    ----------
+    content : list
+        Web page content
+
+    Returns
+    -------
+    dict
+        Ephemerides dictionary in plain text format
+    """
     neocp_id = None
     neocp_eph = {}
 
@@ -886,6 +947,19 @@ def parse_html_eph(content: list) -> dict:
 
 
 def parse_neocp_list(content: list) -> dict:
+    """
+    Parse plain text HTML page of NEOCP/PCCP list
+
+    Parameters
+    ----------
+    content : list
+        Web page content
+
+    Returns
+    -------
+    dict
+        Dictionary of relevant data from NEOCP list
+    """
     neocp_list = {}
 
     for line in content:
@@ -983,8 +1057,8 @@ def main():
 
     ephemerides = sort_by_flip_time(ephemerides)
 
-    verbose("processing objects")
-    print_table_dict(ephemerides)
+    verbose("processing objects:", " ".join(ephemerides.keys()))
+    print_ephemerides(ephemerides)
     objects = process_objects(ephemerides, neocp_list, pccp_list, times)
 
     # Plot objects and Moon
