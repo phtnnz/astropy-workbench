@@ -31,6 +31,8 @@
 #       New method .info(), verbose output of config filename and top-level keys
 # Version 0.6 / 2025-06-29
 #       Method .get() now supports nested keys, e.g. config.get("main", "sub", "setting")
+# Version 0.7 / 2025-09-25
+#       Map access to undefined attributes to .get()
 
 import os
 import sys
@@ -48,7 +50,7 @@ from verbose import verbose, warning, error
 
 
 
-VERSION = "0.6 / 2025-06-29"
+VERSION = "0.7 / 2025-09-25"
 AUTHOR  = "Martin Junius"
 NAME    = "JSONConfig"
 
@@ -63,13 +65,21 @@ ic(CONFIGDIR, CONFIGFILE)
 
 
 class JSONConfig:
-    """ JSONConfig base class """
-
-    def __init__(self, file, warn=True, err=True):
+    """
+    Base class for JSON config
+    """
+    def __init__(self, file: str, warn: bool=True, err: bool=True):
         ic("config init", file)
         self.config = {}
         self.read_config(file, warn, err)
 
+
+    def __getattr__(self, name: str):
+        ic("getattr", name)
+        value = self.get(name)
+        self.__dict__[name] = value
+        return value
+    
 
     def read_config(self, file, warn=True, err=True):
         ic(file)
@@ -200,6 +210,8 @@ def main():
 
     print("JSON config keys =", ", ".join(config.get_keys()))
     print("Documents path =", config.get_documents_path())
+
+    ic(config.test_1, config.test_2)
 
 
 
