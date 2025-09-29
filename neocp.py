@@ -564,6 +564,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
     verbose("                                                    # x Exp   = total exposure time")
     verbose("                                                    RA, DEC")
 
+    csv_row = None
     csv_rows = []
     objects  = []
     prev_time_end_exp = None
@@ -643,29 +644,29 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ##### Skip object for various reasons ... #####
         # Skip, if below threshold for # obs
         if nobs < config.min_n_obs:
-            warning(f"{id}: SKIPPED: only {nobs} obs (< {config.min_n_obs})")
+            warning(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
             continue
 
         # Skip, if not seen for more than threshold days
         max_notseen = config.max_notseen * u.day
         if notseen > max_notseen:
-            warning(f"{id}: SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
+            warning(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
             continue
 
         # Skip, if percentage of total exposure time is less than threshold
         if perc_of_required < config.min_perc_required:
-            warning(f"{id}: SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {config.min_perc_required}%)")
+            warning(f"SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {config.min_perc_required}%)")
             continue
 
         # Skip, if arc is less than threshold
         min_arc = config.min_arc * u.day
         if arc < min_arc:
-            warning(f"{id}: SKIPPED: arc {arc:.2f} too small (< {min_arc})")
+            warning(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
             continue
 
         # Skip, if failed to allocate total_time
         if time_end_exp > time_last:
-            warning(f"{id}: SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
+            warning(f"SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
             continue
 
         # Table row best matching time_start_exp
@@ -675,7 +676,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # Skip, if moon distance is too small
         min_moon_dist = config.min_moon_dist * u.degree
         if moon_dist < min_moon_dist:
-            warning(f"{id}: SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+            warning(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
             continue
 
         ##### Good to go! #####
@@ -722,22 +723,25 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # return
 
     # Output to CSV file for nina-create-sequence2
-    fieldnames = [  "start time", "end time", 
-                    "target", "obstime", "ra", "dec", "exposure", "number", "filter",
-                    "type", "mag", "nobs", "arc", "notseen", "total" ]
     if Options.csv:
-        ##FIXME: use improved csvoutput module
-        if Options.output:
-            with open(Options.output, "w", newline="") as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if csv_row:
+            ##FIXME: use improved csvoutput module
+            fieldnames = csv_row.keys()
+            ic(fieldnames)
+            if Options.output:
+                with open(Options.output, "w", newline="") as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(csv_rows)
+            else:
+                writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(csv_rows)
         else:
-            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(csv_rows)
+            warning("no objects, no CSV output")
 
     # Return list of planned objects
+    verbose(f"planned {len(objects)} objects: {" ".join(objects)}")
     return objects
 
 
