@@ -1,0 +1,7 @@
+{
+    "##1": "Config for plate solving with astrometry.net",
+
+    "astrometry.net": {
+        "API key" : "abcdefghijklmnop"
+    }
+}

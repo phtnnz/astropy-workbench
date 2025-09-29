@@ -1,0 +1,34 @@
+{
+    "##1": "Config for NEOCP planning",
+    "requests_timeout":         60,
+    "exposure_times":           [ 5, 10, 15, 20, 30, 45, 60 ],
+
+    "url_neocp_query":          "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi",
+    "local_eph":                "NEOCP-ephemerides.html",
+    "url_neocp_list":           "https://minorplanetcenter.net/iau/NEO/neocp.txt",
+    "local_neocp":              "NEOCP-list.txt",
+    "url_pccp_list":            "https://minorplanetcenter.net/iau/NEO/pccp.txt",
+    "local_pccp":               "PCCP-list.txt",
+    "downloads":                "./downloads/",
+    "code":                     "M49",
+
+    "mag_limit":                20.5,
+    "pixel_tolerance":          2,
+    "resolution":               1.33,
+    "min_alt":                  26,
+
+    "dead_time_slew_center":    90,
+    "dead_time_af":             100,
+    "dead_time_image":          1.5,
+    "dead_time_guiding":        30,
+    "safety_margin":            150,
+
+    "min_n_obs":                4,
+    "max_notseen":              3,
+    "opt_alt":                  50,
+    "min_n_exp":                15,
+    "max_n_exp":                60,
+    "min_perc_required":        40,
+    "min_moon_dist":            50,
+    "min_arc":                  0.05
+}
