@@ -142,29 +142,38 @@ def process_file_or_dir(name: str):
     elif os.path.isdir(name):
         for dir, subdir_list, file_list in os.walk(name):
             verbose(f"found directory {dir}")
-            obstime_1st  = None
-            rot_1st      = None
-            obstime_last = None
-            rot_last     = None
+            a_obstime = []
+            a_rot     = []
             for file in file_list:
                 file = os.path.join(dir, file)
                 if file.lower().endswith(".fits") or file.lower().endswith(".fit"):
                     obstime, rot = process_fits(file)
                     if obstime != None:
-                        if obstime_1st == None:
-                            obstime_1st = obstime
-                            rot_1st     = rot
-                        obstime_last = obstime
-                        rot_last     = rot
+                        a_obstime.append(obstime)
+                        a_rot.append(rot)
 
-        if obstime_1st != None and obstime_last != None:
-            delta_time = obstime_last - obstime_1st
+        if len(a_obstime) >= 2:
+            delta_time = a_obstime[-1] - a_obstime[0]
             delta_hour  = delta_time.to_value("sec") / 3600 * u.hour
-            delta_rot  = rot_last     - rot_1st
+            delta_rot  = a_rot[-1]     - a_rot[0]
             rel_rot    = delta_rot / delta_hour
             if Options.list:
-                print(f"Rotation: {rel_rot:.3f}")
+                print(f"Rotation (first-last): {rel_rot:.3f}")
 
+            # new: linear regression
+            a_delta = []
+            t0 = a_obstime[0]
+            for t in a_obstime:
+                a_delta.append( (t-t0).to_value("sec") )
+            a_rot_d = []
+            for r in a_rot:
+                a_rot_d.append(r.value)
+            x = np.array(a_delta)
+            y = np.array(a_rot_d)
+            model = np.polyfit(x, y, 1)
+            rel_rot = model[0] * 3600 * u.degree / u.hour
+            if Options.list:
+                print(f"Rotation (regression): {rel_rot:.3f}")
     else:
         error(f"no such file or directory {name}")
 
