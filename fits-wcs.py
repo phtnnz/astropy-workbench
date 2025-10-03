@@ -22,6 +22,7 @@
 import sys
 import argparse
 import os
+from typing import Tuple
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -31,6 +32,7 @@ ic.disable()
 # See docs at https://docs.astropy.org/en/stable/io/fits/
 from astropy.io import fits
 from astropy.time import Time
+from astropy.coordinates import Angle
 import astropy.units as u
 import numpy as np
 
@@ -59,7 +61,7 @@ class Options:
     set_locale = False  # -l --locale
 
 
-def process_fits(file: str):
+def process_fits(file: str) -> Tuple[Time, Angle, Angle, Angle]:
     """
     Process single FITS file
 
@@ -84,7 +86,7 @@ def process_fits(file: str):
         # Skip files without solution
         if not hdr.get("CRVAL1"):
             warning(f"no WCS solution in FITS headers")
-            return None, None
+            return None, None, None, None
 
         # See https://danmoser.github.io/notes/gai_fits-imgs.html for FITS WCS header
         obstime    = Time(hdr["DATE-OBS"])
@@ -124,8 +126,10 @@ def process_fits(file: str):
 
         if Options.list:
             print(f"{obstime}  {ra:.4f}  {dec:+.4f}  {crota2:.4f}")
+        if Options.csv:
+            pass
 
-        return obstime, crota2
+        return obstime, crota2, ra, dec
 
 
 
@@ -144,13 +148,17 @@ def process_file_or_dir(name: str):
             verbose(f"found directory {dir}")
             a_obstime = []
             a_rot     = []
+            a_ra      = []
+            a_dec     = []
             for file in file_list:
                 file = os.path.join(dir, file)
                 if file.lower().endswith(".fits") or file.lower().endswith(".fit"):
-                    obstime, rot = process_fits(file)
+                    obstime, rot, ra, dec = process_fits(file)
                     if obstime != None:
                         a_obstime.append(obstime)
                         a_rot.append(rot)
+                        a_ra.append(ra)
+                        a_dec.append(dec)
 
         if len(a_obstime) >= 2:
             delta_time = a_obstime[-1] - a_obstime[0]
@@ -174,6 +182,13 @@ def process_file_or_dir(name: str):
             rel_rot = model[0] * 3600 * u.degree / u.hour
             if Options.list:
                 print(f"Rotation (regression): {rel_rot:.3f}")
+
+            # dRA, dDEC
+            d_ra  = (max(a_ra) - min(a_ra)).to(u.arcsec)
+            d_dec = (max(a_dec) - min(a_dec)).to(u.arcsec)
+            if Options.list:
+                print(f"Tracking (max-min): dRA={d_ra:.2f}, dDEC={d_dec:.2f}")
+
     else:
         error(f"no such file or directory {name}")
 
@@ -184,7 +199,7 @@ def init_csv_output():
     Initialize CSV output
     """
     if Options.csv:
-        csv_output.add_fields(Options.hdr_list)
+        csv_output.add_fields(["obstime", "ra", "dec", "rotation"])
         csv_output.set_float_format("%.6f")
 
 def write_csv_output():
@@ -219,7 +234,7 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
-    # ... more options ...
+
     if args.header:
         h = args.header
         if h.startswith("+"):
