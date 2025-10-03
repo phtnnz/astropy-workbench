@@ -23,6 +23,7 @@ import sys
 import argparse
 import os
 from typing import Tuple
+from datetime import timezone
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -78,10 +79,7 @@ def process_fits(file: str) -> Tuple[Time, Angle, Angle, Angle]:
 
         value_verbose = [ f"{h}={hdr.get(h)}" for h in Options.hdr_list ]
         value_list = [ hdr.get(h) for h in Options.hdr_list ]
-
         verbose(f"{", ".join(value_verbose)}")
-        if Options.csv:
-            csv_output.add_row(value_list)
 
         # Skip files without solution
         if not hdr.get("CRVAL1"):
@@ -127,7 +125,8 @@ def process_fits(file: str) -> Tuple[Time, Angle, Angle, Angle]:
         if Options.list:
             print(f"{obstime}  {ra:.4f}  {dec:+.4f}  {crota2:.4f}")
         if Options.csv:
-            pass
+            csv_output.add_row([ obstime.to_datetime(timezone=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                                 float(ra.value), float(dec.value), float(crota2.value) ])
 
         return obstime, crota2, ra, dec
 
@@ -199,7 +198,7 @@ def init_csv_output():
     Initialize CSV output
     """
     if Options.csv:
-        csv_output.add_fields(["obstime", "ra", "dec", "rotation"])
+        csv_output.add_fields(["obstime (UTC)", "ra", "dec", "rotation"])
         csv_output.set_float_format("%.6f")
 
 def write_csv_output():
