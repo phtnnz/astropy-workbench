@@ -17,7 +17,13 @@
 # ChangeLog
 # Version 0.1 / 2024-12-16
 #       First version
+# Version 0.2 / 2025-10-03
+#       Somewhat feature-complete, output observation time, RA, DEC, field orientation
+#       and compute field rotation (degree/h), dRA, dDEC (max - min)
 
+VERSION = "0.2 / 2025-10-03"
+AUTHOR  = "Martin Junius"
+NAME    = "fits-wcs"
 
 import sys
 import argparse
@@ -41,10 +47,6 @@ import numpy as np
 from verbose import verbose, warning, error, message
 from csvoutput import csv_output
 
-VERSION = "0.1 / 2025-09-17"
-AUTHOR  = "Martin Junius"
-NAME    = "fits-wcs"
-
 
 
 # Command line options
@@ -55,7 +57,6 @@ class Options:
     hdr_list = ["NAXIS1", "NAXIS2", "DATE-OBS", "CTYPE1", "CTYPE2", "EQUINOX", "LONPOLE", "LATPOLE",
                 "CUNIT1", "CUNIT2", "CRPIX1", "CRPIX2", "CRVAL1", "CRVAL2",
                 "CD1_1", "CD1_2", "CD2_1", "CD2_2" ]
-                        # -H --header
     csv = False         # -C --csv
     output = None       # -o --output
     list = False        # -L --list
@@ -66,8 +67,16 @@ def process_fits(file: str) -> Tuple[Time, Angle, Angle, Angle]:
     """
     Process single FITS file
 
-    :param file: file name
-    :type file: str
+    Parameters
+    ----------
+    file : str
+        file name (full path)
+
+    Returns
+    -------
+    Tuple[Time, Angle, Angle, Angle]
+        If WCS soltuion is present, return observation time, RA, DEC, field orientation,
+        else None, None, None, None
     """
     with fits.open(file) as hdul:
         if ic.enabled:
@@ -134,10 +143,12 @@ def process_fits(file: str) -> Tuple[Time, Angle, Angle, Angle]:
 
 def process_file_or_dir(name: str):
     """
-    Process single FITS file or traverse directory
+    Process file or entrie directory
 
-    :param name: file or directory name
-    :type name: str
+    Parameters
+    ----------
+    name : str
+        File name or directory name (full path)
     """
     if os.path.isfile(name):
         process_fits(name)
@@ -213,14 +224,13 @@ def write_csv_output():
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
-        description = "List FITS file WCS headers",
+        description = "List FITS file WCS headers, compute field rotation/dRA/dDEC",
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("-H", "--header", help=f"show image headers in HEADER list, \"+\" adds, (default {",".join(Options.hdr_list)})")
     arg.add_argument("-L", "--list", action="store_true", help="list header keywords")
+    arg.add_argument("-l", "--locale", action="store_true", help="set locale for CSV output, \"\" for default")
     arg.add_argument("-C", "--csv", action="store_true", help="output CSV list")
-    arg.add_argument("-l", "--locale", action="store_true", help="set locale for CSV output")
     arg.add_argument("-o", "--output", help="write CSV to file OUTPUT (default: stdout)")
     arg.add_argument("fits", nargs="+", help="FITS filename or directory")
 
@@ -234,14 +244,6 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
-    if args.header:
-        h = args.header
-        if h.startswith("+"):
-            h = h.lstrip("+")
-            h = h.lstrip(",")
-            Options.hdr_list.extend(h.split(","))
-        else:
-            Options.hdr_list = h.split(",")
     Options.csv = args.csv
     Options.output = args.output
     Options.list = args.list
