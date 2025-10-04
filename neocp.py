@@ -64,7 +64,7 @@ from astroplan import Observer
 from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
-from verbose import verbose, warning, error
+from verbose import verbose, warning, error, message
 from astroutils import mpc_station_location, location_to_string
 from jsonconfig import JSONConfig, config
 
@@ -1063,24 +1063,28 @@ def main():
         verbose(f"download PCCP list from {URL_PCCP_LIST}")
         mpc_query_list(URL_PCCP_LIST, local_pccp)
 
+    try:
     # Parse ephemerides
-    verbose(f"processing {local_eph}")
-    with open(local_eph, "r") as file:
-        content = file.readlines()
-        ephemerides_txt = parse_html_eph(content)
-        ephemerides = convert_eph_list_to_qtable(ephemerides_txt)
-        times = get_times_from_eph(ephemerides)
+        verbose(f"processing {local_eph}")
+        with open(local_eph, "r") as file:
+            content = file.readlines()
+            ephemerides_txt = parse_html_eph(content)
+            ephemerides = convert_eph_list_to_qtable(ephemerides_txt)
+            times = get_times_from_eph(ephemerides)
 
-    # Parse lists
-    verbose(f"processing {local_neocp}")
-    with open(local_neocp, "r") as file:
-        content = file.readlines()
-        neocp_list = parse_neocp_list(content)
+        # Parse lists
+        verbose(f"processing {local_neocp}")
+        with open(local_neocp, "r") as file:
+            content = file.readlines()
+            neocp_list = parse_neocp_list(content)
 
-    verbose(f"processing {local_pccp}")
-    with open(local_pccp, "r") as file:
-        content = file.readlines()
-        pccp_list = parse_neocp_list(content)
+        verbose(f"processing {local_pccp}")
+        with open(local_pccp, "r") as file:
+            content = file.readlines()
+            pccp_list = parse_neocp_list(content)
+
+    except FileNotFoundError as e:
+        error(e)
 
     ephemerides = sort_by_flip_time(ephemerides)
 
