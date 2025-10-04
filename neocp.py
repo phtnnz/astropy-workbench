@@ -28,8 +28,10 @@
 #       altitude/sky plot only for planned objects
 # Version 0.5 / 2025-09-25
 #       Using config files neocp.json for all parameters
+# Version 0.6 / 2025-10-03
+#       Added -M --mag-limit option to override config settings
 
-VERSION = "0.5 / 2025-09-25"
+VERSION = "0.6 / 2025-10-03"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -1002,6 +1004,7 @@ def main():
     arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot with objects")
     arg.add_argument("-o", "--output", help="write CSV to OUTPUT file")
     arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
+    arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
 
     args = arg.parse_args()
 
@@ -1015,7 +1018,8 @@ def main():
 
     Options.csv    = args.csv
     Options.output = args.output
-
+    if args.mag_limit:
+        config.mag_limit = float(args.mag_limit)
     if args.location:
         loc = mpc_station_location(args.location)
         Options.code = args.location
