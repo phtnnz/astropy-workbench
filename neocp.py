@@ -42,12 +42,8 @@ import argparse
 import csv
 import re
 import requests
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 from typing import Tuple
 from itertools import pairwise
-# Required on Windows
-import tzdata
 
 # The following libs must be installed with pip
 from icecream import ic
