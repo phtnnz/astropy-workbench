@@ -29,7 +29,8 @@
 # Version 0.5 / 2025-09-25
 #       Using config files neocp.json for all parameters
 # Version 0.6 / 2025-10-03
-#       Added -M --mag-limit option to override config settings
+#       Added -M --mag-limit option to override config settings,
+#       added -p --prefix option for cached data
 
 VERSION = "0.6 / 2025-10-03"
 AUTHOR  = "Martin Junius"
@@ -992,6 +993,8 @@ def parse_neocp_list(content: list) -> dict:
 
 
 def main():
+    prefix = Time.now().strftime("%Y%m%d")
+
     arg = argparse.ArgumentParser(
         prog        = NAME,
         description = "Parse NEOCP ephemerides",
@@ -1005,6 +1008,7 @@ def main():
     arg.add_argument("-o", "--output", help="write CSV to OUTPUT file")
     arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
     arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
+    arg.add_argument("-p", "--prefix", help=f"prefix for cached MPD data, default {prefix}")
 
     args = arg.parse_args()
 
@@ -1027,10 +1031,14 @@ def main():
         ic(loc, loc.to_geodetic())
     verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
-    prefix = Time.now().strftime("%Y%m%d-")
-    local_eph   = DOWNLOADS + prefix + LOCAL_EPH
-    local_neocp = DOWNLOADS + prefix + LOCAL_NEOCP
-    local_pccp  = DOWNLOADS + prefix + LOCAL_PCCP
+    if args.prefix:
+        prefix = args.prefix
+        if args.update_neocp:
+            error("don't use --prefix with --update-neocp")
+
+    local_eph   = DOWNLOADS + prefix + "-" + LOCAL_EPH
+    local_neocp = DOWNLOADS + prefix + "-" + LOCAL_NEOCP
+    local_pccp  = DOWNLOADS + prefix + "-" + LOCAL_PCCP
     ic(prefix, local_eph, local_neocp, local_pccp)
 
     if args.update_neocp:
