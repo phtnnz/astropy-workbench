@@ -334,16 +334,32 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
     Returns
     -------
     Quantity
-        Exposure time as secs
+        Exposure time as secs or None, if too fast
     """
     exp = config.pixel_tolerance * config.resolution * u.arcsec / motion
     #            ^ pixels                 ^ arcsec/pixel          ^ arcsec/min
-    exp_max = EXP_TIMES[0]
+    exp = exp.to(u.s).value
+    exp_min = EXP_TIMES[0]
+    if exp < exp_min:
+        return None
     for exp1 in EXP_TIMES:
-        if exp1 > exp.to(u.s).value:
+        if exp1 > exp:
             break
-        exp_max = exp1
-    return exp_max * u.s
+        exp_min = exp1
+    return exp_min * u.s
+
+
+
+def motion_limit() -> Quantity:
+    """
+    Get motion limit
+
+    Returns
+    -------
+    Quantity
+        Motion limit derived from minimum exposure time
+    """
+    return config.pixel_tolerance * config.resolution * u.arcsec / (EXP_TIMES[0] * u.s).to(u.min)
 
 
 
@@ -577,20 +593,24 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         time    = times_list[id]
         type    = "PCCP" if id in pccp_list else "NEOCP"
         ic(id, qt, item, time, type)
-
         score   = item["score"]
         mag     = item["mag"]
         nobs    = item["nobs"]
         arc     = item["arc"]
         notseen = item["notseen"]
-
         time_before, time_after       = time["before"], time["after"]
         time_first, time_last         = time["first"], time["last"]
         time_alt_first, time_alt_last = time["alt_first"], time["alt_last"]
+        max_m = max_motion(qt)
+
+        verbose("----------------------------------------------------------------------------------------------------------------------")
+        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:4.1f}")
 
         # Calculate single exposure, number of exposures, total exposure, total time
-        max_m = max_motion(qt)
         exp   = exp_time_from_motion(max_m)         # Single exposure / s
+        if exp == None:                             # Object too fast
+            warning(f"SKIPPED: object too fast (>{motion_limit():.1f})")
+            continue
 
         min_n_exp = config.min_n_exp
         max_n_exp = config.max_n_exp
@@ -613,9 +633,6 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
                       + config.safety_margin * u.s
                       + n_exp * config.dead_time_image * u.s )
         ic(n_exp, exp, total_exp, total_time, perc_of_required)
-
-        verbose("----------------------------------------------------------------------------------------------------------------------")
-        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:4.1f}")
 
         ##### Plan exposure start and end time ... #####
         # Make sure to start after previous exposure
@@ -744,7 +761,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
             warning("no objects, no CSV output")
 
     # Return list of planned objects
-    verbose(f"planned {len(objects)} objects: {" ".join(objects)}")
+    verbose(f"planned {len(objects)} object(s): {" ".join(objects)}")
     return objects
 
 
