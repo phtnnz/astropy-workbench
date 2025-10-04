@@ -30,7 +30,8 @@
 #       Using config files neocp.json for all parameters
 # Version 0.6 / 2025-10-03
 #       Added -M --mag-limit option to override config settings,
-#       added -p --prefix option for cached data
+#       added -p --prefix option for cached data, check against
+#       motion limit derived from minimum exposure time
 
 VERSION = "0.6 / 2025-10-03"
 AUTHOR  = "Martin Junius"
