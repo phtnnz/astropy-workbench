@@ -54,7 +54,7 @@ ic.disable()
 from astropy.coordinates import SkyCoord, AltAz, Angle, EarthLocation, FK5
 import astropy.units as u
 from astropy.units import Quantity, Magnitude
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 import numpy as np
 from astropy.table import QTable, Row
 
@@ -810,7 +810,7 @@ def print_ephemerides(ephemerides: dict) -> None:
 
 
 
-def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
+def convert_eph_list_to_qtable(eph_dict: dict, min_time: Time, max_time: Time) -> dict:
     """
     Convert ephemerides from plain text format to table for all objects
 
@@ -818,6 +818,10 @@ def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
     ----------
     eph_dict : dict
         Ephemerides dictionary in plain text format
+    min_time : Time
+        Lower limit for ephemeris time
+    max_time : Time
+        Upper limit for ephemeris time
 
     Returns
     -------
@@ -826,7 +830,7 @@ def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
     """
     qtable_dict = {}
     for id, eph in eph_dict.items():
-        qt = eph_to_qtable(id, eph)
+        qt = eph_to_qtable(id, eph, min_time, max_time)
         if len(qt["mag"]) == 0:
             verbose(f"skipping NEOCP {id=} (empty)")
             continue
@@ -834,7 +838,7 @@ def convert_eph_list_to_qtable(eph_dict: dict) -> dict:
     return qtable_dict
 
 
-def eph_to_qtable(id: str, eph: list) -> QTable:
+def eph_to_qtable(id: str, eph: list, min_time: Time, max_time: Time) -> QTable:
     """
     Convert ephemeris in plain text format to table
 
@@ -844,6 +848,10 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         Object id
     eph : list
         Ephemeris as list of plain text lines from MPC query results
+    min_time : Time
+        Lower limit for ephemeris time
+    max_time : Time
+        Upper limit for ephemeris time
 
     Returns
     -------
@@ -883,7 +891,11 @@ def eph_to_qtable(id: str, eph: list) -> QTable:
         alt       = Angle(line[72:75], unit=u.degree)
         moon_dist = Angle(line[91:94], unit=u.degree)
         moon_alt  = Angle(line[96:99], unit=u.degree)
-        ic(time, ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
+        ic(time, min_time, max_time)
+        if time < min_time or time > max_time:
+            ic("skipping")
+            continue
+        ic(ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
         qt.add_row([ time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
 
         # # Test: compare alt/az in ephemerides to values computed from ra/dec
@@ -1045,6 +1057,14 @@ def main():
         ic(loc, loc.to_geodetic())
     verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
+    # Get next midnight
+    time = Time(Time.now(), location=Options.loc)
+    observer = Observer(location=Options.loc, description=Options.code)
+    midnight = observer.midnight(Time.now(), which="next")
+    min_time = midnight - 12 * u.hour
+    max_time = midnight + 12 * u.hour
+    ic(midnight, min_time, max_time)
+
     if args.prefix:
         prefix = args.prefix
         if args.update_neocp:
@@ -1069,7 +1089,7 @@ def main():
         with open(local_eph, "r") as file:
             content = file.readlines()
             ephemerides_txt = parse_html_eph(content)
-            ephemerides = convert_eph_list_to_qtable(ephemerides_txt)
+            ephemerides = convert_eph_list_to_qtable(ephemerides_txt, min_time, max_time)
             times = get_times_from_eph(ephemerides)
 
         # Parse lists
