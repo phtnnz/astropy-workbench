@@ -41,6 +41,7 @@ from verbose import message, verbose, warning, error
 
 
 def test():
+    # Physics
     message("c\n", const.c, sep="")
     message("eps0\n", const.eps0, sep="")
     message("mu0\n", const.mu0, sep="")
@@ -60,7 +61,18 @@ def test():
     message("mu0   = ", mu0)
     message("1 / (eps0 * mu0)  = ", c2_2b)
 
+    # Astronomy
+    message("-------------------------------------------------------")
+    ly = 1 * u.lyr
+    ly_km = ly.to(u.km)
+    pc = 1 * u.pc
+    pc_ly = pc.to(u.lyr)
+    pc_km = pc.to(u.km)
+    message(f"lyr: {ly} = {ly_km:_}")
+    message(f"pc:  {pc} = {pc_ly:.4f} = {pc_km:_}")
+
     # Some fun ...
+    message("-------------------------------------------------------")
     message("A bit less serious ... ;-)")
     furlong = 1/8 * imperial.mile
     message(f"{furlong=}")
