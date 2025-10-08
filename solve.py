@@ -120,10 +120,10 @@ def main():
         cd2_2      = wcs_header["CD2_2"]
 
         # transformation matrix
-        # CD1_1 = CDELT1 * cos (CROTA2)
+        # CD1_1 =  CDELT1 * cos (CROTA2)
         # CD1_2 = -CDELT2 * sin (CROTA2)
-        # CD2_1 = CDELT1 * sin (CROTA2)
-        # CD2_2 = CDELT2 * cos (CROTA2)
+        # CD2_1 =  CDELT1 * sin (CROTA2)
+        # CD2_2 =  CDELT2 * cos (CROTA2)
         cdelt1 = np.sqrt(np.square(cd1_1) + np.square(cd2_1)) * 3600 # arcsec / pixel
         cdelt2 = np.sqrt(np.square(cd1_2) + np.square(cd2_2)) * 3600
         scale = (cdelt1 + cdelt2) / 2   # yields same value as reported by astrometry.net
@@ -139,9 +139,10 @@ def main():
             if comment.startswith("cpu time: "):
                 cpu_time = comment[len("cpu time: "):]
 
-        verbose(f"center RA={center_ra} DEC={center_dec} pos={center_x}({image_w})/{center_y}({image_h}) {scale} cpu={cpu_time}")
+        verbose(f"center RA={center_ra} DEC={center_dec} pos={center_x}({image_w})/{center_y}({image_h}) {scale:.3f} cpu={cpu_time}")
         verbose(f"transformation matrix: {cd1_1:.8f} {cd1_2:.8f}")
         verbose(f"                       {cd2_1:.8f} {cd2_2:.8f}")
+        verbose(f"rotation: {crota2_a:.1f}")
 
         # Convert to WCS
         w = wcs.WCS(wcs_header)
