@@ -19,6 +19,13 @@
 #       Get coordinates for solar system bodies
 # Version 0.2 / 2025-01-27
 #       Use astroutils module
+# Version 0.3 / 2025-10-14
+#       Output distance and sun/moon angular size, taking recent discussions
+#       about the solar radius into account (IAS vs. Quaglia et al.)
+
+VERSION = "0.3 / 2025-10-14"
+AUTHOR  = "Martin Junius"
+NAME    = "coord-solarsys"
 
 import sys
 import argparse
@@ -36,19 +43,24 @@ from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 from astropy.coordinates import errors
 import astropy.units as u
 from astropy.time        import Time, TimeDelta
+import astropy.constants as const
 import numpy as np
 
 from astropy.coordinates import solar_system_ephemeris
 from astropy.coordinates import get_body_barycentric, get_body
 
-
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location
+from astroutils import ra_from_lst_ha, ra_dec_to_string, angle_to_string, hourangle_to_string, get_location, location_to_string
 
-VERSION = "0.2 / 2025-01-27"
-AUTHOR  = "Martin Junius"
-NAME    = "coord-solarsys"
+# Moon equatorial radius
+R_moon = 1738.1 * u.km
+# Sun equatorial radius, IAU
+R_sun = const.R_sun
+S_sun = np.asin(R_sun / (1 * u.au))
+# See SEML and https://iopscience.iop.org/article/10.3847/1538-4365/ac1279
+S_sun2 = 959.95 * u.arcsec
+R_sun2 = np.sin(S_sun2) * 1 * u.au
 
 
 
@@ -59,11 +71,29 @@ class Options:
 
 
 def coord_to_altaz(obj: str, loc: EarthLocation, time: Time):
-    verbose(f"object {obj}, time {time}")
-
     # GCRS coord 
-    coord = get_body(obj, time, loc)
-    ic(coord)
+    loc0 = EarthLocation.from_geocentric(0, 0, 0, unit=u.m)
+    ic(loc0, loc)
+    try:
+        coord = get_body(obj, time, loc)
+        coord0 = get_body(obj, time, loc0)      # center of Earth
+        ic(coord, coord0)
+    except KeyError:
+        error(f"get_object failed, supported bodies: {",".join(solar_system_ephemeris.bodies)}")
+    distance = coord.distance.to(u.km)
+    verbose(f"distance {distance:_.3f} = {distance.to(u.au):_.3f}")
+    ic(R_moon, R_sun.to(u.km), R_sun2.to(u.km), (1*u.au).to(u.km))
+    if obj.lower() == "moon":
+        verbose(f"moon radius {R_moon.to(u.km)}")
+        size = 2 * np.asin(R_moon / distance)
+        verbose(f"moon angular size {size.to(u.degree):.3f} = {size.to(u.arcmin):.3f} = {size.to(u.arcsec):.3f}")
+    if obj.lower() == "sun":
+        verbose(f"sun radius IAU {R_sun.to(u.km)} = {S_sun.to(u.arcsec):.2f} @ 1 AU")
+        verbose(f"sun radius Quaglia et al. 2021 {R_sun2.to(u.km):.0f} = {S_sun2.to(u.arcsec):.2f} @ 1 AU")
+        size = 2 * np.asin(R_sun / distance)
+        verbose(f"sun angular size (IAU) {size.to(u.degree):.3f} = {size.to(u.arcmin):.3f} = {size.to(u.arcsec):.3f}")
+        size = 2 * np.asin(R_sun2 / distance)
+        verbose(f"sun angular size (Quaglia) {size.to(u.degree):.3f} = {size.to(u.arcmin):.3f} = {size.to(u.arcsec):.3f}")
     verbose(f"GCRS coord                       {ra_dec_to_string(coord.ra, coord.dec)}")
 
     coord_pgc = coord.transform_to(PrecessedGeocentric(equinox=Time(time, format="jyear"), obstime=time))
@@ -126,10 +156,12 @@ def main():
         verbose.enable()
 
     # Default location is Hakos, Namibia for personal reasons ;-)
-    loc      = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1825*u.m)
+    loc = EarthLocation(lon=16.36167*u.deg , lat=-23.23639*u.deg, height=1853*u.m)
     if args.location:
         loc = get_location(args.location)
     ic(loc, loc.to_geodetic())
+    verbose(f"location: {location_to_string(loc)}")
+
 
     if args.time:
         time = Time(args.time, location=loc)
