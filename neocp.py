@@ -32,8 +32,10 @@
 #       Added -M --mag-limit option to override config settings,
 #       added -p --prefix option for cached data, check against
 #       motion limit derived from minimum exposure time
+# Version 0.7 / 2025-10-15
+#       Joined altitude/sky plot, new option -P --plot
 
-VERSION = "0.6 / 2025-10-03"
+VERSION = "0.7 / 2025-10-15"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -222,9 +224,9 @@ def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
     return altaz
 
 
-def plot_alt_objects(ephemerides: dict, objects: list, filename: str) -> None:
+def plot_objects(ephemerides: dict, objects: list, filename: str) -> None:
     """
-    Generate altitude plot
+    Generate altitude and sky plot
 
     Parameters
     ----------
@@ -247,53 +249,36 @@ def plot_alt_objects(ephemerides: dict, objects: list, filename: str) -> None:
     # Quick hack to get a proper label for plot_altitude()
     moon.name     = "Moon"
 
-    # Plot all NEOCP objects
+    # Subplots
+    fig = plt.figure(figsize=(15, 6))
+    ax1 = plt.subplot(1, 2, 1)
+
+    # Plot altitude for all NEOCP objects
     for id in objects:
         qt = ephemerides[id]
         altaz = qtable_to_altaz(id, qt)
-        plot_altitude(altaz, observer, altaz.obstime, style_kwargs=dict(fmt="o"))
+        plot_altitude(altaz, observer, altaz.obstime, ax1, style_kwargs=dict(fmt="o"))
+    plot_altitude(moon, observer, moon.obstime, ax1, brightness_shading=True, style_kwargs=dict(fmt="y--"))
+    plt.legend(bbox_to_anchor=(1.0, 1.015))
 
-    plot_altitude(moon, observer, moon.obstime, brightness_shading=True, style_kwargs=dict(fmt="y--"))
-    plt.legend(bbox_to_anchor=(1.0, 1.02))
-
-    plt.savefig(f"tmp/{filename}", bbox_inches="tight")
-    plt.close()
-
-
-def plot_sky_objects(ephemerides: dict, objects: list, filename: str) -> None:
-    """
-    Generate sky plot
-
-    Parameters
-    ----------
-    ephemerides : dict
-        Dictionary with ephemerides for all objects
-    objects : list
-        Subset list of objects for plot
-    filename : str
-        File name for generated PNG
-    """
-    # Get next midnight
-    time = Time(Time.now(), location=Options.loc)
-    observer = Observer(location=Options.loc, description=Options.code)
-    midnight = observer.midnight(Time.now(), which="next")
-    ic(midnight)
-
-    # Intervals around midnight
+    # Hourly intervals around midnight
     time_interval = midnight + np.linspace(-5, 5, 11)*u.hour
     moon          = observer.moon_altaz(time_interval)
     # Quick hack to get a proper label for plot_sky()
     moon.name     = "Moon"
 
-    # Plot all NEOCP objects
+    # Subplot for altitude
+    ax2 = plt.subplot(1, 2, 2, projection='polar')
+
+    # Plot sky for all NEOCP objects
     for id in objects:
         qt = ephemerides[id]
         altaz = qtable_to_altaz(id, qt)
-        plot_sky(altaz, observer, altaz.obstime)
+        plot_sky(altaz, observer, altaz.obstime, ax2)
+    plot_sky(moon, observer, moon.obstime, ax2, style_kwargs=dict(color="y", marker="x"))
+    # plt.legend(bbox_to_anchor=(1.32, 1.15))
 
-    plot_sky(moon, observer, moon.obstime, style_kwargs=dict(color="y", marker="x"))
-    plt.legend(bbox_to_anchor=(1.48, 1.11))
-
+    plt.subplots_adjust(wspace=0.3)
     plt.savefig(f"tmp/{filename}", bbox_inches="tight")
     plt.close()
 
@@ -1029,8 +1014,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-l", "--location", help="MPC station code")
     arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
-    arg.add_argument("-A", "--alt-plot", action="store_true", help="create altitude plot with objects")
-    arg.add_argument("-S", "--sky-plot", action="store_true", help="create sky plot with objects")
+    arg.add_argument("-P", "--plot", action="store_true", help="create altitude and sky plot with objects")
     arg.add_argument("-o", "--output", help="write CSV to OUTPUT file")
     arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
     arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
@@ -1113,12 +1097,9 @@ def main():
     objects = process_objects(ephemerides, neocp_list, pccp_list, times)
 
     # Plot objects and Moon
-    if args.sky_plot:
-        verbose("sky plot for objects")
-        plot_sky_objects(ephemerides, objects, "neocp-plot-sky.png")
-    if args.alt_plot:
-        verbose("altitude plot for objects")
-        plot_alt_objects(ephemerides, objects, "neocp-plot-alt.png")
+    if args.plot:
+        verbose("altitude and sky plot for objects")
+        plot_objects(ephemerides, objects, "neocp-plot.png")
 
 
 
