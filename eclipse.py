@@ -156,7 +156,7 @@ def sun_and_moon_series(loc: EarthLocation, time: Time) -> None:
 
 
 
-def sun_and_moon(loc: EarthLocation, time: Time) -> None:
+def sun_and_moon(loc: EarthLocation, time: Time) -> Tuple[Angle, Angle, Angle, Angle]:
     ic(loc)
 
     sun  = get_body("sun", time, loc)
@@ -194,6 +194,10 @@ def sun_and_moon(loc: EarthLocation, time: Time) -> None:
     ic(type)
     verbose(f"moon/sun ratio {ratio:.4f}")
     verbose(f"moon-sun separation {sep:.2f}, phase {type}")
+
+    # return separation for minimum search and root finding
+    #  min=MAX  root=C1/C4       root=C2/C3 T   root=C2/C3 A
+    return sep, sep-partial_sep, sep+total_sep, sep-total_sep
 
 
 
