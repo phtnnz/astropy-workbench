@@ -19,8 +19,10 @@
 #       Started some solar eclipse related calculations, compute separation
 #       and eclipse phase type for location/time, search for contact times
 #       in +/- 2h interval around max eclipse
+# Version 0.2 / 2025-10-16
+#       Use scipy minimize() and root_scalar() to find contact times, faster
 
-VERSION = "0.1 / 2025-10-16"
+VERSION = "0.2 / 2025-10-16"
 AUTHOR  = "Martin Junius"
 NAME    = "eclipse"
 
@@ -131,11 +133,11 @@ def sun_moon_series(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
     last_time = None
     last_sep  = 180 * u.degree
     max_found = False
-    C1        = None
-    C2        = None
-    MAX       = None
-    C3        = None
-    C4        = None
+    t_c1      = None
+    t_c2      = None
+    t_max     = None
+    t_c3      = None
+    t_c4      = None
 
     # Search for changes in phase type
     ##FIXME: A=annular doesn't work!
@@ -149,43 +151,45 @@ def sun_moon_series(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
             last_sep = sep1
         elif not max_found:
             verbose(last_time, type, "MAX")
-            MAX = last_time
+            t_max = last_time
             max_found = True
 
         if type=="P" and last_type=="-":
             verbose(t, type, "C1")
-            C1 = t
+            t_c1 = t
         if type=="T" and last_type=="P":
             verbose(t, type, "C2")
-            C2 = t
+            t_c2 = t
         if type=="P" and last_type=="T":
             verbose(last_time, last_type, "C3")
-            C3 = last_time
+            t_c3 = last_time
         if type=="-" and last_type=="P":
             verbose(last_time, last_type, "C4")
-            C4 = last_time
+            t_c4 = last_time
 
         last_type = type
         last_time = t 
 
-    return C1, C2, MAX, C3, C4
+    return t_c1, t_c2, t_max, t_c3, t_c4
 
 
 
 def sun_moon_sep1(jd: np.float64) -> np.float64:
     time = Time(jd, format="jd")
     time.format = "iso"
-    ic(time)
     sep, _, _, _ = sun_moon(time)
-    # print(time, sep)
     return sep.value
 
 def sun_moon_sep2(jd: np.float64) -> np.float64:
     time = Time(jd, format="jd")
     time.format = "iso"
-    ic(time)
     _, sep, _, _ = sun_moon(time)
-    # print(time, sep)
+    return sep.value
+
+def sun_moon_sep3(jd: np.float64) -> np.float64:
+    time = Time(jd, format="jd")
+    time.format = "iso"
+    _, _, sep, _ = sun_moon(time)
     return sep.value
 
 
@@ -246,6 +250,54 @@ def type_from_sep(sep: Angle, partial_sep: Angle, total_sep: Angle) -> str:
 
 
 
+def contact_times(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
+    jd = time.jd
+    jd1 = np.floor(jd) - 0.5
+    jd2 = np.floor(jd) + 0.5
+
+    en_ic = ic.enabled
+    en_v  = verbose.enabled
+    ic.enabled = False
+    verbose.enabled = False
+
+    # Find mininum of sun-moon separation, which is MAX eclipse
+    # strangely enough, minimize_scalar() doesn't find the minimum value?
+    func    = lambda x: sun_moon_sep1(x[0])
+    sol_max = optimize.minimize(func, x0=(jd1), bounds=[(jd1, jd2)])
+    jd_max  = sol_max.x[0]
+
+    # Find roots of separation minus partial_sep/total_sep, which are C1/C2/C3/C4
+    ##FIXME: doesn't work for annular eclipses!
+    sol1  = optimize.root_scalar(sun_moon_sep2, bracket=[jd1, jd_max])
+    jd_c1 = sol1.root
+    sol4  = optimize.root_scalar(sun_moon_sep2, bracket=[jd_max, jd2])
+    jd_c4 = sol4.root
+    sol2  = optimize.root_scalar(sun_moon_sep3, bracket=[jd_c1, jd_max])
+    jd_c2 = sol2.root
+    sol3  = optimize.root_scalar(sun_moon_sep3, bracket=[jd_max, jd_c4])
+    jd_c3 = sol3.root
+
+    ic.enabled = en_ic
+    verbose.enabled = en_v
+
+    ic(sol_max, sol1, sol2, sol3, sol4)
+
+    t_max = time_jd_as_iso(jd_max)
+    t_c1  = time_jd_as_iso(jd_c1)
+    t_c2  = time_jd_as_iso(jd_c2)
+    t_c3  = time_jd_as_iso(jd_c3)
+    t_c4  = time_jd_as_iso(jd_c4)
+    ic(t_c1, t_c2, t_max, t_c3, t_c4)
+    verbose(f"C1  {t_c1.iso}")
+    verbose(f"C2  {t_c2.iso}")
+    verbose(f"MAX {t_max.iso}")
+    verbose(f"C3  {t_c3.iso}")
+    verbose(f"C4  {t_c4.iso}")
+
+    return t_c1, t_c2, t_max, t_c3, t_c4
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -292,17 +344,9 @@ def main():
     verbose(f"using {ephemeris} ephemeris")
     solar_system_ephemeris.set(ephemeris)
 
-    sun_moon(time)
+    # sun_moon(time)
     # sun_and_moon_series(time)
-
-    # jd = time.jd
-    # jd1 = np.floor(jd) - 0.5
-    # jd2 = np.floor(jd) + 0.5
-
-    # ic.disable()
-    # sol_max = optimize.minimize_scalar(sun_moon_sep1, bracket=(jd1, jd2), options=dict(maxiter=20))
-    # sol1 = optimize.root_scalar(sun_moon_sep2, x0=jd1)
-    # ic.enable()
+    contact_times(time)
 
 
 
