@@ -46,9 +46,12 @@ import numpy as np
 from astropy.coordinates import solar_system_ephemeris
 from astropy.coordinates import get_body
 
+# SciPy
+from scipy import optimize
+
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import altaz_to_string, location_to_string, get_location
+from astroutils import altaz_to_string, location_to_string, get_location, time_jd_as_iso
 
 # Moon equatorial radius
 R_moon = 1738.1 * u.km
@@ -91,7 +94,7 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 
 
 
-def sun_and_moon_series(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
+def sun_moon_series(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
     loc = Options.loc
     verbose("searching for contact times ... (takes some time)")
     # Tests
@@ -169,7 +172,24 @@ def sun_and_moon_series(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
 
 
 
-def sun_and_moon(time: Time) -> Tuple[Angle, Angle, Angle, Angle]:
+def sun_moon_sep1(jd: np.float64) -> np.float64:
+    time = Time(jd, format="jd")
+    time.format = "iso"
+    ic(time)
+    sep, _, _, _ = sun_moon(time)
+    # print(time, sep)
+    return sep.value
+
+def sun_moon_sep2(jd: np.float64) -> np.float64:
+    time = Time(jd, format="jd")
+    time.format = "iso"
+    ic(time)
+    _, sep, _, _ = sun_moon(time)
+    # print(time, sep)
+    return sep.value
+
+
+def sun_moon(time: Time) -> Tuple[Angle, Angle, Angle, Angle]:
     loc = Options.loc
     sun  = get_body("sun", time, loc)
     moon = get_body("moon", time, loc)
@@ -272,8 +292,17 @@ def main():
     verbose(f"using {ephemeris} ephemeris")
     solar_system_ephemeris.set(ephemeris)
 
-    sun_and_moon(time)
+    sun_moon(time)
     # sun_and_moon_series(time)
+
+    # jd = time.jd
+    # jd1 = np.floor(jd) - 0.5
+    # jd2 = np.floor(jd) + 0.5
+
+    # ic.disable()
+    # sol_max = optimize.minimize_scalar(sun_moon_sep1, bracket=(jd1, jd2), options=dict(maxiter=20))
+    # sol1 = optimize.root_scalar(sun_moon_sep2, x0=jd1)
+    # ic.enable()
 
 
 
