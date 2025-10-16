@@ -209,5 +209,12 @@ def get_coord(name: str, simbad=False) -> SkyCoord:
 
 
 
+def time_jd_as_iso(jd: np.float64) -> Time:
+    time = Time(jd, format="jd")
+    time.format = "iso"
+    return time
+
+
+
 if __name__ == "__main__":
     error("no main() function")
