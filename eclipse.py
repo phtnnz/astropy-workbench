@@ -63,7 +63,7 @@ R_sun2 = np.sin(S_sun2) * 1 * u.au
 
 # Command line options
 class Options:
-    pass
+    loc: EarthLocation = None
 
 
 
@@ -86,14 +86,13 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
     # Maximum eclipse (MAX) : 2026/08/12 18:29:17.6
     loc = EarthLocation(lon=-3.68935*u.degree, lat=42.35047*u.degree, height=891*u.m)
     time = Time("2026-08-12 18:29:17.6", location=loc)
-    ic(loc, time)
+    ic(loc, time, time.jd)
     return loc, time
 
 
 
-def sun_and_moon_series(loc: EarthLocation, time: Time) -> Tuple[Time, Time, Time, Time, Time]:
-    ic(loc)
-
+def sun_and_moon_series(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
+    loc = Options.loc
     verbose("searching for contact times ... (takes some time)")
     # Tests
     # # +/- 2 h, 1 min intervals
@@ -170,9 +169,8 @@ def sun_and_moon_series(loc: EarthLocation, time: Time) -> Tuple[Time, Time, Tim
 
 
 
-def sun_and_moon(loc: EarthLocation, time: Time) -> Tuple[Angle, Angle, Angle, Angle]:
-    ic(loc)
-
+def sun_and_moon(time: Time) -> Tuple[Angle, Angle, Angle, Angle]:
+    loc = Options.loc
     sun  = get_body("sun", time, loc)
     moon = get_body("moon", time, loc)
     ic(sun, moon)
@@ -260,6 +258,7 @@ def main():
     if loc == None:
         error("no location specified")
     ic(loc, loc.to_geodetic())
+    Options.loc = loc
     verbose(f"location {location_to_string(loc)}")
     if args.time:
         time = Time(args.time, location=loc)
@@ -273,8 +272,8 @@ def main():
     verbose(f"using {ephemeris} ephemeris")
     solar_system_ephemeris.set(ephemeris)
 
-    sun_and_moon(loc, time)
-    sun_and_moon_series(loc, time)
+    sun_and_moon(time)
+    # sun_and_moon_series(time)
 
 
 
