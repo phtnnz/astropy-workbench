@@ -89,6 +89,73 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 
 
 
+def sun_and_moon_series(loc: EarthLocation, time: Time) -> None:
+    ic(loc)
+
+    verbose("searching for contact times ...")
+    # Tests
+    # # +/- 2 h, 1 min intervals
+    # time_interval = time + np.linspace(-2, 2, 4*60+1)*u.hour
+    # # +/- 2 min, 1 sec intervals
+    # time_interval = time + np.linspace(-2, 2, 4*60+1)*u.min
+    # # +/- 1 min, 0.1 sec intervals
+    # time_interval = time + np.linspace(-1, 1, 2*60*10+1)*u.min
+
+    # +/- 2 h, 0.5 sec intervals
+    time_interval = time + np.linspace(-2, 2, 4*60*60*2+1)*u.hour
+    ic(time, time_interval)
+
+    sun  = get_body("sun", time_interval, loc)
+    moon = get_body("moon", time_interval, loc)
+    ic(sun, moon)
+    sun_dist  = sun.distance.to(u.km)
+    moon_dist = moon.distance.to(u.km)
+    ic(sun_dist, moon_dist)
+    sun_altaz  = sun.transform_to( AltAz(obstime=time_interval, location=loc) )
+    moon_altaz = moon.transform_to( AltAz(obstime=time_interval, location=loc) )
+    ic(sun_altaz, moon_altaz)
+    sep = sun.separation(moon).to(u.arcmin)
+    ic(sep)
+    sun_size = (2 * np.asin(R_sun2 / sun_dist)).to(u.arcmin)
+    moon_size = (2 * np.asin(R_moon / moon_dist)).to(u.arcmin)
+    ic(sun_size, moon_size)
+    partial_sep = (sun_size + moon_size).to(u.arcmin) / 2
+    total_sep   = (sun_size - moon_size).to(u.arcmin) / 2
+    ic(partial_sep, total_sep)
+
+    last_type = None
+    last_time = None
+    last_sep  = 180 * u.degree
+    max_found = False
+
+    # Search for changes in phase type
+    ##FIXME: A=annular doesn't work!
+    for t, sep1, p_sep, t_sep in zip(time_interval, sep, partial_sep, total_sep):
+        type = type_from_sep(sep1, p_sep, t_sep)
+        if not last_type:
+            last_type = type
+            last_time = t
+
+        if sep1 < last_sep:
+            last_sep = sep1
+        elif not max_found:
+            verbose(last_time, type, "MAX")
+            max_found = True
+
+        if type=="P" and last_type=="-":
+            verbose(t, type, "C1")
+        if type=="T" and last_type=="P":
+            verbose(t, type, "C2")
+        if type=="P" and last_type=="T":
+            verbose(last_time, last_type, "C3")
+        if type=="-" and last_type=="P":
+            verbose(last_time, last_type, "C4")
+
+        last_type = type
+        last_time = t 
+
+
+
 def sun_and_moon(loc: EarthLocation, time: Time) -> None:
     ic(loc)
 
@@ -118,11 +185,19 @@ def sun_and_moon(loc: EarthLocation, time: Time) -> None:
     sep = sun.separation(moon).to(u.arcmin)
     ic(sep)
 
-    partial_sep = (sun_size + moon_size).to(u.arcmin)
-    total_sep   = (sun_size - moon_size).to(u.arcmin)
+    # / 2 for radii
+    partial_sep = (sun_size + moon_size).to(u.arcmin) / 2
+    total_sep   = (sun_size - moon_size).to(u.arcmin) / 2
     ratio       = moon_size / sun_size
     ic(partial_sep, total_sep, ratio)
+    type = type_from_sep(sep, partial_sep, total_sep)
+    ic(type)
+    verbose(f"moon/sun ratio {ratio:.4f}")
+    verbose(f"moon-sun separation {sep:.2f}, phase {type}")
 
+
+
+def type_from_sep(sep: Angle, partial_sep: Angle, total_sep: Angle) -> str:
     type = "-"
     if sep <= partial_sep:
         type = "P"
@@ -130,9 +205,8 @@ def sun_and_moon(loc: EarthLocation, time: Time) -> None:
         type = "T"
     if total_sep > 0 and sep <= total_sep:
         type = "A"
-    ic(type)
-    verbose(f"moon/sun ratio {ratio:.4f}")
-    verbose(f"moon-sun separation {sep:.2f}, phase {type}")
+    # ic(sep, partial_sep, total_sep, type)
+    return type
 
 
 
@@ -182,6 +256,7 @@ def main():
     solar_system_ephemeris.set(ephemeris)
 
     sun_and_moon(loc, time)
+    sun_and_moon_series(loc, time)
 
 
 
