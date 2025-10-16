@@ -15,10 +15,12 @@
 # limitations under the License.
 
 # ChangeLog
-# Version 0.0 / 2025-10-16
-#       Started some solar eclipse related calculations
+# Version 0.1 / 2025-10-16
+#       Started some solar eclipse related calculations, compute separation
+#       and eclipse phase type for location/time, search for contact times
+#       in +/- 2h interval around max eclipse
 
-VERSION = "0.0 / 2025-10-16"
+VERSION = "0.1 / 2025-10-16"
 AUTHOR  = "Martin Junius"
 NAME    = "eclipse"
 
@@ -89,10 +91,10 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 
 
 
-def sun_and_moon_series(loc: EarthLocation, time: Time) -> None:
+def sun_and_moon_series(loc: EarthLocation, time: Time) -> Tuple[Time, Time, Time, Time, Time]:
     ic(loc)
 
-    verbose("searching for contact times ...")
+    verbose("searching for contact times ... (takes some time)")
     # Tests
     # # +/- 2 h, 1 min intervals
     # time_interval = time + np.linspace(-2, 2, 4*60+1)*u.hour
@@ -127,6 +129,11 @@ def sun_and_moon_series(loc: EarthLocation, time: Time) -> None:
     last_time = None
     last_sep  = 180 * u.degree
     max_found = False
+    C1        = None
+    C2        = None
+    MAX       = None
+    C3        = None
+    C4        = None
 
     # Search for changes in phase type
     ##FIXME: A=annular doesn't work!
@@ -140,19 +147,26 @@ def sun_and_moon_series(loc: EarthLocation, time: Time) -> None:
             last_sep = sep1
         elif not max_found:
             verbose(last_time, type, "MAX")
+            MAX = last_time
             max_found = True
 
         if type=="P" and last_type=="-":
             verbose(t, type, "C1")
+            C1 = t
         if type=="T" and last_type=="P":
             verbose(t, type, "C2")
+            C2 = t
         if type=="P" and last_type=="T":
             verbose(last_time, last_type, "C3")
+            C3 = last_time
         if type=="-" and last_type=="P":
             verbose(last_time, last_type, "C4")
+            C4 = last_time
 
         last_type = type
         last_time = t 
+
+    return C1, C2, MAX, C3, C4
 
 
 
