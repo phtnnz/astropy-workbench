@@ -46,7 +46,7 @@ from astropy.coordinates import get_body
 
 # Local modules
 from verbose import verbose, warning, error
-from astroutils import altaz_to_string, location_to_string
+from astroutils import altaz_to_string, location_to_string, get_location
 
 # Moon equatorial radius
 R_moon = 1738.1 * u.km
