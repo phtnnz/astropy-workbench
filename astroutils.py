@@ -103,6 +103,28 @@ def angle_to_string(a: Angle, decimal: bool=False) -> str:
     """
     return f"{a.to_string(unit=u.degree, decimal=decimal, precision=2)}"
 
+
+def altaz_to_string(alt: Angle, az: Angle, decimal: bool=True) -> str:
+    """
+    Format alt/az as string
+
+    Parameters
+    ----------
+    alt : Angle
+        altitude
+    az : Angle
+        azimuth
+    decimal : bool, optional
+        decimal output, by default True
+
+    Returns
+    -------
+    str
+        string representation of alt/az
+    """
+    return f"alt={angle_to_string(alt, decimal)} az={angle_to_string(az, decimal)}"
+
+
 def hourangle_to_string(a: Angle) -> str:
     """
     Format hour angle as string
