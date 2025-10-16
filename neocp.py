@@ -743,7 +743,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
             warning("no objects, no CSV output")
 
     # Return list of planned objects
-    verbose(f"planned {len(objects)} object(s): {" ".join(objects)}")
+    verbose(f"{len(objects)} object(s) planned: {" ".join(objects)}")
     return objects
 
 
