@@ -225,11 +225,13 @@ def sun_moon(time: Time) -> Tuple[Angle, Angle, Angle, Angle]:
     partial_sep = (sun_size + moon_size).to(u.arcmin) / 2
     total_sep   = (sun_size - moon_size).to(u.arcmin) / 2
     ratio       = moon_size / sun_size
-    ic(partial_sep, total_sep, ratio)
+    magnitude   = (moon_size/2 - sep + sun_size/2) / sun_size
+    ic(partial_sep, total_sep, ratio, magnitude)
     type = type_from_sep(sep, partial_sep, total_sep)
     ic(type)
     verbose(f"moon/sun ratio {ratio:.4f}")
     verbose(f"moon-sun separation {sep:.2f}, phase {type}")
+    verbose(f"magnitude {magnitude:.4f}")
 
     # return separation for minimum search and root finding
     #  min=MAX  root=C1/C4       root=C2/C3 T   root=C2/C3 A
@@ -344,7 +346,7 @@ def main():
     verbose(f"using {ephemeris} ephemeris")
     solar_system_ephemeris.set(ephemeris)
 
-    # sun_moon(time)
+    sun_moon(time)
     # sun_and_moon_series(time)
     contact_times(time)
 
