@@ -95,17 +95,26 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # sofiBessel3 : lokaler Verlauf einer Sonnenfinsternis
 # ohne Berücksichtigung der lokalen Sonnenhöhe
 
-# Besselsche Elemente
-# yr=2026; mnt=8; day=12
+# Besselian element for TSE 12 Aug 2026 from
+# https://eclipse.gsfc.nasa.gov/SEsearch/SEdata.php?Ecl=20260812
+#
+# x, y   - Cartesian coordinates of the lunar shadow axis in the Fundamental Plane 
+#          (in units of Earth's equatorial radius)
+# L1, L2 - Radii of the Moon's penumbral and umbral/antumbral shadows in the Fundamental Plane 
+#          (in units of Earth's equatorial radius)
+# d      - Declination of the Moon's shadow axis on the celestial sphere
+# µ      - Hour angle of the Moon's shadow axis on the celestial sphere
+# f1, f2 - Angles of the penumbral and umbral/antumbral shadow cones with respect to the axis of the lunar shadow
+
 T0 = 18
-bessel_x     = [ 0.4755140, 0.5189249, -0.0000773, -0.0000080]
-bessel_y     = [ 0.7711830, -0.2301680, -0.0001246, 0.0000038]
-bessel_d     = [ 14.7966700, -0.0120650, -0.0000030, 0.0]
-bessel_l1    = [ 0.5379550, 0.0000939, -0.0000121, 0.0]
-bessel_l2    = [ -0.0081420, 0.0000935, -0.0000121, 0.0]
-bessel_u     = [ 88.7477900, 15.0030900, 0.0000000, 0.0]
-bessel_tanf1 = 0.0046141
-bessel_tanf2 = 0.0045911
+bessel_x      = [  0.4755140,  0.5189249, -0.0000773, -0.0000080 ]
+bessel_y      = [  0.7711830, -0.2301680, -0.0001246,  0.0000038 ]
+bessel_d      = [ 14.7966700, -0.0120650, -0.0000030,  0.0       ]
+bessel_l1     = [  0.5379550,  0.0000939, -0.0000121,  0.0       ]
+bessel_l2     = [ -0.0081420,  0.0000935, -0.0000121,  0.0       ]
+bessel_u      = [ 88.7477900, 15.0030900,  0.0000000,  0.0       ]
+bessel_tanf1  = 0.0046141
+bessel_tanf2  = 0.0045911
 
 polynomial_x  = Polynomial(bessel_x)
 polynomial_y  = Polynomial(bessel_y)
@@ -118,51 +127,52 @@ polynomial_xp = polynomial_x.deriv()
 polynomial_yp = polynomial_y.deriv()
 
 
-# Winkelfunktionen in Gradmaß, wie im Meeus
-def Sin(w):         return np.sin( np.deg2rad(w) )
-def Cos(w):         return np.cos( np.deg2rad(w) )
-def Tan(w):         return np.tan( np.deg2rad(w) )
-
-def Atan2(y, x):    return np.rad2deg( np.atan2(y, x) )
-def Asin(x):        return np.rad2deg( np.asin(x) )
-def Acos(x):        return np.rad2deg( np.acos(x) )
-def Atan(x):        return np.rad2deg( np.atan(x) )
+# Trigonometry using degree, as in Meeus
+def sin(w):         return np.sin( np.deg2rad(w) )
+def cos(w):         return np.cos( np.deg2rad(w) )
+def tan(w):         return np.tan( np.deg2rad(w) )
+def atan2(y, x):    return np.rad2deg( np.atan2(y, x) )
+def asin(x):        return np.rad2deg( np.asin(x) )
+def acos(x):        return np.rad2deg( np.acos(x) )
+def atan(x):        return np.rad2deg( np.atan(x) )
 
 
 # Ergebnisse der Fundamentalebene für einen Zeitpunkt
-def magnitudePoswinkel(t: float, pSinPS: float, pCosPS: float, Lambda: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-    X  = polynomial_x(t)        # coordinates
+def magnitudePoswinkel(t: float, pSinPS: float, pCosPS: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+    X  = polynomial_x(t)
     Y  = polynomial_y(t)
-    D  = polynomial_d(t)        # DEC
-    L1 = polynomial_l1(t)       # hourangle
-    L2 = polynomial_l2(t)       # radius penumbra
-    M  = polynomial_u(t)        # radius umbra
+    D  = polynomial_d(t)
+    M  = polynomial_u(t)
+    L1 = polynomial_l1(t)
+    L2 = polynomial_l2(t)
 
     # derivatives
     XS = polynomial_xp(t)
     YS = polynomial_yp(t)
 
     # Koordinaten bezüglich der Fundamentalebene
-    H = M - Lambda - 0.00417807 * delta_t
-    xi = pCosPS * Sin(H)
-    eta = pSinPS * Cos(D) - pCosPS * Cos(H) * Sin(D)
-    zeta = pSinPS * Sin(D) + pCosPS * Cos(H) * Cos(D)
+    H    = M - longitude - 0.00417807 * delta_t
+    xi   = pCosPS * sin(H)
+    eta  = pSinPS * cos(D) - pCosPS * cos(H) * sin(D)
+    zeta = pSinPS * sin(D) + pCosPS * cos(H) * cos(D)
     # stündliche Änderungen
-    xiS = 0.01745329 * bessel_u[1] * pCosPS * Cos(H)
-    etaS = 0.01745329 * (bessel_u[1] * xi * Sin(D) - zeta * bessel_d[1])
+    xiS  = 0.01745329 * bessel_u[1] * pCosPS * cos(H)
+    etaS = 0.01745329 * (bessel_u[1] * xi * sin(D) - zeta * bessel_d[1])
 
-    U = X - xi
-    V = Y - eta
-    a = XS - xiS
-    b = YS - etaS
+    U   = X - xi
+    V   = Y - eta
+    a   = XS - xiS
+    b   = YS - etaS
     L1S = L1 - zeta * bessel_tanf1
     L2S = L2 - zeta * bessel_tanf2
-    n2 = a * a + b * b
+    n2  = a * a + b * b
+
     return a, b, U, V, n2, L1S, L2S, D, H
 
 
+
 # Ergebnisse für die Ausgabe
-def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: float, H: float, phi: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float]:
+def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: float, H: float, latitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float]:
     # Zeit des lokalen Maximums
     TD = T0 + t
     # Magnitude G
@@ -171,17 +181,17 @@ def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: 
     # Durchmesserverhältnis
     A = (L1S - L2S) / (L1S + L2S)
     # Positionswinklel zur maximalen Verfinsterung, vom Nordpol der Sonne
-    Pm = Atan2(U , V)
+    Pm = atan2(U , V)
     if Pm < 0:
         Pm = Pm + 360.0
     # Positionswinkel Zm bezogen auf die Zenit-Richtung
-    sinH = Sin(D) * Sin(phi) + Cos(D) * Cos(phi) * Cos(H)
-    h = Asin(sinH)
-    sinq = (Cos(phi) * Sin(H)) / Cos(h)
-    q = Asin(sinq)
+    sinH = sin(D) * sin(latitude) + cos(D) * cos(latitude) * cos(H)
+    h = asin(sinH)
+    sinq = (cos(latitude) * sin(H)) / cos(h)
+    q = asin(sinq)
     Zm = Pm - q
     # Positionswinkel
-    P = Atan2(U, V)
+    P = atan2(U, V)
     if P < 0:
         P = P + 360
     UT = TD - delta_t / 3600
@@ -194,24 +204,24 @@ def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: 
 
 
 
-def bessel3(Lambda: float, phi: float, hoehe: float, delta_t: float) -> None:
-    ic(Lambda, phi, hoehe)
+def bessel3(longitude: float, latitude: float, hoehe: float, delta_t: float) -> None:
+    ic(longitude, latitude, hoehe)
 
     # Hauptprogramm
     t = 0
 
     # rechtwinklige geozentrische Koordinaten
-    U = Atan(0.99664719 * Tan(phi))
-    pSinPS = 0.99664719 * Sin(U) + hoehe / 6378140 * Sin(phi)
-    pCosPS = Cos(U) + hoehe / 6378140 * Cos(phi)
+    U = atan(0.99664719 * tan(latitude))
+    pSinPS = 0.99664719 * sin(U) + hoehe / 6378140 * sin(latitude)
+    pCosPS = cos(U) + hoehe / 6378140 * cos(latitude)
 
     # 1) Ergebnisse zum Maximums-Zeitpunkt
     for i in range(5):  # 5 Iterationen genügen
-        a, b, U, V, n2, L1S, L2S, D, H = magnitudePoswinkel(t, pSinPS, pCosPS, Lambda, delta_t)
+        a, b, U, V, n2, L1S, L2S, D, H = magnitudePoswinkel(t, pSinPS, pCosPS, longitude, delta_t)
         # Zeitpunkt der maximalen Finsternis per Iteration
         tm = -(U * a + V * b) / n2
         t = t + tm
-        UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, phi, delta_t)
+        UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
     print("Uhrzeit des Maximums:", UTh, "h", UTm, "m", UTs, "s UT")  # dynamische Zeit
     print("Magnitude: ", int(1000 * G) / 10, "%")
     print("Verhältnis Durchmesser Mond/Sonne: ", int(1000 * A) / 1000)
@@ -219,16 +229,16 @@ def bessel3(Lambda: float, phi: float, hoehe: float, delta_t: float) -> None:
     print("Positionswinkel, bezogen auf Zenit: ", int(Zm+0.5), "Grad")
 
     # 2) Ergebnisse aller 10 Minuten
-    # tmax = t
-    # t = tmax - 3 
-    # print("UT             Magnitude Nord-  Zenit- Posw.")
-    # for i in range(480):  # 3 h aller Minuten
-    #     a, b, U, V, n2, L1S, L2S, D, H = magnitudePoswinkel(t)
-    #     UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung()
-    #     if G >= 0:
-    #         print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
-    #         # print(UTh,"h", UTm,"m", UTs,"s  ", int(1000 * G) / 10, "%  ", int(P+0.5),"°  ", int(Zm+0.5), "°")
-    #     t = t + 1 / 60
+    tmax = t
+    t = tmax - 3 
+    print("UT             Magnitude Nord-  Zenit- Posw.")
+    for i in range(480):  # 3 h aller Minuten
+        a, b, U, V, n2, L1S, L2S, D, H = magnitudePoswinkel(t, pSinPS, pCosPS, longitude, delta_t)
+        UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
+        if G >= 0:
+            print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
+            # print(UTh,"h", UTm,"m", UTs,"s  ", int(1000 * G) / 10, "%  ", int(P+0.5),"°  ", int(Zm+0.5), "°")
+        t = t + 1 / 60
 
 #/ Uwe Pilz, Februar 2025
 
