@@ -156,7 +156,7 @@ def get_location(name: str) -> EarthLocation:
         Astropy location object
     """
     loc = None
-    m = re.match(r'^([0-9.]+) ([+-]?[0-9.]+) ([0-9.]+)$', name)
+    m = re.match(r'^(-?[0-9.]+) ([+-]?[0-9.]+) ([0-9.]+)$', name)
     if m:
         (lon, lat, height) = [ float(v) for v in m.groups() ]
         loc = EarthLocation(lon=lon*u.degree, lat=lat*u.degree, height=height*u.m)
