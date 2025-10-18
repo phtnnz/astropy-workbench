@@ -338,8 +338,15 @@ def main():
         time = Time(args.time, location=loc)
     elif not time:
         time = Time(Time.now(), location=loc)
-    ic(time)
-    verbose(f"time UTC {time}")
+    # Delta T from astropy Time
+    # checked with https://www.iers.org/IERS/EN/DataProducts/tools/timescales/timescales.html
+    # slight difference in UT1
+    delta_t = ((time.tt.jd - time.ut1.jd) * u.day).to(u.s)
+    # approximation, see https://de.wikipedia.org/wiki/Delta_T
+    y = time.to_datetime().year + (time.to_datetime().month - 0.5) / 12
+    delta_t2 = 67.62 + 0.3645 * (y - 2015) + 0.0039755 * (y - 2015)**2
+    ic(time, delta_t, y, delta_t2)
+    verbose(f"time UTC {time}, Delta T={delta_t:.2f}")
 
     # Ephemeris
     ephemeris = args.ephemeris or "de440"
