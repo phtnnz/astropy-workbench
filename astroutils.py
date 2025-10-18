@@ -17,6 +17,8 @@
 # ChangeLog
 # Version 0.1 / 2025-01-27
 #       Utility functions moved to this module
+# Version 0.2 / 2025-10-18
+#       Added time_jd_as_iso(), added address search via of_address() to get_location()
 
 import re
 
@@ -28,7 +30,7 @@ ic.disable()
 # AstroPy
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-from astropy.coordinates import errors
+from astropy.coordinates import errors, name_resolve
 import astropy.units as u
 from astropy.time        import Time, TimeDelta
 import numpy as np
@@ -39,7 +41,7 @@ from mpclocation import mpc_station_location
 from querysimbad import query_simbad
 
 
-VERSION = "0.1 / 2025-01-27"
+VERSION = "0.2 / 2025-10-18"
 AUTHOR  = "Martin Junius"
 NAME    = "astroutils"
 
@@ -140,12 +142,18 @@ def hourangle_to_string(a: Angle) -> str:
 
 def get_location(name: str) -> EarthLocation:
     """
-    Try to interpret location name as address, site name, MPC code
+    Try to interpret location name as lon/lat coordinates, MPC station code,
+    site name, or openstreetmap address
 
-    :param name: location name
-    :type name: str
-    :return: location object
-    :rtype: EarthLocation
+    Parameters
+    ----------
+    name : str
+        Location text
+
+    Returns
+    -------
+    EarthLocation
+        Astropy location object
     """
     loc = None
     m = re.match(r'^([0-9.]+) ([+-]?[0-9.]+) ([0-9.]+)$', name)
@@ -156,6 +164,13 @@ def get_location(name: str) -> EarthLocation:
 
     if loc == None:
         try:
+            loc = mpc_station_location(name)
+        except (LookupError, ValueError):
+            verbose(f"location {name} not an MPC station code")
+            loc = None
+
+    if loc == None:
+        try:
             loc = EarthLocation.of_site(name)
         except errors.UnknownSiteException as e:
             verbose(f"location {name} not in astropy database")
@@ -163,13 +178,12 @@ def get_location(name: str) -> EarthLocation:
 
     if loc == None:
         try:
-            loc = mpc_station_location(name)
-        except (LookupError, ValueError):
-            verbose(f"location {name} not an MPC station code")
+            loc = EarthLocation.of_address(name)
+        except name_resolve.NameResolveError as e:
+            verbose(f"location {name} not a recognized address")
             loc = None
 
     if loc == None:
-        ic(EarthLocation.get_site_names())
         error(f"named location {name} not found")
 
     return loc
@@ -210,6 +224,19 @@ def get_coord(name: str, simbad=False) -> SkyCoord:
 
 
 def time_jd_as_iso(jd: np.float64) -> Time:
+    """
+    Create Time object from JD value, set format to "iso"
+
+    Parameters
+    ----------
+    jd : np.float64
+        JD value
+
+    Returns
+    -------
+    Time
+        Astropy Time object
+    """
     time = Time(jd, format="jd")
     time.format = "iso"
     return time
