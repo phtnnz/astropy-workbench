@@ -109,7 +109,7 @@ bessel_tanf1 = 0.0046141
 bessel_tanf2 = 0.0045911
 
 
-G# Winkelfunktionen in Gradmaß, wie im Meeus
+# Winkelfunktionen in Gradmaß, wie im Meeus
 def Sin(w):    return sin(pi * w / 180)
 def Cos(w):    return cos(pi * w / 180)
 def Tan(w):    return tan(pi * w / 180)
@@ -118,17 +118,6 @@ def Asin(x):    return 180 * asin(x) / pi
 def Acos(x):    return 180 * acos(x) / pi
 def Atan(x):    return 180 * atan(x) / pi
 def sq(x):    return x * x
-
-
-def solveQuadrant(sinX, cosX):
-    if sinX >= 0 and cosX >= 0:
-        return Asin(sinX)
-    if sinX < 0 and cosX >= 0:
-        return Asin(sinX)
-    if sinX < 0 and cosX < 0:
-        return -Acos(cosX)
-    if sinX >= 0 and cosX < 0:
-        return Acos(cosX)
 
 
 # Ergebnisse der Fundamentalebene für einen Zeitpunkt
