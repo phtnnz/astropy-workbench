@@ -164,8 +164,8 @@ def magnitudePoswinkel(t: float, pSinPS: float, pCosPS: float, longitude: float,
     eta   = pSinPS * cos(D) - pCosPS * cos(H) * sin(D)
     zeta  = pSinPS * sin(D) + pCosPS * cos(H) * cos(D)
     # stündliche Änderungen
-    xi_p  = 0.01745329 * bessel_u[1] * pCosPS * cos(H)
-    eta_p = 0.01745329 * (bessel_u[1] * xi * sin(D) - zeta * bessel_d[1])
+    xi_p  = np.deg2rad(bessel_u[1] * pCosPS * cos(H))
+    eta_p = np.deg2rad(bessel_u[1] * xi * sin(D) - zeta * bessel_d[1])
 
     U     = X - xi
     V     = Y - eta
