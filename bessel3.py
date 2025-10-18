@@ -107,24 +107,24 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # f1, f2 - Angles of the penumbral and umbral/antumbral shadow cones with respect to the axis of the lunar shadow
 
 T0 = 18
-bessel_x      = [  0.4755140,  0.5189249, -0.0000773, -0.0000080 ]
-bessel_y      = [  0.7711830, -0.2301680, -0.0001246,  0.0000038 ]
-bessel_d      = [ 14.7966700, -0.0120650, -0.0000030,  0.0       ]
-bessel_l1     = [  0.5379550,  0.0000939, -0.0000121,  0.0       ]
-bessel_l2     = [ -0.0081420,  0.0000935, -0.0000121,  0.0       ]
-bessel_u      = [ 88.7477900, 15.0030900,  0.0000000,  0.0       ]
-bessel_tanf1  = 0.0046141
-bessel_tanf2  = 0.0045911
+bessel_x       = [  0.4755140,  0.5189249, -0.0000773, -0.0000080 ]
+bessel_y       = [  0.7711830, -0.2301680, -0.0001246,  0.0000038 ]
+bessel_d       = [ 14.7966700, -0.0120650, -0.0000030,  0.0       ]
+bessel_l1      = [  0.5379550,  0.0000939, -0.0000121,  0.0       ]
+bessel_l2      = [ -0.0081420,  0.0000935, -0.0000121,  0.0       ]
+bessel_u       = [ 88.7477900, 15.0030900,  0.0000000,  0.0       ]
+bessel_tanf1   = 0.0046141
+bessel_tanf2   = 0.0045911
 
-polynomial_x  = Polynomial(bessel_x)
-polynomial_y  = Polynomial(bessel_y)
-polynomial_d  = Polynomial(bessel_d)
-polynomial_l1 = Polynomial(bessel_l1)
-polynomial_l2 = Polynomial(bessel_l2)
-polynomial_u  = Polynomial(bessel_u)
+polynomial_x   = Polynomial(bessel_x)
+polynomial_y   = Polynomial(bessel_y)
+polynomial_d   = Polynomial(bessel_d)
+polynomial_l1  = Polynomial(bessel_l1)
+polynomial_l2  = Polynomial(bessel_l2)
+polynomial_u   = Polynomial(bessel_u)
 
-polynomial_xp = polynomial_x.deriv()
-polynomial_yp = polynomial_y.deriv()
+polynomial_x_p = polynomial_x.deriv()
+polynomial_y_p = polynomial_y.deriv()
 
 
 # Trigonometry using degree, as in Meeus
@@ -147,25 +147,33 @@ def magnitudePoswinkel(t: float, pSinPS: float, pCosPS: float, longitude: float,
     L2 = polynomial_l2(t)
 
     # derivatives
-    XS = polynomial_xp(t)
-    YS = polynomial_yp(t)
+    X_p = polynomial_x_p(t)
+    Y_p = polynomial_y_p(t)
 
     # Koordinaten bezüglich der Fundamentalebene
-    H    = M - longitude - 0.00417807 * delta_t
-    xi   = pCosPS * sin(H)
-    eta  = pSinPS * cos(D) - pCosPS * cos(H) * sin(D)
-    zeta = pSinPS * sin(D) + pCosPS * cos(H) * cos(D)
-    # stündliche Änderungen
-    xiS  = 0.01745329 * bessel_u[1] * pCosPS * cos(H)
-    etaS = 0.01745329 * (bessel_u[1] * xi * sin(D) - zeta * bessel_d[1])
 
-    U   = X - xi
-    V   = Y - eta
-    a   = XS - xiS
-    b   = YS - etaS
-    L1S = L1 - zeta * bessel_tanf1
-    L2S = L2 - zeta * bessel_tanf2
-    n2  = a * a + b * b
+    # https://de.wikipedia.org/wiki/Besselsche_Elemente
+    # theta = ( \mu - 1.002738 * 360° / 86400 s * Delta_T ) + \Lambda
+    # Sidereal day on Earth is approximately 86164.0905 s
+    # 1.002738 = 86400 s / 86164.09 s
+    # theta = local hourangle corrected for TT
+    #
+    # H: theta, M: \mu, longitude = \Lambda
+    H     = M - 360 / 86164.0905 * delta_t  + longitude
+    xi    = pCosPS * sin(H)
+    eta   = pSinPS * cos(D) - pCosPS * cos(H) * sin(D)
+    zeta  = pSinPS * sin(D) + pCosPS * cos(H) * cos(D)
+    # stündliche Änderungen
+    xi_p  = 0.01745329 * bessel_u[1] * pCosPS * cos(H)
+    eta_p = 0.01745329 * (bessel_u[1] * xi * sin(D) - zeta * bessel_d[1])
+
+    U     = X - xi
+    V     = Y - eta
+    a     = X_p - xi_p
+    b     = Y_p - eta_p
+    L1S   = L1 - zeta * bessel_tanf1
+    L2S   = L2 - zeta * bessel_tanf2
+    n2    = a * a + b * b
 
     return a, b, U, V, n2, L1S, L2S, D, H
 
@@ -292,7 +300,7 @@ def main():
     verbose(f"time UTC {time}, Delta T={delta_t:.2f}")
 
     # Run calculation for local circumstances
-    bessel3(-loc.lon.value, loc.lat.value, loc.height.value, delta_t.value)
+    bessel3(loc.lon.value, loc.lat.value, loc.height.value, delta_t.value)
 
 
 if __name__ == "__main__":
