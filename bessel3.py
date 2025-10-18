@@ -40,6 +40,7 @@ from astropy.time        import Time, TimeDelta
 import astropy.units as u
 import astropy.constants as const
 import numpy as np
+from numpy.polynomial import Polynomial
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -94,8 +95,6 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # sofiBessel3 : lokaler Verlauf einer Sonnenfinsternis
 # ohne Berücksichtigung der lokalen Sonnenhöhe
 
-from math import *
-
 # Besselsche Elemente
 # yr=2026; mnt=8; day=12
 T0 = 18
@@ -108,37 +107,40 @@ bessel_u     = [ 88.7477900, 15.0030900, 0.0000000, 0.0]
 bessel_tanf1 = 0.0046141
 bessel_tanf2 = 0.0045911
 
+polynomial_x  = Polynomial(bessel_x)
+polynomial_y  = Polynomial(bessel_y)
+polynomial_d  = Polynomial(bessel_d)
+polynomial_l1 = Polynomial(bessel_l1)
+polynomial_l2 = Polynomial(bessel_l2)
+polynomial_u  = Polynomial(bessel_u)
+
+polynomial_xp = polynomial_x.deriv()
+polynomial_yp = polynomial_y.deriv()
+
 
 # Winkelfunktionen in Gradmaß, wie im Meeus
-def Sin(w):    return sin(pi * w / 180)
-def Cos(w):    return cos(pi * w / 180)
-def Tan(w):    return tan(pi * w / 180)
-def Atan2(y, x):    return 180 * atan2(y, x) / pi
-def Asin(x):    return 180 * asin(x) / pi
-def Acos(x):    return 180 * acos(x) / pi
-def Atan(x):    return 180 * atan(x) / pi
-def sq(x):    return x * x
+def Sin(w):         return np.sin( np.deg2rad(w) )
+def Cos(w):         return np.cos( np.deg2rad(w) )
+def Tan(w):         return np.tan( np.deg2rad(w) )
+
+def Atan2(y, x):    return np.rad2deg( np.atan2(y, x) )
+def Asin(x):        return np.rad2deg( np.asin(x) )
+def Acos(x):        return np.rad2deg( np.acos(x) )
+def Atan(x):        return np.rad2deg( np.atan(x) )
 
 
 # Ergebnisse der Fundamentalebene für einen Zeitpunkt
 def magnitudePoswinkel(t: float, pSinPS: float, pCosPS: float, Lambda: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-    X = 0
-    Y = 0
-    D = 0
-    L1 = 0
-    L2 = 0
-    M = 0
-    for j in range(3, -1, -1):
-        X = X * t + bessel_x[j]  # die Koordinaten
-        Y = Y * t + bessel_y[j]
-        D = D * t + bessel_d[j]  # Deklination ...
-        M = M * t + bessel_u[j]  # ... und Stundenwinkel im orstfesten Äquatorsystem
-        L1 = L1 * t + bessel_l1[j]  # die Radien der Schattenkegel, Halbschatten ...
-        L2 = L2 * t + bessel_l2[j]  # ... und Kernschatten
+    X  = polynomial_x(t)        # coordinates
+    Y  = polynomial_y(t)
+    D  = polynomial_d(t)        # DEC
+    L1 = polynomial_l1(t)       # hourangle
+    L2 = polynomial_l2(t)       # radius penumbra
+    M  = polynomial_u(t)        # radius umbra
 
-    # die Ableitungen / Veränderungen des Ortes i.f. Fundamental-E.
-    XS = bessel_x[1] + 2 * bessel_x[2] * t + 3 * bessel_x[3] * t * t
-    YS = bessel_y[1] + 2 * bessel_y[2] * t + 3 * bessel_y[3] * t * t
+    # derivatives
+    XS = polynomial_xp(t)
+    YS = polynomial_yp(t)
 
     # Koordinaten bezüglich der Fundamentalebene
     H = M - Lambda - 0.00417807 * delta_t
@@ -164,7 +166,7 @@ def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: 
     # Zeit des lokalen Maximums
     TD = T0 + t
     # Magnitude G
-    m = sqrt(U * U + V * V)
+    m = np.sqrt(U * U + V * V)
     G = (L1S - m) / (L1S + L2S)
     # Durchmesserverhältnis
     A = (L1S - L2S) / (L1S + L2S)
