@@ -55,8 +55,13 @@ from scipy import optimize
 from verbose import verbose, warning, error
 from astroutils import altaz_to_string, location_to_string, get_location, time_jd_as_iso
 
+# Earth equatorial radius
+R_earth = 6378.137 * u.km           # GRS 80/WGS 84 value (Wikipedia)
+                                    # https://en.wikipedia.org/wiki/World_Geodetic_System
 # Moon equatorial radius
 R_moon = 1738.1 * u.km
+R_moon = 0.2725076 * R_earth        # IAU 1982
+R_moon = 0.272281  * R_earth        # smaller value from https://eclipse.gsfc.nasa.gov/SEpubs/20080801/TP214149b.pdf
 # Sun equatorial radius, IAU
 R_sun = const.R_sun
 S_sun = np.asin(R_sun / (1 * u.au))
