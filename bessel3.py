@@ -91,19 +91,12 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 
 
 
-##### Following code taken from Uwe Pilz, Februar 2025 #####
-##### https://fg-astrophysik.vdsastro.de/prg95         #####
-##### No license provided                              #####
-##### Modified to use AstroPy & Friends                #####
-
+# A major part of the following code ist originally by Uwe Pilz
 # VdS-Journal 95: Lokaler Verlauf einer Finsternis
-# Die Berechnung erfolgt minütlich. Vor Benutzung müssen die sog. Bessel-Elemente der 
-# gewünschten Finsternis eingesetzt werden. Die Datumsangabe muss aktiviert 
-# ("einkommentiert") werden.
-
-# Geographische Koordinaten werden astronomisch richtig ausgegebe, also Ost = negativ.
-# Das ist umgekehrt zur Google-Maps-Anzeige.
-
+# https://fg-astrophysik.vdsastro.de/prg95
+# (no license provided)
+# Modified to use numpy and astropy
+#
 # sofiBessel3 : lokaler Verlauf einer Sonnenfinsternis
 # ohne Berücksichtigung der lokalen Sonnenhöhe
 
@@ -139,6 +132,7 @@ polynomial_x_p = polynomial_x.deriv()
 polynomial_y_p = polynomial_y.deriv()
 
 
+
 # Trigonometry using degree, as in Meeus
 def sin(w):         return np.sin( np.deg2rad(w) )
 def cos(w):         return np.cos( np.deg2rad(w) )
@@ -153,7 +147,7 @@ def sq(x):          return x*x
 
 
 # Ergebnisse der Fundamentalebene für einen Zeitpunkt
-def calc_fundamental_plane(t: float, rho_sin_phi_p: float, rho_cos_phi_p: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+def calc_on_fundamental_plane(t: float, rho_sin_phi_p: float, rho_cos_phi_p: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
     X  = polynomial_x(t)
     Y  = polynomial_y(t)
     D  = polynomial_d(t)
@@ -261,10 +255,11 @@ def bessel3(delta_t: float) -> None:
     # ic(phi_p, rho_sin_phi_p, rho_cos_phi_p)
 
     # Start at t = 0, relative to T0 from besselians
-    t = 0
     # 1) Ergebnisse zum Maximums-Zeitpunkt
+    t = 0
     for i in range(5):  # 5 Iterationen genügen
-        a, b, U, V, L1S, L2S, D, H = calc_fundamental_plane(t, rho_sin_phi_p, rho_cos_phi_p, longitude, delta_t)
+        a, b, U, V, L1S, L2S, D, H = calc_on_fundamental_plane(t, rho_sin_phi_p, rho_cos_phi_p, longitude, delta_t)
+        ic(t, a, b, U, V, L1S, L2S, D, H)
         # Zeitpunkt der maximalen Finsternis per Iteration
         tm = -(U * a + V * b) / (sq(a) + sq(b))
         t = t + tm
@@ -280,7 +275,7 @@ def bessel3(delta_t: float) -> None:
     # t = tmax - 3 
     # print("UT             Magnitude Nord-  Zenit- Posw.")
     # for i in range(480):  # 3 h aller Minuten
-    #     a, b, U, V, n2, L1S, L2S, D, H = magnitudePoswinkel(t, pSinPS, pCosPS, longitude, delta_t)
+    #     a, b, U, V, L1S, L2S, D, H = magnitudePoswinkel(t, pSinPS, pCosPS, longitude, delta_t)
     #     UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
     #     if G >= 0:
     #         print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
