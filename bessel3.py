@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius
+# Copyright 2025 Martin Junius, Uwe Pilz (VdS) and contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,11 @@
 # ChangeLog
 # Version 0.0 / 2025-10-18
 #       Included Uwe Pilz' code mostly verbatim
+# Version 0.1 / 2025-10-19
+#       Major overhault to fit into the astropy-workbench environment,
+#       using astropy and numpy, a lot of renaming for better understanding
 
-VERSION     = "0.0 / 2024-xx-xx"
+VERSION     = "0.1 / 2024-10-19"
 AUTHOR      = "Martin Junius"
 NAME        = "bessel3"
 DESCRIPTION = "Eclipse local circumstances"
@@ -269,18 +272,17 @@ def bessel3(delta_t: float) -> None:
     print("Verhältnis Durchmesser Mond/Sonne: ", int(1000 * A) / 1000)
     print("Positionswinkel, bezogen auf Nord: ", int(P+0.5), "Grad")
     print("Positionswinkel, bezogen auf Zenit: ", int(Zm+0.5), "Grad")
+    tmax = t
 
-    # 2) Ergebnisse aller 10 Minuten
-    # tmax = t
-    # t = tmax - 3 
-    # print("UT             Magnitude Nord-  Zenit- Posw.")
-    # for i in range(480):  # 3 h aller Minuten
-    #     a, b, U, V, L1S, L2S, D, H = magnitudePoswinkel(t, pSinPS, pCosPS, longitude, delta_t)
-    #     UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
-    #     if G >= 0:
-    #         print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
-    #         # print(UTh,"h", UTm,"m", UTs,"s  ", int(1000 * G) / 10, "%  ", int(P+0.5),"°  ", int(Zm+0.5), "°")
-    #     t = t + 1 / 60
+    # Results for 2.5h centered around tmax
+    print("UT             Magnitude Nord-  Zenit- Posw.")
+    for t in tmax + np.linspace(-1.25, 1.25, 150+1):
+        a, b, U, V, L1S, L2S, D, H = calc_on_fundamental_plane(t, rho_sin_phi_p, rho_cos_phi_p, longitude, delta_t)
+        UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
+        # if G >= 0:
+        #     print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
+        print(f"{UTh:02.0f}h {UTm:02.0f}m {UTs:04.1f}s  {G*100:.1f}%    {P:.0f}°   {Zm:.0f}°")
+            # print(UTh,"h", UTm,"m", UTs,"s  ", int(1000 * G) / 10, "%  ", int(P+0.5),"°  ", int(Zm+0.5), "°")
 
 #/ Uwe Pilz, Februar 2025
 
@@ -331,7 +333,7 @@ def main():
     # https://www.iers.org/IERS/EN/DataProducts/tools/timescales/timescales.html
     # (slight difference in UT1, UTC - UTC1 ~ 0.1 s)
     # delta_t = ((time.tt.jd - time.ut1.jd) * u.day).to(u.s)
-    # using Delta T = TT - UTC here, as it's also used to convert TT -> UTC
+    ##FIXME: using Delta T = TT - UTC here, as it's also used to convert TT -> UTC
     delta_t = ((time.tt.jd - time.utc.jd) * u.day).to(u.s)
     # alternate calculation (37 = leap seconds in 2025)
     delta_t2 = ((time.utc.jd - time.ut1.jd) * u.day).to(u.s) + (37 + 32.184) * u.s
