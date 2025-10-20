@@ -68,6 +68,7 @@ R_moon = 0.272281  * R_earth        # smaller value from https://eclipse.gsfc.na
 # Command line options
 class Options:
     loc: EarthLocation = None       # -l --location
+    list: bool = False              # -L --list
 
 
 
@@ -115,24 +116,26 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # f1, f2 - Angles of the penumbral and umbral/antumbral shadow cones with respect to the axis of the lunar shadow
 
 bessel_T0 = 18
-bessel_x       = [  0.4755140,  0.5189249, -0.0000773, -0.0000080 ]
-bessel_y       = [  0.7711830, -0.2301680, -0.0001246,  0.0000038 ]
-bessel_d       = [ 14.7966700, -0.0120650, -0.0000030,  0.0       ]
-bessel_l1      = [  0.5379550,  0.0000939, -0.0000121,  0.0       ]
-bessel_l2      = [ -0.0081420,  0.0000935, -0.0000121,  0.0       ]
-bessel_u       = [ 88.7477900, 15.0030900,  0.0000000,  0.0       ]
-bessel_tanf1   = 0.0046141
-bessel_tanf2   = 0.0045911
+bessel_x        = [  0.4755140,  0.5189249, -0.0000773, -0.0000080 ]
+bessel_y        = [  0.7711830, -0.2301680, -0.0001246,  0.0000038 ]
+bessel_d        = [ 14.7966700, -0.0120650, -0.0000030,  0.0       ]
+bessel_l1       = [  0.5379550,  0.0000939, -0.0000121,  0.0       ]
+bessel_l2       = [ -0.0081420,  0.0000935, -0.0000121,  0.0       ]
+bessel_mu       = [ 88.7477900, 15.0030900,  0.0000000,  0.0       ]
+bessel_tanf1    = 0.0046141
+bessel_tanf2    = 0.0045911
 
-polynomial_x   = Polynomial(bessel_x)
-polynomial_y   = Polynomial(bessel_y)
-polynomial_d   = Polynomial(bessel_d)
-polynomial_l1  = Polynomial(bessel_l1)
-polynomial_l2  = Polynomial(bessel_l2)
-polynomial_u   = Polynomial(bessel_u) 
+polynomial_x    = Polynomial(bessel_x)
+polynomial_y    = Polynomial(bessel_y)
+polynomial_d    = Polynomial(bessel_d)
+polynomial_l1   = Polynomial(bessel_l1)
+polynomial_l2   = Polynomial(bessel_l2)
+polynomial_mu   = Polynomial(bessel_mu) 
 
-polynomial_x_p = polynomial_x.deriv()
-polynomial_y_p = polynomial_y.deriv()
+polynomial_x_p  = polynomial_x.deriv()
+polynomial_y_p  = polynomial_y.deriv()
+polynomial_d_p  = polynomial_d.deriv()
+polynomial_mu_p = polynomial_mu.deriv()
 
 
 
@@ -151,42 +154,50 @@ def sq(x):          return x*x
 
 # Ergebnisse der Fundamentalebene für einen Zeitpunkt
 def calc_on_fundamental_plane(t: float, rho_sin_phi_p: float, rho_cos_phi_p: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-    X  = polynomial_x(t)
-    Y  = polynomial_y(t)
-    D  = polynomial_d(t)
-    M  = polynomial_u(t)
-    L1 = polynomial_l1(t)
-    L2 = polynomial_l2(t)
+    x    = polynomial_x(t)
+    y    = polynomial_y(t)
+    d    = polynomial_d(t)
+    mu   = polynomial_mu(t)
+    l1   = polynomial_l1(t)
+    l2   = polynomial_l2(t)
 
     # derivatives
-    X_p = polynomial_x_p(t)
-    Y_p = polynomial_y_p(t)
+    x_p  = polynomial_x_p(t)
+    y_p  = polynomial_y_p(t)
+    d_p  = polynomial_d_p(t)
+    mu_p = polynomial_mu_p(t)
+
 
     # local coordinates in fundamental plane
     # https://de.wikipedia.org/wiki/Besselsche_Elemente
-    # theta = ( \mu - 1.002738 * 360° / 86400 s * Delta_T ) + \Lambda
+    # \theta = ( \mu - 1.002738 * 360° / 86400 s * \Delta T ) + \lambda
     # Sidereal day on Earth is approximately 86164.0905 s
     # 1.002738 = 86400 s / 86164.09 s
     #
     # local coordinates in fundamental plane
-    # H: theta, M: \mu, longitude = \Lambda
+    # longitude = \lambda
     # theta = local hourangle corrected for TT
-    H     = M - 360 / 86164.0905 * delta_t  + longitude
-    xi    = rho_cos_phi_p * sin(H)
-    eta   = rho_sin_phi_p * cos(D) - rho_cos_phi_p * cos(H) * sin(D)
-    zeta  = rho_sin_phi_p * sin(D) + rho_cos_phi_p * cos(H) * cos(D)
-    # hourly changes, term for t=1
-    xi_p  = np.deg2rad(bessel_u[1] * rho_cos_phi_p * cos(H))
-    eta_p = np.deg2rad(bessel_u[1] * xi * sin(D) - zeta * bessel_d[1])
+    theta = mu - 360 / 86164.0905 * delta_t  + longitude
+    xi    = rho_cos_phi_p * sin(theta)
+    eta   = rho_sin_phi_p * cos(d) - rho_cos_phi_p * cos(theta) * sin(d)
+    zeta  = rho_sin_phi_p * sin(d) + rho_cos_phi_p * cos(theta) * cos(d)
+    # original derivatives approximation
+    # xi_p  = np.deg2rad(bessel_mu[1] * rho_cos_phi_p * cos(theta))
+    # eta_p = np.deg2rad(bessel_mu[1] * xi * sin(d) - zeta * bessel_d[1])
+    # straight forward, proper derivatives, easier to understand ;-)
+    xi_p  = np.deg2rad( rho_cos_phi_p * cos(theta) * mu_p )
+    eta_p = np.deg2rad(-rho_sin_phi_p * sin(d) * d_p                    # == -zeta * d_p
+                       -rho_cos_phi_p * cos(theta) * cos(d) * d_p
+                       +rho_cos_phi_p * sin(theta) * mu_p * sin(d) )    # == xi * mu_p * sin(d)
 
-    U       = X - xi                    # coordinates relative to shadow axis
-    V       = Y - eta
-    a       = X_p - xi_p                # derivate - hourly changes for iteration
-    b       = Y_p - eta_p
-    L1_zeta = L1 - zeta * bessel_tanf1  # penumbra size at zeta
-    L2_zety = L2 - zeta * bessel_tanf2  # umbra size at zeta
+    U       = x   - xi                  # coordinates relative to shadow axis
+    V       = y   - eta
+    a       = x_p - xi_p                # derivates of U, V
+    b       = y_p - eta_p
+    l1_zeta = l1 - zeta * bessel_tanf1  # penumbra size at zeta
+    l2_zeta = l2 - zeta * bessel_tanf2  # umbra size at zeta
 
-    return a, b, U, V, L1_zeta, L2_zety, D, H
+    return a, b, U, V, l1_zeta, l2_zeta, d, theta
 
 
 
@@ -274,15 +285,15 @@ def bessel3(delta_t: float) -> None:
     print("Positionswinkel, bezogen auf Zenit: ", int(Zm+0.5), "Grad")
     tmax = t
 
-    # Results for 2.5h centered around tmax
-    print("UT             Magnitude Nord-  Zenit- Posw.")
-    for t in tmax + np.linspace(-1.25, 1.25, 150+1):
-        a, b, U, V, L1S, L2S, D, H = calc_on_fundamental_plane(t, rho_sin_phi_p, rho_cos_phi_p, longitude, delta_t)
-        UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
-        # if G >= 0:
-        #     print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
-        print(f"{UTh:02.0f}h {UTm:02.0f}m {UTs:04.1f}s  {G*100:.1f}%    {P:.0f}°   {Zm:.0f}°")
-            # print(UTh,"h", UTm,"m", UTs,"s  ", int(1000 * G) / 10, "%  ", int(P+0.5),"°  ", int(Zm+0.5), "°")
+    if Options.list:
+        # Results for 2.5h centered around tmax
+        print("UT             Magnitude Nord-  Zenit- Posw.")
+        for t in tmax + np.linspace(-1.25, 1.25, 150+1):
+            a, b, U, V, L1S, L2S, D, H = calc_on_fundamental_plane(t, rho_sin_phi_p, rho_cos_phi_p, longitude, delta_t)
+            UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
+            # if G >= 0:
+            #     print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
+            print(f"{UTh:02.0f}h {UTm:02.0f}m {UTs:04.1f}s  {G*100:.1f}%    {P:.0f}°   {Zm:.0f}°")
 
 #/ Uwe Pilz, Februar 2025
 
@@ -296,6 +307,7 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
 
+    arg.add_argument("-L", "--list", action="store_true", help="list time and magnitude centered around MAX")
     arg.add_argument("-t", "--time", help="time (UTC), default now")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("--tse2026", action="store_true", help="test case TSE 12 Aug 2026")
@@ -308,6 +320,8 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
+
+    Options.list = args.list
 
     # Location and time
     loc = None
