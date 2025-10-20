@@ -155,7 +155,7 @@ def sq(x):          return x*x
 # Ergebnisse der Fundamentalebene für einen Zeitpunkt
 def calc_on_fundamental_plane(t: float, rho_sin_phi_p: float, rho_cos_phi_p: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
     """
-    Caculate coordinates and derivatives of observer location at specified time (TT)
+    Calculate coordinates and derivatives for observer location at specified time (TT)
 
     Parameters
     ----------
