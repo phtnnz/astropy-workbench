@@ -153,7 +153,7 @@ def sq(x):          return x*x
 
 
 # Ergebnisse der Fundamentalebene für einen Zeitpunkt
-def calc_on_fundamental_plane(t: float, rho_sin_phi_p: float, rho_cos_phi_p: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
     """
     Calculate coordinates and derivatives for observer location at specified time (TT)
 
@@ -202,17 +202,18 @@ def calc_on_fundamental_plane(t: float, rho_sin_phi_p: float, rho_cos_phi_p: flo
     # longitude = \lambda
     # theta = local hourangle corrected for TT
     theta = mu - 360 / 86164.0905 * delta_t  + longitude
-    xi    = rho_cos_phi_p * sin(theta)
-    eta   = rho_sin_phi_p * cos(d) - rho_cos_phi_p * cos(theta) * sin(d)
-    zeta  = rho_sin_phi_p * sin(d) + rho_cos_phi_p * cos(theta) * cos(d)
-    # original derivatives approximation
-    # xi_p  = np.deg2rad(bessel_mu[1] * rho_cos_phi_p * cos(theta))
-    # eta_p = np.deg2rad(bessel_mu[1] * xi * sin(d) - zeta * bessel_d[1])
-    # straight forward, proper derivatives, easier to understand ;-)
-    xi_p  = np.deg2rad( rho_cos_phi_p * cos(theta) * mu_p )
-    eta_p = np.deg2rad(-rho_sin_phi_p * sin(d) * d_p                    # == -zeta * d_p
-                       -rho_cos_phi_p * cos(theta) * cos(d) * d_p
-                       +rho_cos_phi_p * sin(theta) * mu_p * sin(d) )    # == xi * mu_p * sin(d)
+    xi    = rho_cos_phi * sin(theta)
+    eta   = rho_sin_phi * cos(d) - rho_cos_phi * cos(theta) * sin(d)
+    zeta  = rho_sin_phi * sin(d) + rho_cos_phi * cos(theta) * cos(d)
+    ## original derivatives approximation
+    ## xi_p  = np.deg2rad(bessel_mu[1] * rho_cos_phi_p * cos(theta))
+    ## eta_p = np.deg2rad(bessel_mu[1] * xi * sin(d) - zeta * bessel_d[1])
+    # new straight forward, proper derivatives, easier to understand ;-)
+    # np.deg2rad because we're doing the calculations with degrees, not radians
+    xi_p  = np.deg2rad( rho_cos_phi * cos(theta) * mu_p )
+    eta_p = np.deg2rad(-rho_sin_phi * sin(d) * d_p                    # == -zeta * d_p
+                       -rho_cos_phi * cos(theta) * cos(d) * d_p
+                       +rho_cos_phi * sin(theta) * mu_p * sin(d) )    # == xi * mu_p * sin(d)
 
     U       = x   - xi                  # coordinates relative to shadow axis
     V       = y   - eta
@@ -258,50 +259,51 @@ def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: 
 
 
 
-def bessel3(delta_t: float) -> None:
-    longitude = Options.loc.lon.value
-    latitude  = Options.loc.lat.value
-    height    = Options.loc.height.value
+def bessel3(delta_t: float, loc: EarthLocation) -> None:
+    longitude = loc.lon.value
+    latitude  = loc.lat.value
+    height    = loc.height.value
     ic(longitude, latitude, height)
 
     # geocentric from EarthLocation X, Y, Z
-    phi_p = atan( Options.loc.z.value / sqrt( sq(Options.loc.x.value) + sq(Options.loc.y.value) ) )
-    rho = sqrt( sq(Options.loc.x.value) + sq(Options.loc.y.value) + sq(Options.loc.z.value) ) / R_earth.value
-    rho_sin_phi_p = rho * sin(phi_p)
-    rho_cos_phi_p = rho * cos(phi_p)
-    ic(phi_p, rho_sin_phi_p, rho_cos_phi_p)
+    phi_p = atan( loc.z.value / sqrt( sq(loc.x.value) + sq(loc.y.value) ) )
+    rho = sqrt( sq(loc.x.value) + sq(loc.y.value) + sq(loc.z.value) ) / R_earth.value
+    rho_sin_phi = rho * sin(phi_p)
+    rho_cos_phi = rho * cos(phi_p)
+    ic(phi_p, rho_sin_phi, rho_cos_phi)
 
-    # geocentric coordinates
-    # https://de.wikipedia.org/wiki/Besselsche_Elemente
+    # # geocentric coordinates
+    # # https://de.wikipedia.org/wiki/Besselsche_Elemente
     # e2 = 1 - sq(R_earth_pol) / sq(R_earth)
     # C = 1 / sqrt(1 - e2 * sq(sin(latitude)))
     # S = (1 - e2) * C
     # phi_p = atan((R_earth.value*S + height) / (R_earth.value*C + height) * tan(latitude) )
     # rho = (R_earth.value*C + height) * cos(latitude) / (R_earth.value * cos(phi_p))
-    # rho_sin_phi_p = rho * sin(phi_p)
-    # rho_cos_phi_p = rho * cos(phi_p)
-    # ic(e2, C, S, phi_p, rho, rho_sin_phi_p, rho_cos_phi_p)
+    # rho_sin_phi = rho * sin(phi_p)
+    # rho_cos_phi = rho * cos(phi_p)
+    # ic(e2, C, S, phi_p, rho, rho_sin_phi, rho_cos_phi)
 
-    # geocentric coordinates from prog95_3.py, slight difference 0.1° for phi_p (U)
-    # rechtwinklige geozentrische Koordinaten
+    # # geocentric coordinates from prog95_3.py, slight difference of 0.1° for phi'
     # ratio_earth = R_earth_pol.value / R_earth.value
     # ratio_hoehe = height / R_earth.value
     # ic(ratio_earth, ratio_hoehe)
-    # phi_p         = atan(ratio_earth * tan(latitude))
-    # rho_sin_phi_p = ratio_earth * sin(phi_p) + ratio_hoehe * sin(latitude)
-    # rho_cos_phi_p =               cos(phi_p) + ratio_hoehe * cos(latitude)
-    # ic(phi_p, rho_sin_phi_p, rho_cos_phi_p)
+    # phi_p       = atan(ratio_earth * tan(latitude))
+    # rho_sin_phi = ratio_earth * sin(phi_p) + ratio_hoehe * sin(latitude)
+    # rho_cos_phi =               cos(phi_p) + ratio_hoehe * cos(latitude)
+    # ic(phi_p, rho_sin_phi, rho_cos_phi)
 
-    # Start at t = 0, relative to T0 from besselians
-    # 1) Ergebnisse zum Maximums-Zeitpunkt
+    # iterate towards minimum distance U, V = max eclipse at location
+    # start at T0
     t = 0
-    for i in range(5):  # 5 Iterationen genügen
-        U, V, a, b, L1S, L2S, D, H = calc_on_fundamental_plane(t, rho_sin_phi_p, rho_cos_phi_p, longitude, delta_t)
-        ic(t, a, b, U, V, L1S, L2S, D, H)
-        # Zeitpunkt der maximalen Finsternis per Iteration
-        tm = -(U * a + V * b) / (sq(a) + sq(b))
-        t = t + tm
-    UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
+    for _ in range(5):  # 5 iterations are enough
+        U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
+        ic(t, U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta)
+        # move time in the direction of descending U, V
+        t_corr = -(U * U_p + V * V_p) / (sq(U_p) + sq(V_p))
+        ic(t_corr)
+        t = t + t_corr
+
+    UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
     print("Uhrzeit des Maximums:", UTh, "h", UTm, "m", UTs, "s UT")  # dynamische Zeit
     print("Magnitude: ", int(1000 * G) / 10, "%")
     print("Verhältnis Durchmesser Mond/Sonne: ", int(1000 * A) / 1000)
@@ -313,8 +315,8 @@ def bessel3(delta_t: float) -> None:
         # Results for 2.5h centered around tmax
         print("UT             Magnitude Nord-  Zenit- Posw.")
         for t in tmax + np.linspace(-1.25, 1.25, 150+1):
-            U, V, a, b, L1S, L2S, D, H = calc_on_fundamental_plane(t, rho_sin_phi_p, rho_cos_phi_p, longitude, delta_t)
-            UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, L1S, L2S, D, H, latitude, delta_t)
+            U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
+            UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
             # if G >= 0:
             #     print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
             print(f"{UTh:02.0f}h {UTm:02.0f}m {UTs:04.1f}s  {G*100:.1f}%    {P:.0f}°   {Zm:.0f}°")
@@ -380,7 +382,7 @@ def main():
     verbose(f"time UTC {time}, Delta T={delta_t:.2f}")
 
     # Run calculation for local circumstances
-    bessel3(delta_t.value)
+    bessel3(delta_t.value, loc)
 
 
 if __name__ == "__main__":
