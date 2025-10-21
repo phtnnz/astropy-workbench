@@ -99,12 +99,12 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # VdS-Journal 95: Lokaler Verlauf einer Finsternis
 # https://fg-astrophysik.vdsastro.de/prg95
 # (no license provided)
-# Modified to use numpy and astropy
+# Heavily modified and using numpy, astropy
 #
 # sofiBessel3 : lokaler Verlauf einer Sonnenfinsternis
 # ohne Berücksichtigung der lokalen Sonnenhöhe
 
-# Besselian element for TSE 12 Aug 2026 from
+# Besselian elements for TSE 12 Aug 2026 from
 # https://eclipse.gsfc.nasa.gov/SEsearch/SEdata.php?Ecl=20260812
 #
 # x, y   - Cartesian coordinates of the lunar shadow axis in the Fundamental Plane 
@@ -116,26 +116,22 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # f1, f2 - Angles of the penumbral and umbral/antumbral shadow cones with respect to the axis of the lunar shadow
 
 bessel_T0 = 18
-bessel_x        = [  0.4755140,  0.5189249, -0.0000773, -0.0000080 ]
-bessel_y        = [  0.7711830, -0.2301680, -0.0001246,  0.0000038 ]
-bessel_d        = [ 14.7966700, -0.0120650, -0.0000030,  0.0       ]
-bessel_l1       = [  0.5379550,  0.0000939, -0.0000121,  0.0       ]
-bessel_l2       = [ -0.0081420,  0.0000935, -0.0000121,  0.0       ]
-bessel_mu       = [ 88.7477900, 15.0030900,  0.0000000,  0.0       ]
-bessel_tanf1    = 0.0046141
-bessel_tanf2    = 0.0045911
 
-polynomial_x    = Polynomial(bessel_x)
-polynomial_y    = Polynomial(bessel_y)
-polynomial_d    = Polynomial(bessel_d)
-polynomial_l1   = Polynomial(bessel_l1)
-polynomial_l2   = Polynomial(bessel_l2)
-polynomial_mu   = Polynomial(bessel_mu) 
+bessel_x     = Polynomial([  0.4755140,  0.5189249, -0.0000773, -0.0000080 ])
+bessel_y     = Polynomial([  0.7711830, -0.2301680, -0.0001246,  0.0000038 ])
+bessel_d     = Polynomial([ 14.7966700, -0.0120650, -0.0000030,  0.0       ])
+bessel_l1    = Polynomial([  0.5379550,  0.0000939, -0.0000121,  0.0       ])
+bessel_l2    = Polynomial([ -0.0081420,  0.0000935, -0.0000121,  0.0       ])
+bessel_mu    = Polynomial([ 88.7477900, 15.0030900,  0.0000000,  0.0       ])
 
-polynomial_x_p  = polynomial_x.deriv()
-polynomial_y_p  = polynomial_y.deriv()
-polynomial_d_p  = polynomial_d.deriv()
-polynomial_mu_p = polynomial_mu.deriv()
+bessel_tanf1 = 0.0046141
+bessel_tanf2 = 0.0045911
+
+# all variables with _p ("prime") suffix are derivatives
+bessel_x_p   = bessel_x.deriv()
+bessel_y_p   = bessel_y.deriv()
+bessel_d_p   = bessel_d.deriv()
+bessel_mu_p  = bessel_mu.deriv()
 
 
 
@@ -180,17 +176,17 @@ def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, 
         d : declination of shadow axis in degrees
         theta : hourangle of shadow axis at observer longitude in degrees
     """
-    x    = polynomial_x(t)
-    y    = polynomial_y(t)
-    d    = polynomial_d(t)
-    mu   = polynomial_mu(t)
-    l1   = polynomial_l1(t)
-    l2   = polynomial_l2(t)
+    x    = bessel_x(t)
+    y    = bessel_y(t)
+    d    = bessel_d(t)
+    mu   = bessel_mu(t)
+    l1   = bessel_l1(t)
+    l2   = bessel_l2(t)
     # derivatives
-    x_p  = polynomial_x_p(t)
-    y_p  = polynomial_y_p(t)
-    d_p  = polynomial_d_p(t)
-    mu_p = polynomial_mu_p(t)
+    x_p  = bessel_x_p(t)
+    y_p  = bessel_y_p(t)
+    d_p  = bessel_d_p(t)
+    mu_p = bessel_mu_p(t)
 
     # local coordinates in fundamental plane
     # https://de.wikipedia.org/wiki/Besselsche_Elemente
