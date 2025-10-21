@@ -18,10 +18,13 @@
 # Version 0.0 / 2025-10-18
 #       Included Uwe Pilz' code mostly verbatim
 # Version 0.1 / 2025-10-19
-#       Major overhault to fit into the astropy-workbench environment,
+#       Major overhaul to fit into the astropy-workbench environment,
 #       using astropy and numpy, a lot of renaming for better understanding
+# Version 0.2 / 2025-10-21
+#       Further rework, output clean-up, new option -0 --positive-mag-only,
+#       somewhat final version
 
-VERSION     = "0.1 / 2024-10-19"
+VERSION     = "0.2 / 2024-10-21"
 AUTHOR      = "Martin Junius"
 NAME        = "bessel3"
 DESCRIPTION = "Eclipse local circumstances"
@@ -69,7 +72,7 @@ R_moon = 0.272281  * R_earth        # smaller value from https://eclipse.gsfc.na
 class Options:
     loc: EarthLocation = None       # -l --location
     list: bool = False              # -L --list
-
+    pos_mag: bool = False           # -0 --positive-mag-only
 
 
 def test_tse2026() -> Tuple[EarthLocation, Time]:
@@ -149,7 +152,6 @@ def sq(x):          return x*x
 
 
 
-# Ergebnisse der Fundamentalebene für einen Zeitpunkt
 def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
     """
     Calculate coordinates and derivatives for observer location at specified time (TT)
@@ -223,28 +225,27 @@ def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, 
 
 
 
-# Ergebnisse für die Ausgabe
-def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: float, H: float, latitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float]:
-    # Magnitude G
+def calc_result(U: float, V: float, l1_zeta: float, l2_zeta: float, d: float, theta: float, latitude: float) -> Tuple[float, float, float, float, float, float, float]:
+    # Magnitude
     m = sqrt(U * U + V * V)
-    G = (L1S - m) / (L1S + L2S)
-    # Durchmesserverhältnis
-    A = (L1S - L2S) / (L1S + L2S)
-    # Positionswinklel zur maximalen Verfinsterung, vom Nordpol der Sonne
-    Pm = atan2(U , V)
-    if Pm < 0:
-        Pm = Pm + 360.0
-    # Positionswinkel Zm bezogen auf die Zenit-Richtung
-    sinH = sin(D) * sin(latitude) + cos(D) * cos(latitude) * cos(H)
-    h = asin(sinH)
-    sinq = (cos(latitude) * sin(H)) / cos(h)
-    q = asin(sinq)
-    Zm = Pm - q
-    # Positionswinkel
-    P = atan2(U, V)
-    if P < 0:
-        P = P + 360
-    return G, A, Zm, P
+    magnitude = (l1_zeta - m) / (l1_zeta + l2_zeta)
+
+    # Moon/sun size ration
+    moon_sun_ratio = (l1_zeta - l2_zeta) / (l1_zeta + l2_zeta)
+
+    # Position angle on fundamental plane
+    pos_angle = atan2(U , V)
+    if pos_angle < 0:
+        pos_angle = pos_angle + 360.0
+
+    # Position angle in relation to zenith
+    sinH = sin(d) * sin(latitude) + cos(d) * cos(latitude) * cos(theta)
+    h    = asin(sinH)
+    sinq = cos(latitude) * sin(theta) / cos(h)
+    q    = asin(sinq)
+    pos_angle_zenith = pos_angle - q
+
+    return magnitude, moon_sun_ratio, pos_angle_zenith, pos_angle
 
 
 
@@ -298,24 +299,22 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
 
     message(f"Time of MAX eclipse (UTC): {time_max_utc}")
 
-    G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
-    print("Magnitude: ", int(1000 * G) / 10, "%")
-    print("Verhältnis Durchmesser Mond/Sonne: ", int(1000 * A) / 1000)
-    print("Positionswinkel, bezogen auf Nord: ", int(P+0.5), "Grad")
-    print("Positionswinkel, bezogen auf Zenit: ", int(Zm+0.5), "Grad")
+    G, A, Z, P = calc_result(U, V, l1_zeta, l2_zeta, d, theta, latitude)
+    message(f"Magnitude: {G*100:.1f}")
+    message(f"Moon/sun size ratio: {A:.3f}")
+    message(f"Position angle (north): {P:.1f}")
+    message(f"Position angle (zenith): {Z:.1f}")
 
     if Options.list:
         # Results for 2.5h centered around tmax
-        message("Time (UTC)               Magnitude Nord-  Zenit- Posw.")
+        message("Time (UTC)               magnitude north  zenith pos angle")
         for t in t_max + np.linspace(-1.25, 1.25, 150+1):
-            time_tt  = time_T0 + t_max * u.hour
+            time_tt  = time_T0 + t * u.hour
             time_utc = time_tt.utc
-
-            U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
-            G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
-            # if G >= 0:
-            #     print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
-            message(f"{time_utc}  {G*100:.1f}%    {P:.0f}°   {Zm:.0f}°")
+            U, V, _, _, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
+            G, A, Z, P = calc_result(U, V, l1_zeta, l2_zeta, d, theta, latitude)
+            if G >= 0 or not Options.pos_mag:
+                message(f"{time_utc}  {G*100:5.1f}%    {P:.0f}°   {Z:.0f}°")
 
 #/ Uwe Pilz, Februar 2025
 
@@ -330,6 +329,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
 
     arg.add_argument("-L", "--list", action="store_true", help="list time and magnitude centered around MAX")
+    arg.add_argument("-0", "--positive-mag-only", action="store_true", help="list positive magnitude only")
     arg.add_argument("-t", "--time", help="time (UTC), default now")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("--tse2026", action="store_true", help="test case TSE 12 Aug 2026")
@@ -344,6 +344,7 @@ def main():
         verbose.enable()
 
     Options.list = args.list
+    Options.pos_mag = args.positive_mag_only
 
     # Location and time
     loc = None
