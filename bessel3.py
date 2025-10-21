@@ -115,7 +115,8 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # µ      - Hour angle of the Moon's shadow axis on the celestial sphere
 # f1, f2 - Angles of the penumbral and umbral/antumbral shadow cones with respect to the axis of the lunar shadow
 
-bessel_T0 = 18
+bessel_T0    = 18
+time_T0      = Time("2026-08-12 18:00:00", scale="tt")
 
 bessel_x     = Polynomial([  0.4755140,  0.5189249, -0.0000773, -0.0000080 ])
 bessel_y     = Polynomial([  0.7711830, -0.2301680, -0.0001246,  0.0000038 ])
@@ -224,8 +225,6 @@ def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, 
 
 # Ergebnisse für die Ausgabe
 def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: float, H: float, latitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float]:
-    # Zeit des lokalen Maximums
-    TD = bessel_T0 + t
     # Magnitude G
     m = sqrt(U * U + V * V)
     G = (L1S - m) / (L1S + L2S)
@@ -245,13 +244,7 @@ def ergebnisberechnung(t: float, U: float, V: float, L1S: float, L2S: float, D: 
     P = atan2(U, V)
     if P < 0:
         P = P + 360
-    UT = TD - delta_t / 3600
-    UTh = int(UT)
-    UTm0 = 60 * (UT - UTh)
-    UTm = int(UTm0)
-#    UTs = int(60 * (UTm0 - UTm) + 0.5)
-    UTs = 60 * (UTm0 - UTm)
-    return UTh, UTm, UTs, G, A, Zm, P
+    return G, A, Zm, P
 
 
 
@@ -298,24 +291,31 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
         t_corr = -(U * U_p + V * V_p) / (sq(U_p) + sq(V_p))
         ic(t_corr)
         t = t + t_corr
+    t_max        = t
+    time_max_tt  = time_T0 + t_max * u.hour
+    time_max_utc = time_max_tt.utc
+    ic(t_max, time_max_tt, time_max_utc)
 
-    UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
-    print("Uhrzeit des Maximums:", UTh, "h", UTm, "m", UTs, "s UT")  # dynamische Zeit
+    message(f"Time of MAX eclipse (UTC): {time_max_utc}")
+
+    G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
     print("Magnitude: ", int(1000 * G) / 10, "%")
     print("Verhältnis Durchmesser Mond/Sonne: ", int(1000 * A) / 1000)
     print("Positionswinkel, bezogen auf Nord: ", int(P+0.5), "Grad")
     print("Positionswinkel, bezogen auf Zenit: ", int(Zm+0.5), "Grad")
-    tmax = t
 
     if Options.list:
         # Results for 2.5h centered around tmax
-        print("UT             Magnitude Nord-  Zenit- Posw.")
-        for t in tmax + np.linspace(-1.25, 1.25, 150+1):
+        message("Time (UTC)               Magnitude Nord-  Zenit- Posw.")
+        for t in t_max + np.linspace(-1.25, 1.25, 150+1):
+            time_tt  = time_T0 + t_max * u.hour
+            time_utc = time_tt.utc
+
             U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
-            UTh, UTm, UTs, G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
+            G, A, Zm, P = ergebnisberechnung(t, U, V, l1_zeta, l2_zeta, d, theta, latitude, delta_t)
             # if G >= 0:
             #     print("%2.0f h %02.0f m %02.0f s  %5.1f%%     %3.0f° %3.0f°" % (UTh, UTm, UTs, 100*G, P+0.5, Zm+0.5))
-            print(f"{UTh:02.0f}h {UTm:02.0f}m {UTs:04.1f}s  {G*100:.1f}%    {P:.0f}°   {Zm:.0f}°")
+            message(f"{time_utc}  {G*100:.1f}%    {P:.0f}°   {Zm:.0f}°")
 
 #/ Uwe Pilz, Februar 2025
 
@@ -368,14 +368,13 @@ def main():
     # https://en.wikipedia.org/wiki/Leap_second
     # https://www.iers.org/IERS/EN/DataProducts/tools/timescales/timescales.html
     # (slight difference in UT1, UTC - UTC1 ~ 0.1 s)
-    # delta_t = ((time.tt.jd - time.ut1.jd) * u.day).to(u.s)
-    ##FIXME: using Delta T = TT - UTC here, as it's also used to convert TT -> UTC
-    delta_t = ((time.tt.jd - time.utc.jd) * u.day).to(u.s)
+    delta_t = ((time.tt.jd - time.ut1.jd) * u.day).to(u.s)
     # alternate calculation (37 = leap seconds in 2025)
     delta_t2 = ((time.utc.jd - time.ut1.jd) * u.day).to(u.s) + (37 + 32.184) * u.s
     ic(time, delta_t, delta_t2)
 
-    verbose(f"time UTC {time}, Delta T={delta_t:.2f}")
+    verbose(f"time {time} (UTC), Delta T={delta_t:.2f}")
+    verbose(f"time T0 {time_T0} (TT), {time_T0.utc} (UTC)")
 
     # Run calculation for local circumstances
     bessel3(delta_t.value, loc)
