@@ -249,20 +249,29 @@ def calc_result(U: float, V: float, l1_zeta: float, l2_zeta: float, d: float, th
 
 
 
-def bessel3(delta_t: float, loc: EarthLocation) -> None:
-    longitude = loc.lon.value
-    latitude  = loc.lat.value
-    height    = loc.height.value
-    ic(longitude, latitude, height)
+def geocentric(loc: EarthLocation) -> Tuple[float, float]:
+    """
+    Get geocentric parameters from location object
 
-    # geocentric from EarthLocation X, Y, Z
+    Parameters
+    ----------
+    loc : EarthLocation
+        Location of observer
+
+    Returns
+    -------
+    Tuple[float, float]
+        rho_sin_phi : rho*sin(phi') parameter in earth radii
+        rho_cos_phi : rho*cos(phi') parameter in earth radii
+    """
+    # Var 1: geocentric from EarthLocation X, Y, Z
     phi_p = atan( loc.z.value / sqrt( sq(loc.x.value) + sq(loc.y.value) ) )
     rho = sqrt( sq(loc.x.value) + sq(loc.y.value) + sq(loc.z.value) ) / R_earth.value
     rho_sin_phi = rho * sin(phi_p)
     rho_cos_phi = rho * cos(phi_p)
     ic(phi_p, rho_sin_phi, rho_cos_phi)
 
-    # # geocentric coordinates
+    # # Var 2: geocentric coordinates
     # # https://de.wikipedia.org/wiki/Besselsche_Elemente
     # e2 = 1 - sq(R_earth_pol) / sq(R_earth)
     # C = 1 / sqrt(1 - e2 * sq(sin(latitude)))
@@ -273,7 +282,7 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
     # rho_cos_phi = rho * cos(phi_p)
     # ic(e2, C, S, phi_p, rho, rho_sin_phi, rho_cos_phi)
 
-    # # geocentric coordinates from prog95_3.py, slight difference of 0.1° for phi'
+    # # Var 3: geocentric coordinates from prog95_3.py, slight difference of 0.1° for phi'
     # ratio_earth = R_earth_pol.value / R_earth.value
     # ratio_hoehe = height / R_earth.value
     # ic(ratio_earth, ratio_hoehe)
@@ -281,6 +290,19 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
     # rho_sin_phi = ratio_earth * sin(phi_p) + ratio_hoehe * sin(latitude)
     # rho_cos_phi =               cos(phi_p) + ratio_hoehe * cos(latitude)
     # ic(phi_p, rho_sin_phi, rho_cos_phi)
+
+    return rho_sin_phi, rho_cos_phi
+
+
+
+def bessel3(delta_t: float, loc: EarthLocation) -> None:
+    longitude = loc.lon.value
+    latitude  = loc.lat.value
+    height    = loc.height.value
+    ic(longitude, latitude, height)
+
+    # geocentric coordinates
+    rho_sin_phi, rho_cos_phi = geocentric(loc)
 
     # iterate towards minimum distance U, V = max eclipse at location
     # start at T0
