@@ -234,18 +234,18 @@ def calc_result(U: float, V: float, l1_zeta: float, l2_zeta: float, d: float, th
     moon_sun_ratio = (l1_zeta - l2_zeta) / (l1_zeta + l2_zeta)
 
     # Position angle on fundamental plane
-    pos_angle = atan2(U , V)
-    if pos_angle < 0:
-        pos_angle = pos_angle + 360.0
+    pos_angle_north = atan2(U , V)
+    if pos_angle_north < 0:
+        pos_angle_north = pos_angle_north + 360.0
 
     # Position angle in relation to zenith
     sinH = sin(d) * sin(latitude) + cos(d) * cos(latitude) * cos(theta)
     h    = asin(sinH)
     sinq = cos(latitude) * sin(theta) / cos(h)
     q    = asin(sinq)
-    pos_angle_zenith = pos_angle - q
+    pos_angle_zenith = pos_angle_north - q
 
-    return magnitude, moon_sun_ratio, pos_angle_zenith, pos_angle
+    return magnitude, moon_sun_ratio, pos_angle_zenith, pos_angle_north
 
 
 
@@ -283,6 +283,7 @@ def geocentric(loc: EarthLocation) -> Tuple[float, float]:
     # ic(e2, C, S, phi_p, rho, rho_sin_phi, rho_cos_phi)
 
     # # Var 3: geocentric coordinates from prog95_3.py, slight difference of 0.1° for phi'
+    # # in the test case, rho*sin/cos(phi') are exact
     # ratio_earth = R_earth_pol.value / R_earth.value
     # ratio_hoehe = height / R_earth.value
     # ic(ratio_earth, ratio_hoehe)
