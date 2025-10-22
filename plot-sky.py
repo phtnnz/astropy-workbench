@@ -202,6 +202,8 @@ def main():
     # plt.close()
 
     # Doesn't work anymore, see https://github.com/astropy/astroplan/pull/591
+    # and https://github.com/astropy/astroplan/pull/622 seems to be fixed but not yet
+    # in the PyPI package?
     # ax, hdu = plot_finder_image(target)
     # plt.savefig("tmp/plot-sky4.png", bbox_inches="tight")
     # plt.close()
