@@ -92,7 +92,7 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
     #
     # Maximum eclipse (MAX) : 2026/08/12 18:29:17.6
     loc = EarthLocation(lon=-3.68935*u.degree, lat=42.35047*u.degree, height=891*u.m)
-    time = Time("2026-08-12 18:29:17.6", location=loc)
+    time = Time("2026-08-12 18:29:17.6", scale="ut1", location=loc)
     ic(loc, time, time.jd)
     return loc, time
 
@@ -316,10 +316,10 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
         t = t + t_corr
     t_max        = t
     time_max_tt  = time_T0 + t_max * u.hour
-    time_max_utc = time_max_tt.utc
-    ic(t_max, time_max_tt, time_max_utc)
+    time_max_ut1 = time_max_tt.ut1
+    ic(t_max, time_max_tt, time_max_ut1)
 
-    message(f"Time of MAX eclipse (UTC): {time_max_utc}")
+    message(f"Time of MAX eclipse (UT1): {time_max_ut1}")
 
     G, A, Z, P = calc_result(U, V, l1_zeta, l2_zeta, d, theta, latitude)
     message(f"Magnitude: {G*100:.1f}")
@@ -329,14 +329,14 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
 
     if Options.list:
         # Results for 2.5h centered around tmax
-        message("Time (UTC)               magnitude north  zenith pos angle")
+        message("Time (UT1)               magnitude north  zenith pos angle")
         for t in t_max + np.linspace(-1.25, 1.25, 150+1):
             time_tt  = time_T0 + t * u.hour
-            time_utc = time_tt.utc
+            time_ut1 = time_tt.ut1
             U, V, _, _, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
             G, A, Z, P = calc_result(U, V, l1_zeta, l2_zeta, d, theta, latitude)
             if G >= 0 or not Options.pos_mag:
-                message(f"{time_utc}  {G*100:5.1f}%    {P:.0f}°   {Z:.0f}°")
+                message(f"{time_ut1}  {G*100:5.1f}%    {P:.0f}°   {Z:.0f}°")
 
 #/ Uwe Pilz, Februar 2025
 
@@ -352,7 +352,7 @@ def main():
 
     arg.add_argument("-L", "--list", action="store_true", help="list time and magnitude centered around MAX")
     arg.add_argument("-0", "--positive-mag-only", action="store_true", help="list positive magnitude only")
-    arg.add_argument("-t", "--time", help="time (UTC), default now")
+    arg.add_argument("-t", "--time", help=f"time (UT1), default T0={time_T0.ut1}")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("--tse2026", action="store_true", help="test case TSE 12 Aug 2026")
 
@@ -381,23 +381,23 @@ def main():
     Options.loc = loc
     verbose(f"location {location_to_string(loc)}")
     if args.time:
-        time = Time(args.time, location=loc)
+        time = Time(args.time, scale="ut1", location=loc)
     elif not time:
-        time = Time(Time.now(), location=loc)
+        time = Time(time_T0.ut1, location=loc)
 
     # Delta T = TT - UT1
     # https://de.wikipedia.org/wiki/Delta_T
     # https://en.wikipedia.org/wiki/%CE%94T_(timekeeping)
     # https://en.wikipedia.org/wiki/Leap_second
     # https://www.iers.org/IERS/EN/DataProducts/tools/timescales/timescales.html
-    # (slight difference in UT1, UTC - UTC1 ~ 0.1 s)
+    # (slight difference in UT1, UTC - UT1 ~ 0.1 s)
     delta_t = ((time.tt.jd - time.ut1.jd) * u.day).to(u.s)
     # alternate calculation (37 = leap seconds in 2025)
     delta_t2 = ((time.utc.jd - time.ut1.jd) * u.day).to(u.s) + (37 + 32.184) * u.s
     ic(time, delta_t, delta_t2)
 
-    verbose(f"time {time} (UTC), Delta T={delta_t:.2f}")
-    verbose(f"time T0 {time_T0} (TT), {time_T0.utc} (UTC)")
+    verbose(f"time {time} (UT1), {time.tt} (TT), Delta T={delta_t:.2f}")
+    verbose(f"time T0 {time_T0} (TT), {time_T0.ut1} (UT1)")
 
     # Run calculation for local circumstances
     bessel3(delta_t.value, loc)
