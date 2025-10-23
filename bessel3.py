@@ -24,12 +24,14 @@
 #       Further rework, output clean-up, new option -0 --positive-mag-only
 # Version 0.3 / 2025-10-23
 #       Further rework and clean-up, variables renamed in accordance with [ESAA]
+# Version 0.4 / 2025-10-23
+#       Added sun altitude using astropy get_sun()
 #
 # See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
 # Chapter 11 - Eclipses of the Sun and Moon
 
 
-VERSION     = "0.3 / 2024-10-23"
+VERSION     = "0.4 / 2024-10-23"
 AUTHOR      = "Martin Junius"
 NAME        = "bessel3"
 DESCRIPTION = "Solar eclipse local circumstances"
@@ -52,6 +54,9 @@ import astropy.units as unit
 import astropy.constants as const
 import numpy as np
 from numpy.polynomial import Polynomial
+
+from astropy.coordinates import solar_system_ephemeris
+from astropy.coordinates import get_sun
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -273,12 +278,14 @@ def mag_and_pos_angle(u: float, v: float, L1: float, L2: float, xi: float, eta: 
     # Position angle on fundamental plane, in relation to celestial north
     # m = [L*sin(Q), L*cos(Q), 0]
     Q = atan2(u, v)
+    if Q < 0: Q += 360
 
     # [ESAA] (11.121)
     # Position angle in relation to vertex, "up"
     # Parallatic angle tan(C) = xi/eta
     C = atan2(xi, eta)
     V = Q - C
+    if V < 0: V += 360
 
     ic(M_1, M_2, C, V, Q)
     return M_1, M_2, V, Q
@@ -322,6 +329,31 @@ def geocentric(loc: EarthLocation) -> Tuple[float, float]:
 
 
 
+def sun_alt(t: Time, loc: EarthLocation) -> Angle:
+    """
+    Get altitude of the Sun for time and locations
+
+    Parameters
+    ----------
+    t : Time
+        Time of observation
+    loc : EarthLocation
+        Observer location
+
+    Returns
+    -------
+    Angle
+        Sun's altitude
+    """
+    sun = get_sun(t)
+    altaz = sun.transform_to( AltAz(obstime=t, location=loc) )
+    alt = altaz.alt
+    ic(t, sun, alt)
+
+    return alt
+
+
+
 def bessel3(delta_t: float, loc: EarthLocation) -> None:
     """
     Compute local circumstances at location
@@ -357,18 +389,22 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
     time_max_ut1 = time_max_tt.ut1
     ic(t_max, time_max_tt, time_max_ut1)
 
-    message(f"Time of MAX eclipse (UT1): {time_max_ut1}")
-
     M_1, M_2, Q, V = mag_and_pos_angle(u, v, L1, L2, xi, eta)
     message(f"Magnitude: {M_1*100:.1f}%")
     message(f"Moon/sun size ratio: {M_2:.3f}")
-    message(f"Position angle (north): {V:.1f} deg")
-    message(f"Position angle (zenith): {Q:.1f} deg")
+    message(f"Time of MAX eclipse (UT1): {time_max_ut1}")
+    message(f"Position angle at MAX (north): {V:.1f} deg")
+    message(f"Position angle at MAX (zenith): {Q:.1f} deg")
+    alt = sun_alt(time_max_ut1, loc)
+    message(f"Sun altitude at MAX {alt:.2f}")
+
 
     if Options.list:
         # Results for 2.5h centered around tmax
-        message("Time                     magnitude  pos angle")
-        message("(UT1)                               north  up")
+        message("========================================================")
+        message("Time                     magnitude  pos angle     sun")
+        message("(UT1)                               north  up     alt")
+        message("-----------------------  ---------  -----  -----  ------")
 
         for t in t_max + np.linspace(-1.25, 1.25, 150+1):
             time_tt  = time_T0 + t * unit.hour
@@ -376,7 +412,8 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
             u, v, _, _, L1, L2, xi, eta, _ = fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
             M_1, M_2, Q, V = mag_and_pos_angle(u, v, L1, L2, xi, eta)
             if M_1 >= 0 or not Options.pos_mag:
-                message(f"{time_ut1}  {M_1*100:5.1f}%    {V:4.0f}°   {Q:4.0f}°")
+                alt = sun_alt(time_ut1, loc).degree
+                message(f"{time_ut1}  {M_1*100:5.1f}%    {V:4.0f}°   {Q:4.0f}°  {alt:5.1f}°")
 
 
 
