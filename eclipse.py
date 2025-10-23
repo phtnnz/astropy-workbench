@@ -95,7 +95,7 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
     #
     # Maximum eclipse (MAX) : 2026/08/12 18:29:17.6
     loc = EarthLocation(lon=-3.68935*u.degree, lat=42.35047*u.degree, height=891*u.m)
-    time = Time("2026-08-12 18:29:17.6", location=loc)
+    time = Time("2026-08-12 18:29:17.6", scale="ut1", location=loc)
     ic(loc, time, time.jd)
     return loc, time
 
@@ -289,11 +289,11 @@ def contact_times(time: Time) -> Tuple[Time, Time, Time, Time, Time]:
 
     ic(sol_max, sol1, sol2, sol3, sol4)
 
-    t_max = time_jd_as_iso(jd_max)
-    t_c1  = time_jd_as_iso(jd_c1)
-    t_c2  = time_jd_as_iso(jd_c2)
-    t_c3  = time_jd_as_iso(jd_c3)
-    t_c4  = time_jd_as_iso(jd_c4)
+    t_max = time_jd_as_iso(jd_max).ut1
+    t_c1  = time_jd_as_iso(jd_c1).ut1
+    t_c2  = time_jd_as_iso(jd_c2).ut1
+    t_c3  = time_jd_as_iso(jd_c3).ut1
+    t_c4  = time_jd_as_iso(jd_c4).ut1
     ic(t_c1, t_c2, t_max, t_c3, t_c4)
     verbose(f"C1  {t_c1.iso}")
     verbose(f"C2  {t_c2.iso}")
@@ -340,18 +340,14 @@ def main():
     Options.loc = loc
     verbose(f"location {location_to_string(loc)}")
     if args.time:
-        time = Time(args.time, location=loc)
+        time = Time(args.time, scale="ut1", location=loc)
     elif not time:
-        time = Time(Time.now(), location=loc)
+        time = Time(Time.now(), scale="ut1", location=loc)
     # Delta T from astropy Time
     # checked with https://www.iers.org/IERS/EN/DataProducts/tools/timescales/timescales.html
     # slight difference in UT1
     delta_t = ((time.tt.jd - time.ut1.jd) * u.day).to(u.s)
-    # approximation, see https://de.wikipedia.org/wiki/Delta_T
-    y = time.to_datetime().year + (time.to_datetime().month - 0.5) / 12
-    delta_t2 = 67.62 + 0.3645 * (y - 2015) + 0.0039755 * (y - 2015)**2
-    ic(time, delta_t, y, delta_t2)
-    verbose(f"time UTC {time}, Delta T={delta_t:.2f}")
+    verbose(f"time {time} (UT1), Delta T={delta_t:.2f}")
 
     # Ephemeris
     ephemeris = args.ephemeris or "de440"
