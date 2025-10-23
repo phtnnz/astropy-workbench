@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius, Uwe Pilz (VdS) and contributors
+# Copyright 2025 Martin Junius, Uwe Pilz (VdS)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,13 +21,18 @@
 #       Major overhaul to fit into the astropy-workbench environment,
 #       using astropy and numpy, a lot of renaming for better understanding
 # Version 0.2 / 2025-10-21
-#       Further rework, output clean-up, new option -0 --positive-mag-only,
-#       somewhat final version
+#       Further rework, output clean-up, new option -0 --positive-mag-only
+# Version 0.3 / 2025-10-23
+#       Further rework and clean-up, variables renamed in accordance with [ESAA]
+#
+# See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
+# Chapter 11 - Eclipses of the Sun and Moon
 
-VERSION     = "0.2 / 2024-10-21"
+
+VERSION     = "0.3 / 2024-10-23"
 AUTHOR      = "Martin Junius"
 NAME        = "bessel3"
-DESCRIPTION = "Eclipse local circumstances"
+DESCRIPTION = "Solar eclipse local circumstances"
 
 import sys
 import argparse
@@ -43,7 +48,7 @@ from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.coordinates import Angle
 from astropy.coordinates import errors
 from astropy.time        import Time, TimeDelta
-import astropy.units as u
+import astropy.units as unit
 import astropy.constants as const
 import numpy as np
 from numpy.polynomial import Polynomial
@@ -57,12 +62,12 @@ DEFAULT_LOCATION = "Burgos, Spain"
 
 
 # Earth equatorial radius
-R_earth = 6378137.0 * u.m           # GRS 80/WGS 84 value (Wikipedia)
+R_earth = 6378137.0 * unit.m        # GRS 80/WGS 84 value (Wikipedia)
                                     # https://en.wikipedia.org/wiki/World_Geodetic_System
-R_earth_pol = 6356752.0 * u.m       # https://en.wikipedia.org/wiki/Earth
+R_earth_pol = 6356752.0 * unit.m    # https://en.wikipedia.org/wiki/Earth
 f_earth = (R_earth - R_earth_pol) / R_earth
 # Moon equatorial radius
-R_moon = 1738100.0 * u.m
+R_moon = 1738100.0 * unit.m
 R_moon = 0.2725076 * R_earth        # IAU 1982
 R_moon = 0.272281  * R_earth        # smaller value from https://eclipse.gsfc.nasa.gov/SEpubs/20080801/TP214149b.pdf
 
@@ -91,7 +96,7 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
     # 891.0m
     #
     # Maximum eclipse (MAX) : 2026/08/12 18:29:17.6
-    loc = EarthLocation(lon=-3.68935*u.degree, lat=42.35047*u.degree, height=891*u.m)
+    loc = EarthLocation(lon=-3.68935*unit.degree, lat=42.35047*unit.degree, height=891*unit.m)
     time = Time("2026-08-12 18:29:17.6", scale="ut1", location=loc)
     ic(loc, time, time.jd)
     return loc, time
@@ -152,7 +157,8 @@ def sq(x):          return x*x
 
 
 
-def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitude: float, delta_t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+def fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitude: float, delta_t: float) \
+    -> Tuple[float, float, float, float, float, float, float, float, float, float, float, float]:
     """
     Calculate coordinates and derivatives for observer location at specified time (TT)
 
@@ -172,12 +178,11 @@ def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, 
     Returns
     -------
     Tuple[float, float, float, float, float, float, float, float, float]
-        U, V : observer position relative to shadow axis x, y
-        U_p, V_p : derivatives of U, V
-        l1_zeta : penumbra size at zeta
-        l2_zeta : umbra size at zeta
-        d : declination of shadow axis in degrees
-        theta : hourangle of shadow axis at observer longitude in degrees
+        u, v : observer position relative to shadow axis x, y
+        u_p, v_p : derivatives of U, V
+        L1 : penumbra size at zeta
+        L2 : umbra size at zeta
+        xi, eta, zeta : position of observer over fundamental plane
     """
     x    = bessel_x(t)
     y    = bessel_y(t)
@@ -201,12 +206,11 @@ def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, 
     # longitude = \lambda
     # theta = local hourangle corrected for TT
     theta = mu - 360 / 86164.0905 * delta_t  + longitude
+    # [ESAA] (11.41)
     xi    = rho_cos_phi * sin(theta)
     eta   = rho_sin_phi * cos(d) - rho_cos_phi * cos(theta) * sin(d)
     zeta  = rho_sin_phi * sin(d) + rho_cos_phi * cos(theta) * cos(d)
-    ## original derivatives approximation
-    ## xi_p  = np.deg2rad(bessel_mu[1] * rho_cos_phi_p * cos(theta))
-    ## eta_p = np.deg2rad(bessel_mu[1] * xi * sin(d) - zeta * bessel_d[1])
+
     # new straight forward, proper derivatives, easier to understand ;-)
     # np.deg2rad because we're doing the calculations with degrees, not radians
     xi_p  = np.deg2rad( rho_cos_phi * cos(theta) * mu_p )
@@ -214,38 +218,70 @@ def calc_on_fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, 
                        -rho_cos_phi * cos(theta) * cos(d) * d_p
                        +rho_cos_phi * sin(theta) * mu_p * sin(d) )    # == xi * mu_p * sin(d)
 
-    U       = x   - xi                  # coordinates relative to shadow axis
-    V       = y   - eta
-    U_p     = x_p - xi_p                # derivates of U, V
-    V_p     = y_p - eta_p
-    l1_zeta = l1 - zeta * bessel_tanf1  # penumbra size at zeta
-    l2_zeta = l2 - zeta * bessel_tanf2  # umbra size at zeta
+    # [ESAA] (11.119)
+    # m = [u, v, 0] = [x-xi, y-eta, 0] = r - rho
+    # n = \dot m = [u_p, v_p, 0]
+    # max eclipse at m*n = 0
+    # C1/C4 at u^2 + v^2 - L1^2 = 0
+    # C2/C3 at u^2 + v^2 - L2^2 = 0
+    u   = x   - xi                   # coordinates relative to shadow axis
+    v   = y   - eta 
+    u_p = x_p - xi_p                 # derivates of U, V
+    v_p = y_p - eta_p
+    L1  = l1  - zeta * bessel_tanf1  # penumbra size at zeta
+    L2  = l2  - zeta * bessel_tanf2  # umbra size at zeta
 
-    return U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta
+    return u, v, u_p, v_p, L1, L2, xi, eta, zeta
 
 
 
-def calc_result(U: float, V: float, l1_zeta: float, l2_zeta: float, d: float, theta: float, latitude: float) -> Tuple[float, float, float, float, float, float, float]:
+def mag_and_pos_angle(u: float, v: float, L1: float, L2: float, xi: float, eta: float) -> Tuple[float, float, float, float]:
+    """
+    Compute magnitude, moon/sun size ration, position angles
+
+    Parameters
+    ----------
+    u : float
+        Position relative to shadow axis x
+    v : float
+        Position relative to shadow axis y
+    L1 : float
+        Size of penumbra
+    L2 : float
+        Size of umbra
+    xi : float
+        Observer position on fundamental plane x
+    eta : float
+        Observer position on fundamental plane y
+
+    Returns
+    -------
+    Tuple[float, float, float, float]
+        M_1 : magnitude
+        M_2 : moon/sun size ratio = magnitude on center line
+        Q : position angle from celestial north in degrees
+        V : position angle from vertex ("up") in degrees
+    """
     # Magnitude
-    m = sqrt(U * U + V * V)
-    magnitude = (l1_zeta - m) / (l1_zeta + l2_zeta)
+    m   = sqrt(sq(u) + sq(v))
+    M_1 = (L1 - m) / (L1 + L2)
 
     # Moon/sun size ration
-    moon_sun_ratio = (l1_zeta - l2_zeta) / (l1_zeta + l2_zeta)
+    M_2 = (L1 - L2) / (L1 + L2)
 
-    # Position angle on fundamental plane
-    pos_angle_north = atan2(U , V)
-    if pos_angle_north < 0:
-        pos_angle_north = pos_angle_north + 360.0
+    # [ESAA] (11.120)
+    # Position angle on fundamental plane, in relation to celestial north
+    # m = [L*sin(Q), L*cos(Q), 0]
+    Q = atan2(u, v)
 
-    # Position angle in relation to zenith
-    sinH = sin(d) * sin(latitude) + cos(d) * cos(latitude) * cos(theta)
-    h    = asin(sinH)
-    sinq = cos(latitude) * sin(theta) / cos(h)
-    q    = asin(sinq)
-    pos_angle_zenith = pos_angle_north - q
+    # [ESAA] (11.121)
+    # Position angle in relation to vertex, "up"
+    # Parallatic angle tan(C) = xi/eta
+    C = atan2(xi, eta)
+    V = Q - C
 
-    return magnitude, moon_sun_ratio, pos_angle_zenith, pos_angle_north
+    ic(M_1, M_2, C, V, Q)
+    return M_1, M_2, V, Q
 
 
 
@@ -282,21 +318,21 @@ def geocentric(loc: EarthLocation) -> Tuple[float, float]:
     # rho_cos_phi = rho * cos(phi_p)
     # ic(e2, C, S, phi_p, rho, rho_sin_phi, rho_cos_phi)
 
-    # # Var 3: geocentric coordinates from prog95_3.py, slight difference of 0.1° for phi'
-    # # in the test case, rho*sin/cos(phi') are exact
-    # ratio_earth = R_earth_pol.value / R_earth.value
-    # ratio_hoehe = height / R_earth.value
-    # ic(ratio_earth, ratio_hoehe)
-    # phi_p       = atan(ratio_earth * tan(latitude))
-    # rho_sin_phi = ratio_earth * sin(phi_p) + ratio_hoehe * sin(latitude)
-    # rho_cos_phi =               cos(phi_p) + ratio_hoehe * cos(latitude)
-    # ic(phi_p, rho_sin_phi, rho_cos_phi)
-
     return rho_sin_phi, rho_cos_phi
 
 
 
 def bessel3(delta_t: float, loc: EarthLocation) -> None:
+    """
+    Compute local circumstances at location
+
+    Parameters
+    ----------
+    delta_t : float
+        Delta T value for the calculation
+    loc : EarthLocation
+        Observer position
+    """
     longitude = loc.lon.value
     latitude  = loc.lat.value
     height    = loc.height.value
@@ -305,45 +341,49 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
     # geocentric coordinates
     rho_sin_phi, rho_cos_phi = geocentric(loc)
 
-    # iterate towards minimum distance U, V = max eclipse at location
+    # [ESAA] (11.119)
+    # iterate towards m*n = [u, v, 0]*[u_p, v_p, 0] = 0
     # start at T0
     t = 0
     for _ in range(5):  # 5 iterations are enough
-        U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
-        ic(t, U, V, U_p, V_p, l1_zeta, l2_zeta, d, theta)
-        # move time in the direction of descending U, V
-        t_corr = -(U * U_p + V * V_p) / (sq(U_p) + sq(V_p))
+        u, v, u_p, v_p, L1, L2, xi, eta, _ = fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
+        ic(t, u, v, u_p, v_p, L1, L2)
+        t_corr = -(u * u_p + v * v_p) / (sq(u_p) + sq(v_p)) # -m*n / n^2
         ic(t_corr)
         t = t + t_corr
+
     t_max        = t
-    time_max_tt  = time_T0 + t_max * u.hour
+    time_max_tt  = time_T0 + t_max * unit.hour
     time_max_ut1 = time_max_tt.ut1
     ic(t_max, time_max_tt, time_max_ut1)
 
     message(f"Time of MAX eclipse (UT1): {time_max_ut1}")
 
-    G, A, Z, P = calc_result(U, V, l1_zeta, l2_zeta, d, theta, latitude)
-    message(f"Magnitude: {G*100:.1f}")
-    message(f"Moon/sun size ratio: {A:.3f}")
-    message(f"Position angle (north): {P:.1f}")
-    message(f"Position angle (zenith): {Z:.1f}")
+    M_1, M_2, Q, V = mag_and_pos_angle(u, v, L1, L2, xi, eta)
+    message(f"Magnitude: {M_1*100:.1f}%")
+    message(f"Moon/sun size ratio: {M_2:.3f}")
+    message(f"Position angle (north): {V:.1f} deg")
+    message(f"Position angle (zenith): {Q:.1f} deg")
 
     if Options.list:
         # Results for 2.5h centered around tmax
-        message("Time (UT1)               magnitude north  zenith pos angle")
-        for t in t_max + np.linspace(-1.25, 1.25, 150+1):
-            time_tt  = time_T0 + t * u.hour
-            time_ut1 = time_tt.ut1
-            U, V, _, _, l1_zeta, l2_zeta, d, theta = calc_on_fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
-            G, A, Z, P = calc_result(U, V, l1_zeta, l2_zeta, d, theta, latitude)
-            if G >= 0 or not Options.pos_mag:
-                message(f"{time_ut1}  {G*100:5.1f}%    {P:.0f}°   {Z:.0f}°")
+        message("Time                     magnitude  pos angle")
+        message("(UT1)                               north  up")
 
-#/ Uwe Pilz, Februar 2025
+        for t in t_max + np.linspace(-1.25, 1.25, 150+1):
+            time_tt  = time_T0 + t * unit.hour
+            time_ut1 = time_tt.ut1
+            u, v, _, _, L1, L2, xi, eta, _ = fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
+            M_1, M_2, Q, V = mag_and_pos_angle(u, v, L1, L2, xi, eta)
+            if M_1 >= 0 or not Options.pos_mag:
+                message(f"{time_ut1}  {M_1*100:5.1f}%    {V:4.0f}°   {Q:4.0f}°")
 
 
 
 def main():
+    """
+    Main function of script
+    """
     arg = argparse.ArgumentParser(
         prog        = NAME,
         description = DESCRIPTION,
@@ -392,9 +432,9 @@ def main():
     # https://en.wikipedia.org/wiki/Leap_second
     # https://www.iers.org/IERS/EN/DataProducts/tools/timescales/timescales.html
     # (slight difference in UT1, UTC - UT1 ~ 0.1 s)
-    delta_t = ((time.tt.jd - time.ut1.jd) * u.day).to(u.s)
+    delta_t = ((time.tt.jd - time.ut1.jd) * unit.day).to(unit.s)
     # alternate calculation (37 = leap seconds in 2025)
-    delta_t2 = ((time.utc.jd - time.ut1.jd) * u.day).to(u.s) + (37 + 32.184) * u.s
+    delta_t2 = ((time.utc.jd - time.ut1.jd) * unit.day).to(unit.s) + (37 + 32.184) * unit.s
     ic(time, delta_t, delta_t2)
 
     verbose(f"time {time} (UT1), {time.tt} (TT), Delta T={delta_t:.2f}")
