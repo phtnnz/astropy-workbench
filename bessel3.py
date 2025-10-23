@@ -25,7 +25,8 @@
 # Version 0.3 / 2025-10-23
 #       Further rework and clean-up, variables renamed in accordance with [ESAA]
 # Version 0.4 / 2025-10-23
-#       Added sun altitude using astropy get_sun()
+#       Added sun altitude using astropy get_sun(),
+#       new option -T --totality for listing
 #
 # See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
 # Chapter 11 - Eclipses of the Sun and Moon
@@ -83,6 +84,8 @@ class Options:
     loc: EarthLocation = None       # -l --location
     list: bool = False              # -L --list
     pos_mag: bool = False           # -0 --positive-mag-only
+    totality: bool = False          # -T --totality
+
 
 
 def test_tse2026() -> Tuple[EarthLocation, Time]:
@@ -406,7 +409,14 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
         message("(UT1)                               north  up     alt")
         message("-----------------------  ---------  -----  -----  ------")
 
-        for t in t_max + np.linspace(-1.25, 1.25, 150+1):
+        if Options.totality:
+            # Higher time resolution +/- 4.5 min around MAX
+            t_range = np.linspace(-0.075, 0.075, 270+1)
+        else:
+            # +/- 1.25 h around MAX
+            t_range = np.linspace(-1.25, 1.25, 150+1)
+
+        for t in t_max + t_range:
             time_tt  = time_T0 + t * unit.hour
             time_ut1 = time_tt.ut1
             u, v, _, _, L1, L2, xi, eta, _ = fundamental_plane(t, rho_sin_phi, rho_cos_phi, longitude, delta_t)
@@ -430,6 +440,7 @@ def main():
 
     arg.add_argument("-L", "--list", action="store_true", help="list time and magnitude centered around MAX")
     arg.add_argument("-0", "--positive-mag-only", action="store_true", help="list positive magnitude only")
+    arg.add_argument("-T", "--totality", action="store_true", help="list with higher time resolution around MAX")
     arg.add_argument("-t", "--time", help=f"time (UT1), default T0={time_T0.ut1}")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("--tse2026", action="store_true", help="test case TSE 12 Aug 2026")
@@ -445,6 +456,7 @@ def main():
 
     Options.list = args.list
     Options.pos_mag = args.positive_mag_only
+    Options.totality = args.totality
 
     # Location and time
     loc = None
