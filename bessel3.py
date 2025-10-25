@@ -315,7 +315,7 @@ def geocentric(loc: EarthLocation) -> Tuple[float, float]:
     rho = sqrt( sq(loc.x.value) + sq(loc.y.value) + sq(loc.z.value) ) / R_earth.value
     rho_sin_phi = rho * sin(phi_p)
     rho_cos_phi = rho * cos(phi_p)
-    ic(phi_p, rho_sin_phi, rho_cos_phi)
+    ic(phi_p, rho, rho_sin_phi, rho_cos_phi)
 
     # # Var 2: geocentric coordinates
     # # https://de.wikipedia.org/wiki/Besselsche_Elemente
