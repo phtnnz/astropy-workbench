@@ -18,7 +18,7 @@
 # Version 0.0 / 2025-xx-xx
 #       TEXT
 
-VERSION     = "0.0 / 2024-xx-xx"
+VERSION     = "0.0 / 2025-xx-xx"
 AUTHOR      = "Martin Junius"
 NAME        = "template"
 DESCRIPTION = "mj's Python template"
