@@ -60,6 +60,68 @@ class Options:
 
 
 
+def field_rot(loc: EarthLocation, alt: Angle, az: Angle) -> Quantity:
+    """
+    Compute field rotation
+    See also https://de.wikipedia.org/wiki/Bildfelddrehung
+
+    Parameters
+    ----------
+    loc : EarthLocation
+        Observer location
+    alt : Angle
+        Altitude angle
+    az : Angle
+        Azimuth angle
+
+    Returns
+    -------
+    Quantity
+        Field rotation
+    """
+    ic(loc, alt, az)
+    sday  = 1 * u.sday
+    omega = 360 * u.deg / sday.to(u.hour)
+    rot   = omega * np.cos(loc.lat) * np.cos(az) / np.cos(alt)
+    ic(omega, loc.lat, rot)
+    return rot
+
+
+
+def plot(loc: EarthLocation) -> None:
+    """
+    3D plot of field rotation over azimuth and altitude for the given location
+
+    Parameters
+    ----------
+    loc : EarthLocation
+        Observer location
+    """
+    fig = plt.figure(figsize=(15, 10))
+    ax  = fig.add_subplot(projection='3d')
+
+    az  = np.linspace(0, 360, 72+1) * u.deg
+    alt = np.linspace(0, 85,  17+1) * u.deg
+    ic(az, alt)
+
+    az, alt = np.meshgrid(az, alt)
+    rot = field_rot(loc, alt, az)
+    ic(rot)
+
+    ax.set_xticks([0, 60, 120, 180, 240, 300, 360])
+    surf = ax.plot_surface(az, alt, rot, rstride=1, cstride=1, cmap=cm.coolwarm,
+                           linewidth=0, antialiased=False)
+    fig.colorbar(surf, shrink=0.4, aspect=10, pad=0.05)
+    ax.set_title(f"Field Rotation Rate for {loc.info.name}", fontsize=20)
+    ax.set_xlabel("Azimuth deg", fontsize=16)
+    ax.set_ylabel("Altitude deg", fontsize=16)
+    ax.set_zlabel("Field rotation deg / h", fontsize=16)
+
+    plt.savefig("tmp/plot.png", bbox_inches="tight")
+    plt.close()
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -84,6 +146,15 @@ def main():
     ic(loc, loc.to_geodetic())
     Options.loc = loc
     verbose(f"location {location_to_string(loc)}")
+
+    # Tests
+    field_rot(loc, 45 * u.deg,   0 * u.deg)
+    field_rot(loc, 45 * u.deg,  90 * u.deg)
+    field_rot(loc, 60 * u.deg, 180 * u.deg)
+    field_rot(loc, 60 * u.deg, 270 * u.deg)
+
+    # 3D plot
+    plot(loc)
 
 
 
