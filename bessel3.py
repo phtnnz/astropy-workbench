@@ -67,11 +67,14 @@ DEFAULT_LOCATION = "Burgos, Spain"
 
 
 
-# Earth equatorial radius
-R_earth = 6378137.0 * unit.m        # GRS 80/WGS 84 value (Wikipedia)
-                                    # https://en.wikipedia.org/wiki/World_Geodetic_System
-R_earth_pol = 6356752.0 * unit.m    # https://en.wikipedia.org/wiki/Earth
-f_earth = (R_earth - R_earth_pol) / R_earth
+# Earth equatorial and polar radius
+# IERS (2003) values (Wikipedia)
+# https://en.wikipedia.org/wiki/Earth
+# https://en.wikipedia.org/wiki/Earth_ellipsoid
+R_earth = 6378136.6 * unit.m                    # a
+R_earth_pol = 6356751.9 * unit.m                # b
+f_earth = (R_earth - R_earth_pol) / R_earth     # flattening
+e2_earth = 1 -  R_earth_pol**2 / R_earth**2     # ellipticity squared
 # Moon equatorial radius
 R_moon = 1738100.0 * unit.m
 R_moon = 0.2725076 * R_earth        # IAU 1982
@@ -207,13 +210,14 @@ def fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitud
     # local coordinates in fundamental plane
     # https://de.wikipedia.org/wiki/Besselsche_Elemente
     # \theta = ( \mu - 1.002738 * 360° / 86400 s * \Delta T ) + \lambda
-    # Sidereal day on Earth is approximately 86164.0905 s
+    # Sidereal day (unit.sday) on Earth is approximately 86164.0905 s
     # 1.002738 = 86400 s / 86164.09 s
     #
     # local coordinates in fundamental plane
     # longitude = \lambda
     # theta = local hourangle corrected for TT
-    theta = mu - 360 / 86164.0905 * delta_t  + longitude
+    sday  = unit.sday.to(unit.s)
+    theta = mu - 360 / sday * delta_t  + longitude
     # [ESAA] (11.41)
     xi    = rho_cos_phi * sin(theta)
     eta   = rho_sin_phi * cos(d) - rho_cos_phi * cos(theta) * sin(d)
@@ -453,6 +457,9 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
+
+    # Debug some constants
+    ic(R_earth, R_earth_pol, f_earth, e2_earth, R_moon)
 
     Options.list = args.list
     Options.pos_mag = args.positive_mag_only
