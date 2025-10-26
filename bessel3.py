@@ -323,10 +323,11 @@ def geocentric(loc: EarthLocation) -> Tuple[float, float]:
 
     # # Var 2: geocentric coordinates
     # # https://de.wikipedia.org/wiki/Besselsche_Elemente
+    # # See also [ESAA] (11.47-49)
     # e2 = 1 - sq(R_earth_pol) / sq(R_earth)
     # C = 1 / sqrt(1 - e2 * sq(sin(latitude)))
     # S = (1 - e2) * C
-    # phi_p = atan((R_earth.value*S + height) / (R_earth.value*C + height) * tan(latitude) )
+    # phi_p = atan( (R_earth.value*S + height) / (R_earth.value*C + height) * tan(latitude) )
     # rho = (R_earth.value*C + height) * cos(latitude) / (R_earth.value * cos(phi_p))
     # rho_sin_phi = rho * sin(phi_p)
     # rho_cos_phi = rho * cos(phi_p)
