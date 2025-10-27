@@ -250,7 +250,6 @@ def fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitud
 
 
 def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
-    ic(sin_theta, cos_theta, asin(sin_theta))
     if (sin_theta>=0 and cos_theta>=0): return  asin(sin_theta)
     if (sin_theta <0 and cos_theta>=0): return  asin(sin_theta)
     if (sin_theta <0 and cos_theta <0): return -acos(cos_theta)
@@ -291,7 +290,7 @@ def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float]:
     #####################
     eta_1 = eta / rho_1                                         # (11.55)
     if 1 - sq(xi) - sq(eta_1) < 0:                              # no result
-        return None, None
+        return None, None, None
     zeta_1 = sqrt(1 - sq(xi) - sq(eta_1))                       # (11.56)
     ic(eta_1, zeta_1)
 
@@ -313,11 +312,14 @@ def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float]:
         longitude += 360 * unit.deg
     # latitude = phi
     latitude = atan( 1 / sqrt(1 - e2_earth) * tan(phi_1) )      # (11.52) divide eqs
-
     zeta = rho_2 * (zeta_1*cos_d_1_d_2 - eta_1*sin_d_1_d_2)     # (11.60)
-
     ic(longitude, latitude, zeta)
-    return longitude, latitude
+
+    L1  = l1  - zeta * bessel_tanf1  # penumbra size at zeta
+    L2  = l2  - zeta * bessel_tanf2  # umbra size at zeta
+    M_2 = (L1 - L2) / (L1 + L2)      # magnitude at central line = moon/sun size ratio
+
+    return longitude, latitude, M_2
 
 
 
@@ -437,12 +439,23 @@ def sun_alt(t: Time, loc: EarthLocation) -> Angle:
 
 
 def bessel2(delta_t: float) -> None:
-    ##FIXME: quick cross-check, same values as from prg95_2.py
-    for i in range(-120, 120, 1): # von 2h vor bis 2h nach der Referenzzeit in 10-min-Schritten
-        t = i/60.0  # Zeit in Stunden
-        lon, lat = fundamental_plane2(t, 0)
+    # ##TEST##
+    # t = 0
+    # lon, lat, M_2 = fundamental_plane2(t, 0)
+    # print(f"{t*60:3.0f}  {lon:9.4f}  {lat:9.4f}  {M_2:.3f}")
+    # return
+
+    message("===============================================================")
+    message("Time (UT1)               lon            lat           magnitude")
+    message("-----------------------  -------------  ------------  ---------")
+    # T0 +/- 2h, 1 min intervals
+    t_range = np.linspace(-2, 2, 4*60+1)
+    for t in t_range:
+        time_tt  = time_T0 + t * unit.hour
+        time_ut1 = time_tt.ut1
+        lon, lat, M_2 = fundamental_plane2(t, delta_t)
         if lon != None:
-            print(f"{t*60:3.0f}  {lon:9.4f}  {lat:9.4f}")
+            message(f"{time_ut1}  {lon:9.4f}  {lat:8.4f}    {M_2:.5f}")
 
 
 
@@ -492,7 +505,6 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
 
 
     if Options.list:
-        # Results for 2.5h centered around tmax
         message("========================================================")
         message("Time                     magnitude  pos angle     sun")
         message("(UT1)                               north  up     alt")
