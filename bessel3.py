@@ -247,6 +247,62 @@ def fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitud
 
 
 
+def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
+    if (sin_theta>=0 and cos_theta>=0): return  asin(sin_theta)
+    if (sin_theta <0 and cos_theta>=0): return  asin(sin_theta)
+    if (sin_theta <0 and cos_theta <0): return -acos(cos_theta)
+    if (sin_theta>=0 and cos_theta <0): return  acos(cos_theta)
+    # not reached
+
+
+
+def fundamental_plane2(t: float, rho_sin_phi: float, rho_cos_phi: float, longitude: float, delta_t: float) \
+    -> Tuple[float, float, float, float, float, float, float, float, float, float, float, float]:
+    x    = bessel_x(t)
+    y    = bessel_y(t)
+    d    = bessel_d(t)
+    mu   = bessel_mu(t)
+    l1   = bessel_l1(t)
+    l2   = bessel_l2(t)
+    # derivatives
+    x_p  = bessel_x_p(t)
+    y_p  = bessel_y_p(t)
+    d_p  = bessel_d_p(t)
+    mu_p = bessel_mu_p(t)
+
+    # Auxiliary Besselians [ESAA] (11.61)
+    rho_1 = sqrt( 1 - e2_earth * sq(cos(d)) )
+    rho_2 = sqrt( 1 - e2_earth * sq(sin(d)) )
+    sin_d_1 = sin(d) / rho_1
+    cos_d_1 = sqrt(1 - e2_earth) * cos(d) / rho_1
+    sin_d_1_d_2 = e2_earth * sin(d) * cos(d) / rho_1
+    cos_d_1_d_2 = sqrt(1 - e2_earth) / rho_1 / rho_2
+
+    # Convert point(xi, eta, 0) on fundamental plain [ESAA] 11.3.3.3
+    xi   = 0
+    eta  = 0
+    eta_1 = eta / rho_1                                         # (11.55)
+    zeta_1 = sqrt(1 - sq(xi) - sq(eta_1))                       # (11.56)
+    if zeta_1 < 0:                                              # invalid
+        return
+    phi_1 = asin(eta_1 * cos_d_1 + zeta_1*sin_d_1)              # (11.59) 2nd row
+    sin_theta = xi / cos(phi_1)                                 #         1st row
+    cos_theta = (-eta_1*sin_d_1 + zeta_1*cos_d_1) / cos(phi_1)  #         3rd row
+
+    # Geodesic coordinates
+    theta = solve_quadrant(sin_theta, cos_theta)
+    # longitude = lambda
+    # theta = local hourangle corrected for TT
+    sday  = unit.sday.to(unit.s)
+    longitude = theta - mu + 360 / sday * delta_t
+    phi = atan( 1 / sqrt(1 - e2_earth) * tan(phi_1) )           # (11.52) divide eqs
+
+    zeta = rho_2 * (zeta_1*cos_d_1_d_2 - eta_1*sin_d_1_d_2)     # (11.60)
+    
+    return None
+
+
+
 def mag_and_pos_angle(u: float, v: float, L1: float, L2: float, xi: float, eta: float) -> Tuple[float, float, float, float]:
     """
     Compute magnitude, moon/sun size ration, position angles
@@ -461,6 +517,8 @@ def main():
 
     # Debug some constants
     ic(R_earth, R_earth_pol, f_earth, e2_earth, R_moon)
+    ic(1 - f_earth)
+    ic(sqrt(1-e2_earth))
 
     Options.list = args.list
     Options.pos_mag = args.positive_mag_only
