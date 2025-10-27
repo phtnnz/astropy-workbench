@@ -27,12 +27,14 @@
 # Version 0.4 / 2025-10-23
 #       Added sun altitude using astropy get_sun(),
 #       new option -T --totality for listing
+# Version 0.5 / 2025-10-27
+#       Started to include calculation for central line
 #
 # See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
 # Chapter 11 - Eclipses of the Sun and Moon
 
 
-VERSION     = "0.4 / 2024-10-23"
+VERSION     = "0.5 / 2024-10-27"
 AUTHOR      = "Martin Junius"
 NAME        = "bessel3"
 DESCRIPTION = "Solar eclipse local circumstances"
@@ -248,6 +250,7 @@ def fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitud
 
 
 def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
+    ic(sin_theta, cos_theta, asin(sin_theta))
     if (sin_theta>=0 and cos_theta>=0): return  asin(sin_theta)
     if (sin_theta <0 and cos_theta>=0): return  asin(sin_theta)
     if (sin_theta <0 and cos_theta <0): return -acos(cos_theta)
@@ -256,14 +259,15 @@ def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
 
 
 
-def fundamental_plane2(t: float, rho_sin_phi: float, rho_cos_phi: float, longitude: float, delta_t: float) \
-    -> Tuple[float, float, float, float, float, float, float, float, float, float, float, float]:
+def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float]:
     x    = bessel_x(t)
     y    = bessel_y(t)
     d    = bessel_d(t)
     mu   = bessel_mu(t)
     l1   = bessel_l1(t)
     l2   = bessel_l2(t)
+    ic(x, y, d, mu, l1, l2)
+
     # derivatives
     x_p  = bessel_x_p(t)
     y_p  = bessel_y_p(t)
@@ -277,29 +281,43 @@ def fundamental_plane2(t: float, rho_sin_phi: float, rho_cos_phi: float, longitu
     cos_d_1 = sqrt(1 - e2_earth) * cos(d) / rho_1
     sin_d_1_d_2 = e2_earth * sin(d) * cos(d) / rho_1
     cos_d_1_d_2 = sqrt(1 - e2_earth) / rho_1 / rho_2
+    ic(rho_1, rho_2, sin_d_1, cos_d_1, sin_d_1_d_2, cos_d_1_d_2)
 
     # Convert point(xi, eta, 0) on fundamental plain [ESAA] 11.3.3.3
-    xi   = 0
-    eta  = 0
+    ## For center line ##
+    xi   = x
+    eta  = y
+    ic(xi, eta)
+    #####################
     eta_1 = eta / rho_1                                         # (11.55)
+    if 1 - sq(xi) - sq(eta_1) < 0:                              # no result
+        return None, None
     zeta_1 = sqrt(1 - sq(xi) - sq(eta_1))                       # (11.56)
-    if zeta_1 < 0:                                              # invalid
-        return
+    ic(eta_1, zeta_1)
+
     phi_1 = asin(eta_1 * cos_d_1 + zeta_1*sin_d_1)              # (11.59) 2nd row
     sin_theta = xi / cos(phi_1)                                 #         1st row
     cos_theta = (-eta_1*sin_d_1 + zeta_1*cos_d_1) / cos(phi_1)  #         3rd row
+    ic(phi_1, sin_theta, cos_theta)
 
     # Geodesic coordinates
     theta = solve_quadrant(sin_theta, cos_theta)
     # longitude = lambda
     # theta = local hourangle corrected for TT
     sday  = unit.sday.to(unit.s)
-    longitude = theta - mu + 360 / sday * delta_t
-    phi = atan( 1 / sqrt(1 - e2_earth) * tan(phi_1) )           # (11.52) divide eqs
+    ic(sday, theta, mu, delta_t)
+    longitude = theta - mu * unit.deg + 360 / sday * delta_t * unit.deg
+    if longitude > 180 * unit.deg:
+        longitude -= 360 * unit.deg
+    if longitude < -180 * unit.deg:
+        longitude += 360 * unit.deg
+    # latitude = phi
+    latitude = atan( 1 / sqrt(1 - e2_earth) * tan(phi_1) )      # (11.52) divide eqs
 
     zeta = rho_2 * (zeta_1*cos_d_1_d_2 - eta_1*sin_d_1_d_2)     # (11.60)
-    
-    return None
+
+    ic(longitude, latitude, zeta)
+    return longitude, latitude
 
 
 
@@ -415,6 +433,16 @@ def sun_alt(t: Time, loc: EarthLocation) -> Angle:
     ic(t, sun, alt)
 
     return alt
+
+
+
+def bessel2(delta_t: float) -> None:
+    ##FIXME: quick cross-check, same values as from prg95_2.py
+    for i in range(-120, 120, 1): # von 2h vor bis 2h nach der Referenzzeit in 10-min-Schritten
+        t = i/60.0  # Zeit in Stunden
+        lon, lat = fundamental_plane2(t, 0)
+        if lon != None:
+            print(f"{t*60:3.0f}  {lon:9.4f}  {lat:9.4f}")
 
 
 
@@ -557,6 +585,7 @@ def main():
 
     # Run calculation for local circumstances
     bessel3(delta_t.value, loc)
+    bessel2(delta_t.value)
 
 
 if __name__ == "__main__":
