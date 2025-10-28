@@ -97,7 +97,7 @@ def plot(loc: EarthLocation) -> None:
     loc : EarthLocation
         Observer location
     """
-    fig = plt.figure(figsize=(15, 10))
+    fig = plt.figure(figsize=(15, 10), dpi=300)
     ax  = fig.add_subplot(projection='3d')
 
     az  = np.linspace(0, 360, 72+1) * u.deg
