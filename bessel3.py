@@ -29,15 +29,17 @@
 #       new option -T --totality for listing
 # Version 0.5 / 2025-10-27
 #       Started to include calculation for central line
+# Version 0.6 / 2025-10-30
+#       Added duration and width for central line
 #
 # See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
 # Chapter 11 - Eclipses of the Sun and Moon
 
 
-VERSION     = "0.5 / 2024-10-27"
+VERSION     = "0.6 / 2024-10-30"
 AUTHOR      = "Martin Junius"
 NAME        = "bessel3"
-DESCRIPTION = "Solar eclipse local circumstances"
+DESCRIPTION = "Solar eclipse local circumstances and central line"
 
 import sys
 import argparse
@@ -258,7 +260,7 @@ def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
 
 
 
-def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float]:
+def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float, float, float, float]:
     x    = bessel_x(t)
     y    = bessel_y(t)
     d    = bessel_d(t)
@@ -290,7 +292,7 @@ def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float]:
     #####################
     eta_1 = eta / rho_1                                         # (11.55)
     if 1 - sq(xi) - sq(eta_1) < 0:                              # no result
-        return None, None, None
+        return None, None, None, None, None
     zeta_1 = sqrt(1 - sq(xi) - sq(eta_1))                       # (11.56)
     ic(eta_1, zeta_1)
 
@@ -318,8 +320,28 @@ def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float]:
     L1  = l1  - zeta * bessel_tanf1  # penumbra size at zeta
     L2  = l2  - zeta * bessel_tanf2  # umbra size at zeta
     M_2 = (L1 - L2) / (L1 + L2)      # magnitude at central line = moon/sun size ratio
+    ic(L1, L2, M_2)
 
-    return longitude, latitude, M_2
+    # Duration
+    x_dot    = x_p
+    y_dot    = y_p
+    d_dot    = np.deg2rad(d_p)
+    mu_dot   = np.deg2rad(mu_p)
+    xi_dot   = mu_dot * ( -y*sin(d) + zeta*cos(d) )             # (11.99)
+    eta_dot  = mu_dot * x * sin(d) - d_dot * zeta
+    n2       = sq(x_dot - xi_dot) + sq(y_dot - eta_dot)
+    n        = sqrt(n2)
+    L2       = abs(L2)                                          # < 0 for TSE, > 0 for ASE
+    duration = 2 * L2 / n * unit.hour                           # (11.100)
+    ic(n2, n, duration.to(unit.s))
+
+    # Width
+    width = 2 * L2 / sqrt(sq(zeta) +                            # (11.101)
+                          sq(xi  / n * (x_dot - xi_dot ) +
+                             eta / n * (y_dot - eta_dot)  ) ) * R_earth.to(unit.km)
+    ic(width)
+
+    return longitude, latitude, M_2, duration.to(unit.s), width
 
 
 
@@ -438,23 +460,21 @@ def sun_alt(t: Time, loc: EarthLocation) -> Angle:
 
 
 def bessel2(delta_t: float) -> None:
-    # ##TEST##
-    # t = 0
-    # lon, lat, M_2 = fundamental_plane2(t, 0)
-    # print(f"{t*60:3.0f}  {lon:9.4f}  {lat:9.4f}  {M_2:.3f}")
-    # return
+    message("===================================================================================")
+    message("Time (UT1)               lon            lat           magnitude  duration  width   ")
+    message("-----------------------  -------------  ------------  ---------  --------  --------")
 
-    message("===============================================================")
-    message("Time (UT1)               lon            lat           magnitude")
-    message("-----------------------  -------------  ------------  ---------")
+    ##TEST##
+    # t_range = [0]
+
     # T0 +/- 2h, 1 min intervals
     t_range = np.linspace(-2, 2, 4*60+1)
     for t in t_range:
         time_tt  = time_T0 + t * unit.hour
         time_ut1 = time_tt.ut1
-        lon, lat, M_2 = fundamental_plane2(t, delta_t)
+        lon, lat, M_2, duration, width = fundamental_plane2(t, delta_t)
         if lon != None:
-            message(f"{time_ut1}  {lon:9.4f}  {lat:8.4f}    {M_2:.5f}")
+            message(f"{time_ut1}  {lon:9.4f}  {lat:8.4f}  {M_2:.5f}    {duration:5.1f}   {width:5.1f}")
 
 
 
