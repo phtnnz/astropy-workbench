@@ -253,6 +253,21 @@ def fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitud
 
 
 def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
+    """
+    Find angle in one of the four quadrants
+
+    Parameters
+    ----------
+    sin_theta : float
+        sin value
+    cos_theta : float
+        cos value
+
+    Returns
+    -------
+    float
+        Angle in degrees
+    """
     if (sin_theta>=0 and cos_theta>=0): return  asin(sin_theta)
     if (sin_theta <0 and cos_theta>=0): return  asin(sin_theta)
     if (sin_theta <0 and cos_theta <0): return -acos(cos_theta)
@@ -262,6 +277,25 @@ def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
 
 
 def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float, float, float, float]:
+    """
+    Calculation for central line on fundamental plane
+
+    Parameters
+    ----------
+    t : float
+        Time relative to T0 in TT
+    delta_t : float
+        Delta T in s
+
+    Returns
+    -------
+    Tuple[float, float, float, float, float]
+        longitude : longitude coord of central eclipse at T in degrees
+        latitude : latitude coord of central eclipse at T in degrees
+        M_2 : moon/sun size ration at T
+        duration : duration of total/annular eclipse at T in s
+        width : width of umbra at T in km
+    """
     x    = bessel_x(t)
     y    = bessel_y(t)
     d    = bessel_d(t)
@@ -286,7 +320,7 @@ def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float, float, f
     ic(rho_1, rho_2, sin_d_1, cos_d_1, sin_d_1_d_2, cos_d_1_d_2)
 
     # Convert point(xi, eta, 0) on fundamental plain [ESAA] 11.3.3.3
-    ## For center line ##
+    ## For central line ##
     xi   = x
     eta  = y
     ic(xi, eta)
@@ -323,10 +357,12 @@ def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float, float, f
     M_2 = (L1 - L2) / (L1 + L2)      # magnitude at central line = moon/sun size ratio
     ic(L1, L2, M_2)
 
+    # [ESAA] 11.3.5.5
+    # Central line, duration of central eclipse, and width of path
     # Duration
     x_dot    = x_p
     y_dot    = y_p
-    d_dot    = np.deg2rad(d_p)
+    d_dot    = np.deg2rad(d_p)                                  # d, mu are in degree
     mu_dot   = np.deg2rad(mu_p)
     xi_dot   = mu_dot * ( -y*sin(d) + zeta*cos(d) )             # (11.99)
     eta_dot  = mu_dot * x * sin(d) - d_dot * zeta
@@ -461,6 +497,14 @@ def sun_alt(t: Time, loc: EarthLocation) -> Angle:
 
 
 def central_line(delta_t: float) -> None:
+    """
+    List and plot coordinates of central line
+
+    Parameters
+    ----------
+    delta_t : float
+        Delta T in s
+    """
     message("===================================================================================")
     message("Time (UT1)               longitude      latitude      magnitude  duration  width   ")
     message("-----------------------  -------------  ------------  ---------  --------  --------")
