@@ -56,13 +56,18 @@ from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.coordinates import Angle
 from astropy.coordinates import errors
 from astropy.time        import Time, TimeDelta
+from astropy.units       import Quantity
 import astropy.units as unit
 import astropy.constants as const
-import numpy as np
-from numpy.polynomial import Polynomial
-
 from astropy.coordinates import solar_system_ephemeris
 from astropy.coordinates import get_sun
+
+import numpy as np
+from numpy.polynomial    import Polynomial
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
+
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -139,6 +144,7 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 # µ      - Hour angle of the Moon's shadow axis on the celestial sphere
 # f1, f2 - Angles of the penumbral and umbral/antumbral shadow cones with respect to the axis of the lunar shadow
 
+eclipse_name = "TSE 12 Aug 2026"
 bessel_T0    = 18
 time_T0      = Time("2026-08-12 18:00:00", scale="tt")
 
@@ -496,7 +502,7 @@ def sun_alt(t: Time, loc: EarthLocation) -> Angle:
 
 
 
-def central_line(delta_t: float) -> None:
+def central_line(delta_t: float, plot: bool=False) -> None:
     """
     List and plot coordinates of central line
 
@@ -509,6 +515,10 @@ def central_line(delta_t: float) -> None:
     message("Time (UT1)               longitude      latitude      magnitude  duration  width   ")
     message("-----------------------  -------------  ------------  ---------  --------  --------")
 
+    lons = []
+    lats = []
+    times = []
+
     ##TEST##
     # t_range = [0]
 
@@ -520,10 +530,71 @@ def central_line(delta_t: float) -> None:
         lon, lat, M_2, duration, width = fundamental_plane2(t, delta_t)
         if lon != None:
             message(f"{time_ut1}  {lon:9.4f}  {lat:8.4f}  {M_2:.5f}    {duration:5.1f}   {width:5.1f}")
+            times.append(time_ut1)
+            lons.append(lon.value)
+            lats.append(lat.value)
+
+    if plot:
+        ic(lons, lats)
+        plot_path(times, lons, lats)
 
 
 
-def bessel3(delta_t: float, loc: EarthLocation) -> None:
+def plot_path(times: list[Time], lons: list[Quantity], lats: list[Quantity]) -> None:
+    """
+    Plot eclipse path on the Earth
+
+    Parameters
+    ----------
+    times : list[Time]
+        Time labels
+    lons : list[Quantity]
+        Longitude coordinates
+    lats : list[Quantity]
+        Latitude coordinates
+    """
+    verbose("plotting eclipse central line")
+    fig = plt.figure(figsize=(10, 10), dpi=300)
+    ax  = fig.add_subplot()
+
+    c_lon = lons[len(lons) // 2]
+    c_lat = lats[len(lats) // 2]
+
+    # lon_0, lat_0 are the center point of the projection.
+    map = Basemap(projection='ortho', lon_0=c_lon, lat_0=c_lat, ax=ax)
+    # map.drawcoastlines()
+    map.fillcontinents(color="wheat", lake_color="lightblue")
+
+    # Draw parallels and meridians.
+    map.drawparallels(np.linspace(-60, 60, 5))
+    map.drawmeridians(np.linspace(-180, 150, 12))
+    map.drawmapboundary(fill_color="lightblue")
+    map.drawcountries()
+
+    ax.set_title(eclipse_name, fontsize=20)
+    # plt.title(eclipse_name)
+
+    # Plot eclipse path
+    x, y = map(lons, lats)
+    map.plot(x, y, color="red", linewidth=5)
+
+    # Add time annotations
+    format = "%H:%M UT1"
+    t = times[0]
+    lon = lons[0]
+    lat = lats[0]
+    plt.annotate(t.strftime(format), xy=map(lon, lat), ha="center", va="center", color="black", fontsize=10)
+    t = times[-1]
+    lon = lons[-1]
+    lat = lats[-1]
+    plt.annotate(t.strftime(format), xy=map(lon, lat), ha="center", va="center", color="black", fontsize=10)
+
+    plt.savefig("tmp/plot.png", bbox_inches="tight")
+    plt.close()
+
+
+
+def local_circumstances(delta_t: float, loc: EarthLocation) -> None:
     """
     Compute local circumstances at location
 
@@ -663,10 +734,10 @@ def main():
 
     if args.central_line:
         # List coordinates for central line
-        central_line(delta_t.value)
+        central_line(delta_t.value, args.plot)
     else:
         # Run calculation for local circumstances
-        bessel3(delta_t.value, loc)
+        local_circumstances(delta_t.value, loc)
 
 
 if __name__ == "__main__":
