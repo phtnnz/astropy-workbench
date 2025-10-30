@@ -30,7 +30,8 @@
 # Version 0.5 / 2025-10-27
 #       Started to include calculation for central line
 # Version 0.6 / 2025-10-30
-#       Added duration and width for central line
+#       Added duration and width for central line, new options -C --central-line,
+#       -P --plot, changed -0 --positive-mag-only to -p
 #
 # See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
 # Chapter 11 - Eclipses of the Sun and Moon
@@ -459,9 +460,9 @@ def sun_alt(t: Time, loc: EarthLocation) -> Angle:
 
 
 
-def bessel2(delta_t: float) -> None:
+def central_line(delta_t: float) -> None:
     message("===================================================================================")
-    message("Time (UT1)               lon            lat           magnitude  duration  width   ")
+    message("Time (UT1)               longitude      latitude      magnitude  duration  width   ")
     message("-----------------------  -------------  ------------  ---------  --------  --------")
 
     ##TEST##
@@ -543,7 +544,7 @@ def bessel3(delta_t: float, loc: EarthLocation) -> None:
             M_1, M_2, Q, V = mag_and_pos_angle(u, v, L1, L2, xi, eta)
             if M_1 >= 0 or not Options.pos_mag:
                 alt = sun_alt(time_ut1, loc).degree
-                message(f"{time_ut1}  {M_1*100:5.1f}%    {V:4.0f}°   {Q:4.0f}°  {alt:5.1f}°")
+                message(f"{time_ut1}  {M_1*100:5.1f}%    {V:4.0f}°  {Q:4.0f}°  {alt:5.1f}°")
 
 
 
@@ -558,8 +559,10 @@ def main():
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
 
+    arg.add_argument("-C", "--central-line", action="store_true", help="list coordinates of central line")
+    arg.add_argument("-P", "--plot", action="store_true", help="plot central line")
     arg.add_argument("-L", "--list", action="store_true", help="list time and magnitude centered around MAX")
-    arg.add_argument("-0", "--positive-mag-only", action="store_true", help="list positive magnitude only")
+    arg.add_argument("-p", "--positive-mag-only", action="store_true", help="list positive magnitude only")
     arg.add_argument("-T", "--totality", action="store_true", help="list with higher time resolution around MAX")
     arg.add_argument("-t", "--time", help=f"time (UT1), default T0={time_T0.ut1}")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
@@ -614,9 +617,12 @@ def main():
     verbose(f"time {time} (UT1), {time.tt} (TT), Delta T={delta_t:.2f}")
     verbose(f"time T0 {time_T0} (TT), {time_T0.ut1} (UT1)")
 
-    # Run calculation for local circumstances
-    bessel3(delta_t.value, loc)
-    bessel2(delta_t.value)
+    if args.central_line:
+        # List coordinates for central line
+        central_line(delta_t.value)
+    else:
+        # Run calculation for local circumstances
+        bessel3(delta_t.value, loc)
 
 
 if __name__ == "__main__":
