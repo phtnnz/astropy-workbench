@@ -1031,7 +1031,9 @@ def main():
         verbose.enable()
 
     Options.csv    = args.csv
-    Options.output = args.output
+    ##FIXME: config for output directories, ditto downloads
+    Options.output = args.output or f"tmp/{prefix}-neocp-plan.csv"
+    
     if args.mag_limit:
         config.mag_limit = float(args.mag_limit)
     if args.location:
@@ -1099,7 +1101,7 @@ def main():
     # Plot objects and Moon
     if args.plot:
         verbose("altitude and sky plot for objects")
-        plot_objects(ephemerides, objects, "neocp-plot.png")
+        plot_objects(ephemerides, objects, f"{prefix}-neocp-plot.png")
 
 
 
