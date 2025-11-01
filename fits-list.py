@@ -68,7 +68,7 @@ def process_fits(file: str):
         if ic.enabled:
             hdul.info()
         elif verbose.enabled:
-            verbose(f"FITS file {file}")
+            verbose(f"FITS file {os.path.basename(file)}")
         hdr = hdul[0].header
         ic(list(hdr.keys()))
 
