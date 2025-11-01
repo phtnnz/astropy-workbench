@@ -40,6 +40,7 @@ AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
 import sys
+import os
 import argparse
 import csv
 import re
@@ -97,13 +98,6 @@ EXP_TIMES = config.exposure_times
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-URL_NEOCP_QUERY = config.url_neocp_query
-LOCAL_EPH       = config.local_eph
-URL_NEOCP_LIST  = config.url_neocp_list
-LOCAL_NEOCP     = config.local_neocp
-URL_PCCP_LIST   = config.url_pccp_list
-LOCAL_PCCP      = config.local_pccp
-DOWNLOADS       = config.downloads
 
 
 # Command line options
@@ -279,7 +273,7 @@ def plot_objects(ephemerides: dict, objects: list, filename: str) -> None:
     # plt.legend(bbox_to_anchor=(1.32, 1.15))
 
     plt.subplots_adjust(wspace=0.3)
-    plt.savefig(f"tmp/{filename}", bbox_inches="tight")
+    plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
 
@@ -1031,8 +1025,7 @@ def main():
         verbose.enable()
 
     Options.csv    = args.csv
-    ##FIXME: config for output directories, ditto downloads
-    Options.output = args.output or f"tmp/{prefix}-neocp-plan.csv"
+    Options.output = args.output or os.path.join(config.downloads, f"{prefix}-neocp-plan.csv")
     
     if args.mag_limit:
         config.mag_limit = float(args.mag_limit)
@@ -1056,18 +1049,18 @@ def main():
         if args.update_neocp:
             error("don't use --prefix with --update-neocp")
 
-    local_eph   = DOWNLOADS + prefix + "-" + LOCAL_EPH
-    local_neocp = DOWNLOADS + prefix + "-" + LOCAL_NEOCP
-    local_pccp  = DOWNLOADS + prefix + "-" + LOCAL_PCCP
+    local_eph   = os.path.join(config.downloads, f"{prefix}-{config.local_eph}")
+    local_neocp = os.path.join(config.downloads, f"{prefix}-{config.local_neocp}")
+    local_pccp  = os.path.join(config.downloads, f"{prefix}-{config.local_pccp}")
     ic(prefix, local_eph, local_neocp, local_pccp)
 
     if args.update_neocp:
-        verbose(f"download ephemerides from {URL_NEOCP_QUERY}")
-        mpc_query_ephemerides(URL_NEOCP_QUERY, local_eph)
-        verbose(f"download NEOCP list from {URL_NEOCP_LIST}")
-        mpc_query_list(URL_NEOCP_LIST, local_neocp)
-        verbose(f"download PCCP list from {URL_PCCP_LIST}")
-        mpc_query_list(URL_PCCP_LIST, local_pccp)
+        verbose(f"download ephemerides from {config.url_neocp_query}")
+        mpc_query_ephemerides(config.url_neocp_query, local_eph)
+        verbose(f"download NEOCP list from {config.url_neocp_list}")
+        mpc_query_list(config.url_neocp_list, local_neocp)
+        verbose(f"download PCCP list from {config.url_pccp_list}")
+        mpc_query_list(config.url_pccp_list, local_pccp)
 
     try:
     # Parse ephemerides
@@ -1101,7 +1094,8 @@ def main():
     # Plot objects and Moon
     if args.plot:
         verbose("altitude and sky plot for objects")
-        plot_objects(ephemerides, objects, f"{prefix}-neocp-plot.png")
+        plot_objects(ephemerides, objects, os.path.join(config.downloads,
+                                                        f"{prefix}-neocp-plot.png") )
 
 
 
