@@ -14,5 +14,5 @@ Calculation / planning by neocp.py script
 Moonlight, moon distance 55 degrees  
 60 x 2 s = 120 s = 45 % of calculated exposure time  
 Tycho: limiting mag 15.4, stack limiting mag 16.9  
-Object found, LogSNR 0.72-0.87, measured mag 17.5
+Object found, LogSNR 0.72-0.87, measured mag 17.5, predicted mag 18.1
 
