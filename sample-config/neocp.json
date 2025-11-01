@@ -1,7 +1,7 @@
 {
     "##1": "Config for NEOCP planning",
     "requests_timeout":         60,
-    "exposure_times":           [ 5, 10, 15, 20, 30, 45, 60 ],
+    "exposure_times":           [ 2, 5, 10, 15, 20, 30, 45, 60 ],
 
     "url_neocp_query":          "https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi",
     "local_eph":                "NEOCP-ephemerides.html",
@@ -9,7 +9,7 @@
     "local_neocp":              "NEOCP-list.txt",
     "url_pccp_list":            "https://minorplanetcenter.net/iau/NEO/pccp.txt",
     "local_pccp":               "PCCP-list.txt",
-    "downloads":                "./downloads/",
+    "downloads":                "neocp-data",
     "code":                     "M49",
 
     "mag_limit":                20.5,
@@ -24,7 +24,7 @@
     "safety_margin":            150,
 
     "min_n_obs":                4,
-    "max_notseen":              3,
+    "max_notseen":              4,
     "opt_alt":                  50,
     "min_n_exp":                15,
     "max_n_exp":                60,

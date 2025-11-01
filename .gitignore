@@ -1,9 +1,8 @@
-/activate.bat
-/create-venv.bat
-/tmp
-/venv
 *.code-workspace
-__pycache__
+__pycache__/
+tmp/
+venv/
 .config/
 references/
 downloads/
+neocp-data/
