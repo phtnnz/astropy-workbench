@@ -554,10 +554,10 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
     verbose("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris   / end ephemeris                  Max motion")
-    verbose("                                                    Time before            / after meridian")
+    verbose("                                                    Time before            / after meridian              Moon distance")
     verbose("                                                    Time start exposure    / end exposure")
-    verbose("                                                    # x Exp   = total exposure time")
-    verbose("                                                    RA, DEC")
+    verbose("                                                    # x Exp = total exposure time")
+    verbose("                                                    RA, DEC, Alt, Az")
 
     csv_row = None
     csv_rows = []
@@ -683,7 +683,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ra, dec = row["ra"], row["dec"]
         alt, az = row["alt"], row["az"]
 
-        verbose(f"                                                    {time_before}/{time_after}")
+        verbose(f"                                                    {time_before}/{time_after}             {moon_dist:.0f}")
         verbose(f"                                                    {time_start_exp}/{time_end_exp}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
         verbose(f"                                                    {total}")
@@ -737,6 +737,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
             warning("no objects, no CSV output")
 
     # Return list of planned objects
+    verbose("----------------------------------------------------------------------------------------------------------------------")
     verbose(f"{len(objects)} object(s) planned: {" ".join(objects)}")
     return objects
 
