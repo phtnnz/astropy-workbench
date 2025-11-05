@@ -32,12 +32,14 @@
 # Version 0.6 / 2025-10-30
 #       Added duration and width for central line, new options -C --central-line,
 #       -P --plot, changed -0 --positive-mag-only to -p
+# Version 0.7 / 2025-11-05
+#       Added output of greatest eclipse (for -C --central-line)
 #
 # See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
 # Chapter 11 - Eclipses of the Sun and Moon
 
 
-VERSION     = "0.6 / 2024-10-30"
+VERSION     = "0.7 / 2024-11-05"
 AUTHOR      = "Martin Junius"
 NAME        = "bessel3"
 DESCRIPTION = "Solar eclipse local circumstances and central line"
@@ -68,6 +70,8 @@ from numpy.polynomial    import Polynomial
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 
+# SciPy
+from scipy import optimize
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -135,6 +139,7 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 
 # Besselian elements for TSE 12 Aug 2026 from
 # https://eclipse.gsfc.nasa.gov/SEsearch/SEdata.php?Ecl=20260812
+# https://eclipsewise.com/solar/SEprime/2001-2100/SE2026Aug12Tprime.html
 #
 # x, y   - Cartesian coordinates of the lunar shadow axis in the Fundamental Plane 
 #          (in units of Earth's equatorial radius)
@@ -258,6 +263,47 @@ def fundamental_plane(t: float, rho_sin_phi: float, rho_cos_phi: float, longitud
 
 
 
+def fundamental_plane_xy(t: float) -> float:
+    """
+    Compute distance of (x, y) from earth center
+
+    Parameters
+    ----------
+    t : float
+        Time in hours relative to T0
+
+    Returns
+    -------
+    float
+        Distance of (x, y)
+    """
+    x    = bessel_x(t)
+    y    = bessel_y(t)
+
+    return sqrt(sq(x) + sq(y))
+
+
+
+def find_greatest_eclipse() -> float:
+    """
+    Compute time of greatest eclipse
+
+    Returns
+    -------
+    float
+        Time of greatest eclipse relative to T0 in hours
+    """
+    # Find mininum of (x, y) distance, which is greatest eclipse
+    func    = lambda x: fundamental_plane_xy(x[0])
+    # +/- 1 hour around T0
+    sol_max = optimize.minimize(func, x0=(0), bounds=[(-1, 1)])
+    t_max  = sol_max.x[0]
+    ic(sol_max, t_max)
+
+    return t_max
+
+
+
 def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
     """
     Find angle in one of the four quadrants
@@ -282,7 +328,7 @@ def solve_quadrant(sin_theta: float, cos_theta: float) -> float:
 
 
 
-def fundamental_plane2(t: float, delta_t: float) -> Tuple[float, float, float, float, float]:
+def fundamental_plane2(t: float, delta_t: float) -> Tuple[Quantity, Quantity, Quantity, Quantity, Quantity]:
     """
     Calculation for central line on fundamental plane
 
@@ -534,6 +580,14 @@ def central_line(delta_t: float, plot: bool=False) -> None:
             lons.append(lon.value)
             lats.append(lat.value)
 
+    # Greatest eclipse
+    t_max = find_greatest_eclipse()
+    lon, lat, M_2, duration, width = fundamental_plane2(t_max, delta_t)
+    time_tt  = time_T0 + t_max * unit.hour
+    time_ut1 = time_tt.ut1
+    message("----- greatest eclipse ------------------------------------------------------------")
+    message(f"{time_ut1}  {lon:9.4f}  {lat:8.4f}  {M_2:.5f}    {duration:5.1f}   {width:5.1f}")
+    
     if plot:
         ic(lons, lats)
         plot_path(times, lons, lats)
@@ -738,6 +792,7 @@ def main():
     else:
         # Run calculation for local circumstances
         local_circumstances(delta_t.value, loc)
+
 
 
 if __name__ == "__main__":
