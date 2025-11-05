@@ -128,14 +128,16 @@ def test_tse2026() -> Tuple[EarthLocation, Time]:
 
 
 
-# A major part of the following code ist originally by Uwe Pilz
+# Part of the following code ist originally by Uwe Pilz
 # VdS-Journal 95: Lokaler Verlauf einer Finsternis
 # https://fg-astrophysik.vdsastro.de/prg95
-# (no license provided)
-# Heavily modified and using numpy, astropy
+# (No license provided)
 #
 # sofiBessel3 : lokaler Verlauf einer Sonnenfinsternis
 # ohne Berücksichtigung der lokalen Sonnenhöhe
+#
+# Heavily modified and using numpy, astropy
+
 
 # Besselian elements for TSE 12 Aug 2026 from
 # https://eclipse.gsfc.nasa.gov/SEsearch/SEdata.php?Ecl=20260812
