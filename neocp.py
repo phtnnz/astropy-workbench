@@ -316,7 +316,7 @@ def exp_time_from_motion(motion: Quantity) -> Quantity:
     #            ^ pixels                 ^ arcsec/pixel          ^ arcsec/min
     exp = exp.to(u.s).value
     exp_min = EXP_TIMES[0]
-    if exp < exp_min:
+    if exp < 0.9 * exp_min: # allow a bit of tolerance
         return None
     for exp1 in EXP_TIMES:
         if exp1 > exp:
