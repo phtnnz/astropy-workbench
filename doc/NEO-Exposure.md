@@ -1,6 +1,6 @@
 # Some results regarding NEO exposure times
 
-Location: M49, Hakos, Namibia - Bortle 0 skies
+Location: M49, Hakos, Namibia - Bortle 1 skies
 
 Telescope: 12" f/4 Newton
 
