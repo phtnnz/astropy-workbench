@@ -23,3 +23,15 @@ Moonlight, moon distance 78 deg
 Tycho: limiting mag 15.7, stack limiting mag 17.1, predicted mag 18.2  
 Object not in FOV
 
+## 2025-11-09
+
+Rising moon, moon distance 63 deg  
+60 x 5 s = 300 s = 55 %  
+Tycho: limiting mag 17.3, stack limiting mag 18.3  
+Object found, LogSNR 0.91-1.01, measured mag 18.2-18.6, predicted mag 18.9
+
+Rising moon, moon distance 56 deg  
+60 x 2 s = 120 s = 60 %  
+Tycho: limiting mag 16.3, stack limiting mag 17.3  
+Object found, LogSNR 1.01-1.05, measured mag 16.9-17.0
+
