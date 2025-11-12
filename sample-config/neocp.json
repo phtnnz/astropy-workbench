@@ -23,6 +23,9 @@
     "dead_time_guiding":        30,
     "safety_margin":            150,
 
+    "base_exp":                 240,
+    "base_mag":                 18,
+    
     "min_n_obs":                4,
     "max_notseen":              4,
     "opt_alt":                  50,

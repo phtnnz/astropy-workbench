@@ -591,10 +591,10 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         min_n_exp = config.min_n_exp
         max_n_exp = config.max_n_exp
 
-        rel_brightness = 10 ** (0.4 * (mag.value - 18))
-        total_exp = 4 * u.min * rel_brightness      # Total exposure
-        n_exp = int(total_exp / exp) + 1            # Number of exposures
-        perc_of_required = 100.                     # Percentage actual / total exposure
+        rel_brightness = 10 ** (0.4 * (mag.value - config.base_mag))
+        total_exp = config.base_exp * u.s * rel_brightness  # Total exposure
+        n_exp = int(total_exp / exp) + 1                    # Number of exposures
+        perc_of_required = 100.                             # Percentage actual / total exposure
         if n_exp < min_n_exp:
             perc_of_required = min_n_exp / n_exp * 100
             n_exp = min_n_exp
@@ -604,7 +604,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         total_exp = (n_exp * exp).to(u.min)
         total_time = (  total_exp 
                       + config.dead_time_slew_center * u.s 
-                      + config.dead_time_slew_center * u.s
+                      + config.dead_time_af * u.s
                       + config.dead_time_guiding * u.s  
                       + config.safety_margin * u.s
                       + n_exp * config.dead_time_image * u.s )
