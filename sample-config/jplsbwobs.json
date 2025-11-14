@@ -1,0 +1,16 @@
+{
+    "##1": "Config for JPL What's Observable?",
+    "requests_timeout":         60,
+
+    "sbwobs_url":   "https://ssd-api.jpl.nasa.gov/sbwobs.api",
+
+    "mpc_code":     "M49",
+    "elev_min":     30,
+    "vmag_max":     20.5,
+    "output_sort":  "vmag",
+
+    "sb_ns":        "u",
+    "sb_kind":      "a",
+    "sb_group":     "neo"
+
+}
