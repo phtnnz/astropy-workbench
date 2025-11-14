@@ -25,8 +25,8 @@ DESCRIPTION = "Retrieve JPL What's Observable"
 
 import sys
 import argparse
-import re
 import requests
+import json
 from typing import Tuple, Any
 
 # The following libs must be installed with pip
@@ -102,6 +102,59 @@ def jpl_query_sbwobs(url: str, filename: str) -> None:
 
 
 
+def jpl_parse_sbwobs(text: str, filename: str) -> dict:
+    """
+    Parse JSON retrieve from JPL What's Observable
+
+    Parameters
+    ----------
+    text : str
+        String to load JSON from
+    filename : str
+        File name to load JSON from
+
+    Returns
+    -------
+    dict
+        Parsed dictionary, key is object designation
+    """
+    if text:
+        obj = json.loads(text)
+    else:
+        with open(filename) as file:
+            obj = json.load(file)
+    
+    ic(obj.keys())
+    # Top-level keys: 'signature', 'obs_constraints', 'sb_constraints', 'location', 
+    # 'fields', 'sort_by', 'data', 'total_objects', 'shown_objects'
+    fields = obj.get("fields") or error(f"can't get fields list")
+    data   = obj.get("data")   or error(f"can't get data list")
+    ic(fields)
+    # 'Designation'             object name
+    # 'Full name'               full name
+    # 'Rise time'               HH:MM rise time > min-elev
+    # 'Transit time'            HH:MM transit time
+    # 'Set time'                HH:MM set time < min elev
+    # 'Max. time observable'    HH:MM observable time    
+    # 'R.A.'                    RA (deviates from ephemeris!)
+    # 'Dec.'                    DEC (")
+    # 'Vmag'                    V magnitude
+    # 'Helio. range (au)'
+    # 'Topo.range (au)'
+    # 'Object-Observer-Sun (deg)'
+    # 'Object-Observer-Moon (deg)'
+    # 'Galactic latitude (deg)'
+    objects = {}
+    for d in data:
+        # Convert to dictionary
+        object1 = { field: d[idx] for idx, field in enumerate(fields) }
+        designation = object1.get("Designation")
+        ic(designation, object1)
+        objects[designation] = object1
+    return objects
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -120,7 +173,8 @@ def main():
         verbose.enable()
 
     ##TEST##
-    jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
+    # jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
+    jpl_parse_sbwobs(None, "tmp/sbwobs.json")
 
 
 if __name__ == "__main__":
