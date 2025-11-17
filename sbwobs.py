@@ -216,8 +216,9 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
             continue
         ic(m)
         txt_line = m.group(1)
-        ic(txt_line)
+        # print(txt_line)
 
+##FIXME: move the following part of the parsing to a separate function
 ##DLU
 #         2025 WA             Amo   1.3/+16/18.3/147/07.42  *2025 Nov. 16  C23  17.8 c  7    1  2.50 0.60   5
 #         2025 VD6            Amo   3.1/+30/20.3/168/04.63  *2025 Nov. 16  958  19.7 G  8    3  1.69 0.40  18
@@ -244,9 +245,30 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
             # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
 
 ##DLN
+#         2025 WA             Amo   1.3/+16/18.3 /147/07.42  2025 Nov. 16  C23  17.8 c  7    1   6.4/+01/18.3/141/08.40   9.1/-08/22.2/121/00.19   8.9/-04/23.3/151/00.30
+#         ^9                  ^29  ^34                   58^ ^60           ^74  ^79     ^87^90  ^95
         if list_type == "DLN":
-            error("list=DLN not yet implemented!")
+            # Fix one char shift if "Motn" is 3 digits
+            if txt_line[58:60] != "  ":
+                if txt_line[59:61] == "  ":
+                    txt_line = txt_line[:59] + txt_line[60:]
+                else:
+                    warning("bad format in data line")
+                    warning(txt_line)
+            ic(line)
+            designation = txt_line[ 9:27].strip()
+            type        = txt_line[29:32]
+            currently   = txt_line[34:59].strip()
+            marker      = ""
+            last_obs    = txt_line[60:72]
+            code        = txt_line[74:77]
+            mag         = txt_line[79:84].strip()
+            filter      = txt_line[84:85].strip()
+            uncertainty = txt_line[87:88]
+            arc         = txt_line[90:93].strip()
+            # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
 
+##Common
         ra, dec, mag1, elongation, motion = currently.split("/")
         # ic(ra, dec, mag1, elongation, motion)
         object1 = {"Designation":   designation,
@@ -360,7 +382,10 @@ def main():
     # jpl_parse_sbwobs(None, "tmp/sbwobs.json")
 
     # mpc_query_customize(config.customize_url, "tmp/sbwobs.html", "DLU")   # "DLN" | "DLU"
-    mpc_parse_customize(None, "tmp/sbwobs.html", "DLU")
+    # mpc_parse_customize(None, "tmp/sbwobs.html", "DLU")
+
+    mpc_query_customize(config.customize_url, "tmp/sbwobs.html", "DLN")   # "DLN" | "DLU"
+    mpc_parse_customize(None, "tmp/sbwobs.html", "DLN")
 
     # mpc_query_lastobs(config.lastobs_url, "tmp/sbwobs.txt")
     # mpc_parse_lastobs(None, "tmp/sbwobs.txt")
