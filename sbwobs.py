@@ -27,6 +27,7 @@ import sys
 import argparse
 import requests
 import json
+import re
 from typing import Tuple, Any
 
 # The following libs must be installed with pip
@@ -155,6 +156,113 @@ def jpl_parse_sbwobs(text: str, filename: str) -> dict:
 
 
 
+def mpc_query_oolc(url: str, filename: str, list: str) -> None:
+    ic(url, filename)
+
+    timeout = config.requests_timeout
+
+    data = { 
+        "ra1":          "00 00",                    # RA limits
+        "ra2":          "24 00",
+        "dec1":         f"{config.min_dec:+02d} 00",# DEC limits
+        "dec2":         f"{config.max_dec:+02d} 00",
+        "elong1":       60,                         # Elongation limits
+        "elong2":       180,
+        "mag1":         0,                          # V mag limits
+        "mag2":         config.vmag_max,
+        "to":           1,                          # Single-opposition unnumbered objects
+        "wh":           list
+        # Valid list types:
+        # *DLN   Dates Of Last Observation Of NEOs
+        #  DLNR  Dates Of Last Observation Of NEOs (R.A. order)
+        #  BNR   Bright NEO Recovery Opportunities
+        #  FNR   Faint NEO Recovery Opportunities
+        # *DLU   Dates Of Last Observation Of Unusual Minor Planets
+        #  DLD   Dates Of Last Observation Of Distant Objects
+        #  DLDR  Dates Of Last Observation Of Distant Objects (R.A. order)
+        # * = used with this script
+    }
+
+    ic(url, data)
+    response = requests.get(url, params=data, timeout=timeout)
+    ic(response.status_code)
+    if response.status_code != 200:
+        error(f"query to {url} failed")
+
+    with open(filename, mode="w", encoding=response.encoding) as file:
+        file.write(response.text)
+
+
+
+def mpc_query_lastobs(url: str, filename: str) -> None:
+    ic(url, filename)
+
+    timeout = config.requests_timeout
+
+    ic(url)
+    response = requests.get(url, timeout=timeout)
+    ic(response.status_code)
+    if response.status_code != 200:
+        error(f"query to {url} failed")
+
+    with open(filename, mode="w", encoding=response.encoding) as file:
+        file.write(response.text)
+
+
+
+def mpc_parse_lastobs(content: str, filename: str) -> dict:
+    if not content:
+        with open(filename) as file:
+            content = file.read()
+
+#  Designation                         Currently              Last obs.  Code   Mag.   U  Arc      Currently + 7d           Currently + 30d          Currently + 60 d
+#                                   R.A./Dec/  V /El./Motn                                       R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn
+# Sample:
+#         2025 WC             Apo   0.4/-47/16.6 /100/421.97  2025 Nov. 17  H21  18.0 G  5    1  16.2/+03/31.8/024/00.12  16.2/+01/32.3/032/00.26  16.9/-08/31.2/046/00.63
+#         2025 WA             Amo   1.2/+16/18.3 /147/07.21  2025 Nov. 16  C23  17.8 c  7    1   6.3/+02/18.2/142/08.64   9.1/-08/22.2/121/00.19   8.9/-04/23.3/151/00.30
+#         ^9                  ^29  ^34                   58^ ^60           ^74  ^79     ^87^90  ^95
+
+    objects = {}
+    for line in content.splitlines():
+        # Fix one char shift if "Motn" is 3 digits
+        if line[58:60] != "  ":
+            if line[59:61] == "  ":
+                line = line[:59] + line[60:]
+            else:
+                warning("bad format in data line")
+                warning(line)
+        ic(line)
+        designation = line[ 9:27].strip()
+        type        = line[29:32]
+        currently   = line[34:59].strip()
+        last_obs    = line[60:72]
+        code        = line[74:77]
+        mag         = line[79:84].strip()
+        filter      = line[84:85].strip()
+        uncertainty = line[87:88]
+        arc         = line[90:93].strip()
+        # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
+        ra, dec, mag1, elongation, motion = currently.split("/")
+        # ic(ra, dec, mag1, elongation, motion)
+        object1 = {"Designation":   designation,
+                   "Type":          type,
+                   "RA":            float(ra),
+                   "DEC":           float(dec),
+                   "VMag":          float(mag1),
+                   "Elongation":    float(elongation),
+                   "Motion":        float(motion),
+                   "Last OBS":      last_obs,
+                   "MPC Code":      code,
+                   "Last mag":      float(mag) if mag else "",
+                   "Filter":        filter,
+                   "Uncertainty":   uncertainty,
+                   "Arc":           float(arc)
+                   }
+        ic(object1)
+        objects[designation] = object1
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -174,7 +282,11 @@ def main():
 
     ##TEST##
     # jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
-    jpl_parse_sbwobs(None, "tmp/sbwobs.json")
+    # jpl_parse_sbwobs(None, "tmp/sbwobs.json")
+    ## mpc_query_oolc(config.oolc_url, "tmp/sbwobs.html", "DLN")   # "DLN" | "DLU"
+    # mpc_query_lastobs(config.lastobs_url, "tmp/sbwobs.txt")
+    mpc_parse_lastobs(None, "tmp/sbwobs.txt")
+
 
 
 if __name__ == "__main__":
