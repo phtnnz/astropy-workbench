@@ -20,7 +20,7 @@
 
 VERSION     = "0.0 / 2025-11-14"
 AUTHOR      = "Martin Junius"
-NAME        = "jplsbwobs"
+NAME        = "sbwobs"
 DESCRIPTION = "Retrieve JPL What's Observable"
 
 import sys
@@ -50,7 +50,7 @@ from jsonconfig import JSONConfig, config
 
 DEFAULT_LOCATION = "M49"
 
-CONFIGFILE = "jplsbwobs.json"
+CONFIGFILE = "sbwobs.json"
 config = JSONConfig(CONFIGFILE)
 config.set_error_on_missing()
 
