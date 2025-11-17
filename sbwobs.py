@@ -156,7 +156,7 @@ def jpl_parse_sbwobs(text: str, filename: str) -> dict:
 
 
 
-def mpc_query_oolc(url: str, filename: str, list: str) -> None:
+def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
     ic(url, filename)
 
     timeout = config.requests_timeout
@@ -171,7 +171,7 @@ def mpc_query_oolc(url: str, filename: str, list: str) -> None:
         "mag1":         0,                          # V mag limits
         "mag2":         config.vmag_max,
         "to":           1,                          # Single-opposition unnumbered objects
-        "wh":           list
+        "wh":           list_type
         # Valid list types:
         # *DLN   Dates Of Last Observation Of NEOs
         #  DLNR  Dates Of Last Observation Of NEOs (R.A. order)
@@ -191,6 +191,81 @@ def mpc_query_oolc(url: str, filename: str, list: str) -> None:
 
     with open(filename, mode="w", encoding=response.encoding) as file:
         file.write(response.text)
+
+
+
+def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
+    if not content:
+        with open(filename) as file:
+            content = file.read()
+
+    objects = {}
+
+    in_unnumbered1 = False
+    for line in content.splitlines():
+        m = re.match(r'<h2>(.*)</h2>', line)
+        if m:
+            ic(m)
+            h2 = m.group(1)
+            in_unnumbered1 = True if h2 == "One-Opposition Unnumbered Objects" else False
+            continue
+        if not in_unnumbered1:
+            continue
+        m = re.match(r'<input type="checkbox" name="Obj" VALUE=".+">(.*)$', line)
+        if not m:
+            continue
+        ic(m)
+        txt_line = m.group(1)
+        ic(txt_line)
+
+##DLU
+#         2025 WA             Amo   1.3/+16/18.3/147/07.42  *2025 Nov. 16  C23  17.8 c  7    1  2.50 0.60   5
+#         2025 VD6            Amo   3.1/+30/20.3/168/04.63  *2025 Nov. 16  958  19.7 G  8    3  1.69 0.40  18
+#         ^9                  ^29  ^34                  57^ ^^60           ^74  ^79     ^87^90  ^95
+        if list_type == "DLU":
+            # Fix one char shift if "Motn" is 3 digits
+            if txt_line[57:59] != "  ":
+                if txt_line[58:60] == "  ":
+                    txt_line = txt_line[:58] + txt_line[59:]
+                else:
+                    warning("bad format in data txt_line")
+                    warning(txt_line)
+            ic(txt_line)
+            designation = txt_line[ 9:27].strip()
+            type        = txt_line[29:32]
+            currently   = txt_line[34:58].strip()
+            marker      = txt_line[59:60].strip()
+            last_obs    = txt_line[60:72]
+            code        = txt_line[74:77]
+            mag         = txt_line[79:84].strip()
+            filter      = txt_line[84:85].strip()
+            uncertainty = txt_line[87:88]
+            arc         = txt_line[90:93].strip()
+            # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
+
+##DLN
+        if list_type == "DLN":
+            error("list=DLN not yet implemented!")
+
+        ra, dec, mag1, elongation, motion = currently.split("/")
+        # ic(ra, dec, mag1, elongation, motion)
+        object1 = {"Designation":   designation,
+                   "Type":          type,
+                   "RA":            float(ra),
+                   "DEC":           float(dec),
+                   "VMag":          float(mag1) if mag1.strip() else "",
+                   "Elongation":    float(elongation),
+                   "Motion":        float(motion),
+                   "Marker":        marker,
+                   "Last OBS":      last_obs,
+                   "MPC Code":      code,
+                   "Last mag":      float(mag) if mag else "",
+                   "Filter":        filter,
+                   "Uncertainty":   uncertainty,
+                   "Arc":           float(arc)
+                   }
+        ic(object1)
+        objects[designation] = object1
 
 
 
@@ -283,9 +358,12 @@ def main():
     ##TEST##
     # jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
     # jpl_parse_sbwobs(None, "tmp/sbwobs.json")
-    ## mpc_query_oolc(config.oolc_url, "tmp/sbwobs.html", "DLN")   # "DLN" | "DLU"
+
+    # mpc_query_customize(config.customize_url, "tmp/sbwobs.html", "DLU")   # "DLN" | "DLU"
+    mpc_parse_customize(None, "tmp/sbwobs.html", "DLU")
+
     # mpc_query_lastobs(config.lastobs_url, "tmp/sbwobs.txt")
-    mpc_parse_lastobs(None, "tmp/sbwobs.txt")
+    # mpc_parse_lastobs(None, "tmp/sbwobs.txt")
 
 
 
