@@ -224,6 +224,9 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
         # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
 
 ##DLN
+#  Designation                         Currently              Last obs.  Code   Mag.   U  Arc      Currently + 7d           Currently + 30d          Currently + 60 d
+#                                   R.A./Dec/  V /El./Motn                                       R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn
+# Sample:
 #         2025 WA             Amo   1.3/+16/18.3 /147/07.42  2025 Nov. 16  C23  17.8 c  7    1   6.4/+01/18.3/141/08.40   9.1/-08/22.2/121/00.19   8.9/-04/23.3/151/00.30
 #         ^9                  ^29  ^34                   58^ ^60           ^74  ^79     ^87^90  ^95
     elif list_type == "DLN":
@@ -327,17 +330,18 @@ def mpc_parse_lastobs(content: str, filename: str) -> dict:
         with open(filename) as file:
             content = file.read()
 
-#  Designation                         Currently              Last obs.  Code   Mag.   U  Arc      Currently + 7d           Currently + 30d          Currently + 60 d
-#                                   R.A./Dec/  V /El./Motn                                       R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn
-# Sample:
-#         2025 WC             Apo   0.4/-47/16.6 /100/421.97  2025 Nov. 17  H21  18.0 G  5    1  16.2/+03/31.8/024/00.12  16.2/+01/32.3/032/00.26  16.9/-08/31.2/046/00.63
-#         2025 WA             Amo   1.2/+16/18.3 /147/07.21  2025 Nov. 16  C23  17.8 c  7    1   6.3/+02/18.2/142/08.64   9.1/-08/22.2/121/00.19   8.9/-04/23.3/151/00.30
-#         ^9                  ^29  ^34                   58^ ^60           ^74  ^79     ^87^90  ^95
-
     objects = {}
     for txt_line in content.splitlines():
         object1 = parse_txt_line(txt_line, "DLN")       # same format als customize/DLN
         if object1:
+            # Check mag limit
+            mag = object1.get("Last mag") or 99.99
+            if mag > config.vmag_max:
+                continue
+            # Check DEC limit
+            dec = object1.get("DEC") or 0.0
+            if dec < config.min_dec or dec > config.max_dec:
+                continue
             objects[ object1.get("Designation") ] = object1
 
     return objects
