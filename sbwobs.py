@@ -93,6 +93,7 @@ def jpl_query_sbwobs(url: str, filename: str) -> None:
     }
 
     ic(url, data)
+    verbose(f"query {url}")
     response = requests.get(url, params=data, timeout=timeout)
     ic(response.status_code)
     if response.status_code != 200:
@@ -184,6 +185,7 @@ def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
     }
 
     ic(url, data)
+    verbose(f"query {url}")
     response = requests.get(url, params=data, timeout=timeout)
     ic(response.status_code)
     if response.status_code != 200:
@@ -191,6 +193,83 @@ def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
 
     with open(filename, mode="w", encoding=response.encoding) as file:
         file.write(response.text)
+
+
+
+def parse_txt_line(txt_line: str, list_type: str) -> dict:
+    ic(txt_line)
+##DLU
+#         2025 WA             Amo   1.3/+16/18.3/147/07.42  *2025 Nov. 16  C23  17.8 c  7    1  2.50 0.60   5
+#         2025 VD6            Amo   3.1/+30/20.3/168/04.63  *2025 Nov. 16  958  19.7 G  8    3  1.69 0.40  18
+#         ^9                  ^29  ^34                  57^ ^^60           ^74  ^79     ^87^90  ^95
+    if list_type == "DLU":
+        # Fix one char shift if "Motn" is 3 digits
+        if txt_line[57:59] != "  ":
+            if txt_line[58:60] == "  ":
+                txt_line = txt_line[:58] + txt_line[59:]
+            else:
+                warning("bad format in data txt_line")
+                warning(txt_line)
+                return None
+        designation = txt_line[ 9:27].strip()
+        type        = txt_line[29:32]
+        currently   = txt_line[34:58].strip()
+        marker      = txt_line[59:60].strip()
+        last_obs    = txt_line[60:72]
+        code        = txt_line[74:77]
+        mag         = txt_line[79:84].strip()
+        filter      = txt_line[84:85].strip()
+        uncertainty = txt_line[87:88]
+        arc         = txt_line[90:93].strip()
+        # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
+
+##DLN
+#         2025 WA             Amo   1.3/+16/18.3 /147/07.42  2025 Nov. 16  C23  17.8 c  7    1   6.4/+01/18.3/141/08.40   9.1/-08/22.2/121/00.19   8.9/-04/23.3/151/00.30
+#         ^9                  ^29  ^34                   58^ ^60           ^74  ^79     ^87^90  ^95
+    elif list_type == "DLN":
+        # Fix one char shift if "Motn" is 3 digits
+        if txt_line[58:60] != "  ":
+            if txt_line[59:61] == "  ":
+                txt_line = txt_line[:59] + txt_line[60:]
+            else:
+                warning("bad format in data line")
+                warning(txt_line)
+                return None
+        designation = txt_line[ 9:27].strip()
+        type        = txt_line[29:32]
+        currently   = txt_line[34:59].strip()
+        marker      = ""
+        last_obs    = txt_line[60:72]
+        code        = txt_line[74:77]
+        mag         = txt_line[79:84].strip()
+        filter      = txt_line[84:85].strip()
+        uncertainty = txt_line[87:88]
+        arc         = txt_line[90:93].strip()
+        # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
+
+    else:
+        error(f"unknown list type {list_type}")
+
+##Common
+    ra, dec, mag1, elongation, motion = currently.split("/")
+    # ic(ra, dec, mag1, elongation, motion)
+    object  = { "Designation":   designation,
+                "Type":          type,
+                "RA":            float(ra),
+                "DEC":           float(dec),
+                "VMag":          float(mag1) if mag1.strip() else "",
+                "Elongation":    float(elongation),
+                "Motion":        float(motion),
+                "Marker":        marker,
+                "Last OBS":      last_obs,
+                "MPC Code":      code,
+                "Last mag":      float(mag) if mag else "",
+                "Filter":        filter,
+                "Uncertainty":   uncertainty,
+                "Arc":           float(arc)
+                }
+    ic(object)
+    return object
 
 
 
@@ -218,76 +297,11 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
         txt_line = m.group(1)
         # print(txt_line)
 
-##FIXME: move the following part of the parsing to a separate function
-##DLU
-#         2025 WA             Amo   1.3/+16/18.3/147/07.42  *2025 Nov. 16  C23  17.8 c  7    1  2.50 0.60   5
-#         2025 VD6            Amo   3.1/+30/20.3/168/04.63  *2025 Nov. 16  958  19.7 G  8    3  1.69 0.40  18
-#         ^9                  ^29  ^34                  57^ ^^60           ^74  ^79     ^87^90  ^95
-        if list_type == "DLU":
-            # Fix one char shift if "Motn" is 3 digits
-            if txt_line[57:59] != "  ":
-                if txt_line[58:60] == "  ":
-                    txt_line = txt_line[:58] + txt_line[59:]
-                else:
-                    warning("bad format in data txt_line")
-                    warning(txt_line)
-            ic(txt_line)
-            designation = txt_line[ 9:27].strip()
-            type        = txt_line[29:32]
-            currently   = txt_line[34:58].strip()
-            marker      = txt_line[59:60].strip()
-            last_obs    = txt_line[60:72]
-            code        = txt_line[74:77]
-            mag         = txt_line[79:84].strip()
-            filter      = txt_line[84:85].strip()
-            uncertainty = txt_line[87:88]
-            arc         = txt_line[90:93].strip()
-            # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
+        object1 = parse_txt_line(txt_line, list_type)
+        if object1:
+            objects[ object1.get("Designation") ] = object1
 
-##DLN
-#         2025 WA             Amo   1.3/+16/18.3 /147/07.42  2025 Nov. 16  C23  17.8 c  7    1   6.4/+01/18.3/141/08.40   9.1/-08/22.2/121/00.19   8.9/-04/23.3/151/00.30
-#         ^9                  ^29  ^34                   58^ ^60           ^74  ^79     ^87^90  ^95
-        if list_type == "DLN":
-            # Fix one char shift if "Motn" is 3 digits
-            if txt_line[58:60] != "  ":
-                if txt_line[59:61] == "  ":
-                    txt_line = txt_line[:59] + txt_line[60:]
-                else:
-                    warning("bad format in data line")
-                    warning(txt_line)
-            ic(line)
-            designation = txt_line[ 9:27].strip()
-            type        = txt_line[29:32]
-            currently   = txt_line[34:59].strip()
-            marker      = ""
-            last_obs    = txt_line[60:72]
-            code        = txt_line[74:77]
-            mag         = txt_line[79:84].strip()
-            filter      = txt_line[84:85].strip()
-            uncertainty = txt_line[87:88]
-            arc         = txt_line[90:93].strip()
-            # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
-
-##Common
-        ra, dec, mag1, elongation, motion = currently.split("/")
-        # ic(ra, dec, mag1, elongation, motion)
-        object1 = {"Designation":   designation,
-                   "Type":          type,
-                   "RA":            float(ra),
-                   "DEC":           float(dec),
-                   "VMag":          float(mag1) if mag1.strip() else "",
-                   "Elongation":    float(elongation),
-                   "Motion":        float(motion),
-                   "Marker":        marker,
-                   "Last OBS":      last_obs,
-                   "MPC Code":      code,
-                   "Last mag":      float(mag) if mag else "",
-                   "Filter":        filter,
-                   "Uncertainty":   uncertainty,
-                   "Arc":           float(arc)
-                   }
-        ic(object1)
-        objects[designation] = object1
+    return objects
 
 
 
@@ -297,6 +311,7 @@ def mpc_query_lastobs(url: str, filename: str) -> None:
     timeout = config.requests_timeout
 
     ic(url)
+    verbose(f"query {url}")
     response = requests.get(url, timeout=timeout)
     ic(response.status_code)
     if response.status_code != 200:
@@ -358,6 +373,8 @@ def mpc_parse_lastobs(content: str, filename: str) -> dict:
         ic(object1)
         objects[designation] = object1
 
+    return objects
+
 
 
 def main():
@@ -381,14 +398,21 @@ def main():
     # jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
     # jpl_parse_sbwobs(None, "tmp/sbwobs.json")
 
-    # mpc_query_customize(config.customize_url, "tmp/sbwobs.html", "DLU")   # "DLN" | "DLU"
-    # mpc_parse_customize(None, "tmp/sbwobs.html", "DLU")
+    # mpc_query_customize(config.customize_url, "tmp/dlu.html", "DLU")   # "DLN" | "DLU"
+    # objs2 = mpc_parse_customize(None, "tmp/dlu.html", "DLU")
+    # keys2 = sorted(objs2.keys())
+    # verbose(f"DLU objects {len(keys2)}: {", ".join(keys2)}")
 
-    mpc_query_customize(config.customize_url, "tmp/sbwobs.html", "DLN")   # "DLN" | "DLU"
-    mpc_parse_customize(None, "tmp/sbwobs.html", "DLN")
+    # mpc_query_customize(config.customize_url, "tmp/dln.html", "DLN")   # "DLN" | "DLU"
+    # objs3 = mpc_parse_customize(None, "tmp/dln.html", "DLN")
+    # keys3 = sorted(objs3.keys())
+    # verbose(f"DLN objects {len(keys3)}: {", ".join(keys3)}")
 
-    # mpc_query_lastobs(config.lastobs_url, "tmp/sbwobs.txt")
-    # mpc_parse_lastobs(None, "tmp/sbwobs.txt")
+    mpc_query_lastobs(config.lastobs_url, "tmp/lastobs.txt")
+    objs4 = mpc_parse_lastobs(None, "tmp/lastobs.txt")
+    keys4 = sorted(objs4.keys())
+    verbose(f"DLN objects {len(keys4)}: {", ".join(keys4)}")
+
 
 
 
