@@ -17,11 +17,14 @@
 # ChangeLog
 # Version 0.0 / 2025-11-14
 #       Retrieve "What's Observable?" from JPL
+# Version 0.1 / 2025-11-18
+#       Added MPC "Dates Of Last Observation Of NEOs", "Dates Of Last Observation 
+#       Of Unusual Minor Planets", output observable objects also in "Unusual" list
 
-VERSION     = "0.0 / 2025-11-14"
+VERSION     = "0.1 / 2025-11-18"
 AUTHOR      = "Martin Junius"
 NAME        = "sbwobs"
-DESCRIPTION = "Retrieve JPL What's Observable"
+DESCRIPTION = "Retrieve observable NEOs from JPL/MPC"
 
 import sys
 import argparse
@@ -36,13 +39,13 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-from astropy.coordinates import Angle
-from astropy.coordinates import errors
+# from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+# from astropy.coordinates import Angle
+# from astropy.coordinates import errors
 from astropy.time        import Time, TimeDelta
-import astropy.units as u
-import astropy.constants as const
-import numpy as np
+# import astropy.units as u
+# import astropy.constants as const
+# import numpy as np
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -154,6 +157,11 @@ def jpl_parse_sbwobs(text: str, filename: str) -> dict:
         ic(designation, object1)
         objects[designation] = object1
     return objects
+
+
+
+def to_string(obj1: dict, obj2: dict) -> str:
+    return f"{obj1.get("Designation"):11s} {obj1.get("Rise time"):6s} {obj1.get("Transit time"):6s} {obj1.get("Set time"):6s}  {float(obj1.get("Vmag")):4.1f}  {obj2.get("Uncertainty")}  {obj2.get("Last OBS")}"
 
 
 
@@ -379,24 +387,37 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
-    ##TEST##
-    # jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
-    # jpl_parse_sbwobs(None, "tmp/sbwobs.json")
+    jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
+    objs1 = jpl_parse_sbwobs(None, "tmp/sbwobs.json")
+    keys1 = objs1.keys()
+    verbose(f"WOBS objects ({len(keys1)}): {", ".join(keys1)}")
 
-    # mpc_query_customize(config.customize_url, "tmp/dlu.html", "DLU")   # "DLN" | "DLU"
-    # objs2 = mpc_parse_customize(None, "tmp/dlu.html", "DLU")
-    # keys2 = sorted(objs2.keys())
-    # verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
+    mpc_query_customize(config.customize_url, "tmp/dlu.html", "DLU")   # "DLN" | "DLU"
+    objs2 = mpc_parse_customize(None, "tmp/dlu.html", "DLU")
+    keys2 = objs2.keys()
+    verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
 
+    # Intersection 1 & 2: observable objects also in DLU list
+    keys_1_2 = keys1 & keys2
+    verbose(f"WOBS & DLU objects ({len(keys_1_2)}): {", ".join(keys_1_2)}")
+
+    verbose("-----------------------------------------------------")
+    verbose("Designation Rise   Trans  Set     Vmag  U  Last Obs")
+    verbose("-----------------------------------------------------")
+    for key in sorted(keys_1_2):
+        verbose(to_string(objs1.get(key), objs2.get(key)))
+    verbose("-----------------------------------------------------")
+
+    # DLN is a subset of DLU, tested on 2025-11-18, not used
     # mpc_query_customize(config.customize_url, "tmp/dln.html", "DLN")   # "DLN" | "DLU"
     # objs3 = mpc_parse_customize(None, "tmp/dln.html", "DLN")
     # keys3 = sorted(objs3.keys())
     # verbose(f"DLN objects ({len(keys3)}): {", ".join(keys3)}")
 
-    mpc_query_lastobs(config.lastobs_url, "tmp/lastobs.txt")
-    objs4 = mpc_parse_lastobs(None, "tmp/lastobs.txt")
-    keys4 = sorted(objs4.keys())
-    verbose(f"Last obs objects ({len(keys4)}): {", ".join(keys4)}")
+    # mpc_query_lastobs(config.lastobs_url, "tmp/lastobs.txt")
+    # objs4 = mpc_parse_lastobs(None, "tmp/lastobs.txt")
+    # keys4 = sorted(objs4.keys())
+    # verbose(f"Last obs objects ({len(keys4)}): {", ".join(keys4)}")
 
 
 
