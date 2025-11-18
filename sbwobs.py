@@ -196,6 +196,20 @@ def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
 
 
 
+def parse_date(date: str) -> str:
+    months = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+              "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12}
+    m = re.match(r"(\d{4}) ([a-z]{3}). ([ 0-9]{2})$", date.lower())
+    if m:
+        year  = int(m.group(1))
+        month = months[m.group(2)]
+        day   = int(m.group(3))
+        return f"{year:04d}-{month:02d}-{day:02d}"
+    else:
+        raise ValueError(date)
+
+
+
 def parse_txt_line(txt_line: str, list_type: str) -> dict:
     ic(txt_line)
 ##DLU
@@ -215,7 +229,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
         type        = txt_line[29:32]
         currently   = txt_line[34:58].strip()
         marker      = txt_line[59:60].strip()
-        last_obs    = txt_line[60:72]
+        last_obs    = parse_date(txt_line[60:72])
         code        = txt_line[74:77]
         mag         = txt_line[79:84].strip()
         filter      = txt_line[84:85].strip()
@@ -242,7 +256,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
         type        = txt_line[29:32]
         currently   = txt_line[34:59].strip()
         marker      = ""
-        last_obs    = txt_line[60:72]
+        last_obs    = parse_date(txt_line[60:72])
         code        = txt_line[74:77]
         mag         = txt_line[79:84].strip()
         filter      = txt_line[84:85].strip()
