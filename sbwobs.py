@@ -335,43 +335,10 @@ def mpc_parse_lastobs(content: str, filename: str) -> dict:
 #         ^9                  ^29  ^34                   58^ ^60           ^74  ^79     ^87^90  ^95
 
     objects = {}
-    for line in content.splitlines():
-        # Fix one char shift if "Motn" is 3 digits
-        if line[58:60] != "  ":
-            if line[59:61] == "  ":
-                line = line[:59] + line[60:]
-            else:
-                warning("bad format in data line")
-                warning(line)
-        ic(line)
-        designation = line[ 9:27].strip()
-        type        = line[29:32]
-        currently   = line[34:59].strip()
-        last_obs    = line[60:72]
-        code        = line[74:77]
-        mag         = line[79:84].strip()
-        filter      = line[84:85].strip()
-        uncertainty = line[87:88]
-        arc         = line[90:93].strip()
-        # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
-        ra, dec, mag1, elongation, motion = currently.split("/")
-        # ic(ra, dec, mag1, elongation, motion)
-        object1 = {"Designation":   designation,
-                   "Type":          type,
-                   "RA":            float(ra),
-                   "DEC":           float(dec),
-                   "VMag":          float(mag1),
-                   "Elongation":    float(elongation),
-                   "Motion":        float(motion),
-                   "Last OBS":      last_obs,
-                   "MPC Code":      code,
-                   "Last mag":      float(mag) if mag else "",
-                   "Filter":        filter,
-                   "Uncertainty":   uncertainty,
-                   "Arc":           float(arc)
-                   }
-        ic(object1)
-        objects[designation] = object1
+    for txt_line in content.splitlines():
+        object1 = parse_txt_line(txt_line, "DLN")       # same format als customize/DLN
+        if object1:
+            objects[ object1.get("Designation") ] = object1
 
     return objects
 
@@ -401,18 +368,17 @@ def main():
     # mpc_query_customize(config.customize_url, "tmp/dlu.html", "DLU")   # "DLN" | "DLU"
     # objs2 = mpc_parse_customize(None, "tmp/dlu.html", "DLU")
     # keys2 = sorted(objs2.keys())
-    # verbose(f"DLU objects {len(keys2)}: {", ".join(keys2)}")
+    # verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
 
     # mpc_query_customize(config.customize_url, "tmp/dln.html", "DLN")   # "DLN" | "DLU"
     # objs3 = mpc_parse_customize(None, "tmp/dln.html", "DLN")
     # keys3 = sorted(objs3.keys())
-    # verbose(f"DLN objects {len(keys3)}: {", ".join(keys3)}")
+    # verbose(f"DLN objects ({len(keys3)}): {", ".join(keys3)}")
 
     mpc_query_lastobs(config.lastobs_url, "tmp/lastobs.txt")
     objs4 = mpc_parse_lastobs(None, "tmp/lastobs.txt")
     keys4 = sorted(objs4.keys())
-    verbose(f"DLN objects {len(keys4)}: {", ".join(keys4)}")
-
+    verbose(f"Last obs objects ({len(keys4)}): {", ".join(keys4)}")
 
 
 
