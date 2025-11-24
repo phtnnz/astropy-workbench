@@ -41,6 +41,9 @@ import astropy.units as u
 import astropy.constants as const
 import numpy as np
 from sbpy.data import Ephem
+from sbpy.data import Obs
+from astroquery.mpc import MPC
+from astroquery.exceptions import EmptyResponseError, InvalidQueryError
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -92,24 +95,66 @@ def main():
     objects = []
     ##ADD: read from file
     if args.object:
-        objects.append(args.object)
+        objects.extend(args.object)
     ic(objects)
     if not objects:
         error("no objects from file or command line")
 
     for obj in objects:
-        verbose(f"ephemeris for {obj}")
+        verbose(f"object {obj}")
+
+        # # Query MPC
+        # # Object data, try asteroid 1st
+        # data = MPC.query_object("asteroid", designation=obj) or MPC.query_object("comet", designation=obj)
+        # ic(data)
+
+        # # Object ephemeris
+        # try:
+        #     eph = MPC.get_ephemeris(obj, location=loc, start=time, step=5*u.min, number=12)
+        #     print(eph["Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+        # except InvalidQueryError as err:
+        #     warning(f"query MPC ephemeris for failed {obj}!")
+        #     eph = None
+
+        # # Observations, for some reason querying "3I" fails ...
+        # try:
+        #     ##FIXME: must specify id_type
+        #     obs = MPC.get_observations(obj, id_type="comet number")
+        #     print(obs)
+        # except (EmptyResponseError, ValueError) as err:
+        #     warning(f"query MPC observations failed for {obj}!")
+        #     obs = None
+
+        # Alternative: get ephemerides via sbpy
         epochs = {"start":  time,
                   "step":   5 * u.min,
-                  "stop":   time + 1 * u.hour
+                  "number": 12
                   }
-        eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
-        ic(eph._table.info)
-        print(eph["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
-                  "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", "Tmag", "Nmag", "velocityPA"])
+        # eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
+        # ic(eph._table.info)
+        # print(eph["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
+        #           "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", "Tmag", "Nmag", "velocityPA"])
         eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
         ic(eph._table.info)
         print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+
+        ##FIXME: specify id_type:
+        ## 'asteroid number', 'asteroid designation', 'comet number', 'comet designation'
+        ## Use regex from astroquery.mpc:
+            # pat = ('(^[0-9]*$)|'  # [0] asteroid number
+            #        '(^[0-9]{1,3}[PIA]$)'  # [1] periodic comet number
+            #        '(-[1-9A-Z]{0,2})?$|'  # [2] fragment
+            #        '(^[PDCXAI]/[- 0-9A-Za-z]*)'
+            #        # [3] comet designation
+            #        '(-[1-9A-Z]{0,2})?$|'  # [4] fragment
+            #        '(^([1A][8-9][0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$|'
+            #        '^20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$)|'
+            #        '(^[1-9][0-9]{3}[ _](P-L|T-[1-3]))$)'
+            #        # asteroid designation [5] (old/new/Palomar-Leiden style)
+            #        )
+
+        obs = Obs.from_mpc(obj, id_type="comet number")
+        print(obs)
 
 
 
