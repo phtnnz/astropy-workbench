@@ -27,6 +27,7 @@ NAME        = "neoutils"
 DESCRIPTION = "NEO utility functions"
 
 from typing import Tuple
+from dataclasses import dataclass
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -42,6 +43,16 @@ from astropy.table import QTable, Row
 # Local modules
 from verbose import verbose, warning, error, message
 from neoconfig import config
+
+
+
+@dataclass
+class Exposure:
+    number: int
+    single: Quantity
+    total: Quantity
+    total_time: Quantity
+    percentage: float
 
 
 
@@ -88,7 +99,7 @@ def motion_limit() -> Quantity:
 
 
 
-def total_exp(max_motion: Quantity, mag: Magnitude) -> Tuple[int, Quantity, Quantity, Quantity, float]:
+def total_exp(max_motion: Quantity, mag: Magnitude) -> Exposure:
     """
     Calculate number of exposures, single exposure time, total exposure time, total time, percentage
     from object motion and magnitude
@@ -102,18 +113,12 @@ def total_exp(max_motion: Quantity, mag: Magnitude) -> Tuple[int, Quantity, Quan
 
     Returns
     -------
-    Tuple[int, Quantity, Quantity, Quantity, float]
-        Number of exposures
-        Single exposure time
-        Total exposure time
-        Total time including dead time
-        Percentage of required exposure
+    Exposure
+        Exposure object
     """
-    # Calculate single exposure, number of exposures, total exposure, total time
-    exp   = single_exp_time_from_motion(max_motion)         # Single exposure / s
-    if exp == None:                             # Object too fast
-        warning(f"SKIPPED: object too fast (>{motion_limit():.1f})")
-        return
+    exp   = single_exp_time_from_motion(max_motion)     # Single exposure / s
+    if exp == None:                                     # Object too fast
+        return None
 
     min_n_exp = config.min_n_exp
     max_n_exp = config.max_n_exp
@@ -137,7 +142,7 @@ def total_exp(max_motion: Quantity, mag: Magnitude) -> Tuple[int, Quantity, Quan
                     + n_exp * config.dead_time_image * u.s )
     ic(n_exp, exp, total_exp, total_time, perc_of_required)
 
-    return n_exp, exp, total_exp, total_time, perc_of_required
+    return Exposure(n_exp, exp, total_exp, total_time, perc_of_required)
 
 
 
