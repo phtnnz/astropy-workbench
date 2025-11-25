@@ -17,6 +17,9 @@
 # ChangeLog
 # Version 0.1 / 2025-11-25
 #       New global config module for NEO modules
+#
+# Usage:
+#       from neoconfig import config
 
 VERSION     = "0.1 / 2025-11-25"
 AUTHOR      = "Martin Junius"
