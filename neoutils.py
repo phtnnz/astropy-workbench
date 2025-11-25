@@ -26,6 +26,7 @@ AUTHOR      = "Martin Junius"
 NAME        = "neoutils"
 DESCRIPTION = "NEO utility functions"
 
+import re
 from typing import Tuple
 from dataclasses import dataclass
 
@@ -56,7 +57,7 @@ class Exposure:
 
 
 
-def single_exp_time_from_motion(motion: Quantity) -> Quantity:
+def single_exp(motion: Quantity) -> Quantity:
     """
     Compute exposure time depending on motion value,
 
@@ -116,7 +117,7 @@ def total_exp(max_motion: Quantity, mag: Magnitude) -> Exposure:
     Exposure
         Exposure object
     """
-    exp   = single_exp_time_from_motion(max_motion)     # Single exposure / s
+    exp   = single_exp(max_motion)     # Single exposure / s
     if exp == None:                                     # Object too fast
         return None
 
@@ -162,9 +163,37 @@ def max_motion(ephemeris: QTable, column: str="motion") -> Quantity:
     Quantity
         Max motion of object
     """
-    max_motion = -1 * u.arcsec / u.min
+    max_m = -1 * u.arcsec / u.min
     for row in ephemeris:
-        if row[column] > max_motion:
-            max_motion = row[column]
-    return max_motion
+        if row[column] > max_m:
+            max_m = row[column]
+    return max_m
+
+
+
+def exposure_from_ephemeris(ephemeris: QTable, column: str, mag: Magnitude) -> Exposure:
+    max_m = max_motion(ephemeris, column)
+    if max_m == None:
+        return None
+    
+    ic(max_m, mag)
+    return total_exp(max_m, mag)
+
+
+
+def id_type_from_name(name: str) -> str:
+    id_type_regex = {   "asteroid numer":         "^[1-9][0-9]*$",
+                        "asteroid designation":   "^20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$",
+                        "comet number":           "^[0-9]{1,3}[PIA]$",
+                        "comet designation":      "^[PDCXAI]/20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$"
+                    }
+
+    for id in id_type_regex.keys():
+        m = re.match(id_type_regex[id], name)
+        if m:
+            ic(name, id)
+            return id
+    ## Default None or "asteroid designation"?
+    return None
+
 
