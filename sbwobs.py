@@ -49,14 +49,10 @@ from astropy.time        import Time, TimeDelta
 
 # Local modules
 from verbose import verbose, warning, error, message
-from astroutils import location_to_string, get_location     # ...
-from jsonconfig import JSONConfig, config
+from astroutils import location_to_string, get_location
+from neoconfig import config
 
 DEFAULT_LOCATION = "M49"
-
-CONFIGFILE = "sbwobs.json"
-config = JSONConfig(CONFIGFILE)
-config.set_error_on_missing()
 
 
 

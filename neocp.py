@@ -69,12 +69,8 @@ from astroplan.plots import plot_altitude, plot_sky
 # Local modules
 from verbose import verbose, warning, error, message
 from astroutils import mpc_station_location, location_to_string
-from jsonconfig import JSONConfig, config
+from neoconfig import config
 
-
-CONFIGFILE = "neocp.json"
-config = JSONConfig(CONFIGFILE)
-config.set_error_on_missing()
 
 
 # Requests timeout
@@ -579,8 +575,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         time_alt_first, time_alt_last = time["alt_first"], time["alt_last"]
         max_m = max_motion(qt)
 
-        verbose("----------------------------------------------------------------------------------------------------------------------")
-        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:4.1f}")
+        verbose("-----------------------------------------------------------------------------------------------------------------------")
+        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
 
         # Calculate single exposure, number of exposures, total exposure, total time
         exp   = exp_time_from_motion(max_m)         # Single exposure / s
@@ -683,7 +679,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ra, dec = row["ra"], row["dec"]
         alt, az = row["alt"], row["az"]
 
-        verbose(f"                                                    {time_before}/{time_after}             {moon_dist:.0f}")
+        verbose(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
         verbose(f"                                                    {time_start_exp}/{time_end_exp}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
         verbose(f"                                                    {total}")
@@ -737,7 +733,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
             warning("no objects, no CSV output")
 
     # Return list of planned objects
-    verbose("----------------------------------------------------------------------------------------------------------------------")
+    verbose("-----------------------------------------------------------------------------------------------------------------------")
     verbose(f"{len(objects)} object(s) planned: {" ".join(objects)}")
     return objects
 
