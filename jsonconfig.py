@@ -108,7 +108,7 @@ class JSONConfig:
         """
         ic("getattr", name)
         value = self.get(name)
-        self.__dict__[name] = value
+        # self.__dict__[name] = value
         return value
     
 
@@ -156,8 +156,8 @@ class JSONConfig:
         """
         Verbose info, print config file and top-level keys
         """
-        verbose(f"config file {self.configfile}")
-        verbose("config keys:", " ".join( [k for k in self.config.keys() if not k.startswith("#")] ))
+        verbose(f"JSON config file = {self.configfile}")
+        verbose(f"config keys = {", ".join( [k for k in self.config.keys() if not k.startswith("#")] )}")
 
 
     def search_config(self, file: str) -> str:
@@ -285,7 +285,7 @@ class JSONConfig:
         list[str]
             Top-level keys
         """
-        return self.config.keys()
+        return [k for k in self.config.keys() if not k.startswith("#")]
 
 
     def get_json(self) -> dict:
