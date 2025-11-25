@@ -37,9 +37,8 @@ from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.coordinates import Angle
 from astropy.coordinates import errors
 from astropy.time        import Time, TimeDelta
+from astropy.units import Quantity, Magnitude
 import astropy.units as u
-import astropy.constants as const
-import numpy as np
 from sbpy.data import Ephem
 from sbpy.data import Obs
 from astroquery.mpc import MPC
@@ -48,6 +47,7 @@ from astroquery.exceptions import EmptyResponseError, InvalidQueryError
 # Local modules
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location     # ...
+from neoutils import Exposure, exposure_from_ephemeris, id_type_from_name
 
 DEFAULT_LOCATION = "M49"
 
@@ -103,11 +103,6 @@ def main():
     for obj in objects:
         verbose(f"object {obj}")
 
-        # # Query MPC
-        # # Object data, try asteroid 1st
-        # data = MPC.query_object("asteroid", designation=obj) or MPC.query_object("comet", designation=obj)
-        # ic(data)
-
         # # Object ephemeris
         # try:
         #     eph = MPC.get_ephemeris(obj, location=loc, start=time, step=5*u.min, number=12)
@@ -116,7 +111,7 @@ def main():
         #     warning(f"query MPC ephemeris for failed {obj}!")
         #     eph = None
 
-        # # Observations, for some reason querying "3I" fails ...
+        # # Observations
         # try:
         #     ##FIXME: must specify id_type
         #     obs = MPC.get_observations(obj, id_type="comet number")
@@ -138,23 +133,11 @@ def main():
         ic(eph._table.info)
         print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
 
-        ##FIXME: specify id_type:
-        ## 'asteroid number', 'asteroid designation', 'comet number', 'comet designation'
-        ## Use regex from astroquery.mpc:
-            # pat = ('(^[0-9]*$)|'  # [0] asteroid number
-            #        '(^[0-9]{1,3}[PIA]$)'  # [1] periodic comet number
-            #        '(-[1-9A-Z]{0,2})?$|'  # [2] fragment
-            #        '(^[PDCXAI]/[- 0-9A-Za-z]*)'
-            #        # [3] comet designation
-            #        '(-[1-9A-Z]{0,2})?$|'  # [4] fragment
-            #        '(^([1A][8-9][0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$|'
-            #        '^20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$)|'
-            #        '(^[1-9][0-9]{3}[ _](P-L|T-[1-3]))$)'
-            #        # asteroid designation [5] (old/new/Palomar-Leiden style)
-            #        )
-
-        obs = Obs.from_mpc(obj, id_type="comet number")
+        obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
         print(obs)
+        mag = obs["mag"][-1]
+        exp = exposure_from_ephemeris(eph, "Proper motion", mag)
+        print(exp)
 
 
 
