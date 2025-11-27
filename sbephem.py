@@ -129,10 +129,11 @@ def main():
                   }
         if args.jpl:
             eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
-            mag = eph["Tmag"][0]
-            ic(eph._table.info)
+            ic(eph.field_names)
+            mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
+            mag = eph[mag_col][0]
             print(eph["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
-                    "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", "Tmag", "Nmag", "velocityPA"])
+                    "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", mag_col, "velocityPA"])
             exp = exposure_from_ephemeris(eph, "RA*cos(Dec)_rate,DEC_rate", mag)
             print(exp)
         else:
@@ -140,8 +141,8 @@ def main():
             eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
                                 ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
                                 dec_format={'sep': ':', 'precision': 1})
+            ic(eph.field_names)
             mag = eph["V"][0]
-            ic(eph._table.info)
             print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
             exp = exposure_from_ephemeris(eph, "Proper motion", mag)
             print(exp)
