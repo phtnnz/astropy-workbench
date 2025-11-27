@@ -70,6 +70,7 @@ def main():
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("-f", "--file", help="read list of objects from file")
     arg.add_argument("-t", "--time", help="time for ephemeris")
+    arg.add_argument("-j", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("object", nargs="*", help="object name")
 
     args = arg.parse_args()
@@ -121,22 +122,29 @@ def main():
         #     warning(f"query MPC observations failed for {obj}!")
         #     obs = None
 
-        # Alternative: get ephemerides via sbpy
+        # Get ephemerides via sbpy
         epochs = {"start":  time,
                   "step":   5 * u.min,
-                  "number": 12
+                  "stop":   time + 1 * u.hour
                   }
-        # eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
-        # ic(eph._table.info)
-        # print(eph["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
-        #           "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", "Tmag", "Nmag", "velocityPA"])
-
-        # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
-        eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
-                             ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
-                             dec_format={'sep': ':', 'precision': 1})
-        ic(eph._table.info)
-        print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+        if args.jpl:
+            eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
+            mag = eph["Tmag"][0]
+            ic(eph._table.info)
+            print(eph["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
+                    "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", "Tmag", "Nmag", "velocityPA"])
+            exp = exposure_from_ephemeris(eph, "RA*cos(Dec)_rate,DEC_rate", mag)
+            print(exp)
+        else:
+            # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
+            eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
+                                ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
+                                dec_format={'sep': ':', 'precision': 1})
+            mag = eph["V"][0]
+            ic(eph._table.info)
+            print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+            exp = exposure_from_ephemeris(eph, "Proper motion", mag)
+            print(exp)
 
         # obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
         # print(obs)
@@ -146,9 +154,6 @@ def main():
         #     if mag > Magnitude(0):
         #         break
 
-        mag = eph["V"][0]
-        exp = exposure_from_ephemeris(eph, "Proper motion", mag)
-        print(exp)
 
 
 
