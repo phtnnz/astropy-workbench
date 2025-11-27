@@ -123,10 +123,13 @@ def total_exp(max_motion: Quantity, mag: Magnitude) -> Exposure:
 
     min_n_exp = config.min_n_exp
     max_n_exp = config.max_n_exp
+    base_mag  = config.base_mag
+    base_exp  = config.base_exp
 
-    rel_brightness = 10 ** (0.4 * (mag.value - config.base_mag))
-    total_exp = config.base_exp * u.s * rel_brightness  # Total exposure
+    rel_brightness = 10 ** (0.4 * (mag.value - base_mag))
+    total_exp = base_exp * u.s * rel_brightness  # Total exposure
     n_exp = int(total_exp / exp) + 1                    # Number of exposures
+    ic(base_mag, base_exp, mag.value, rel_brightness, total_exp, n_exp)
     perc_of_required = 100.                             # Percentage actual / total exposure
     if n_exp < min_n_exp:
         perc_of_required = min_n_exp / n_exp * 100
