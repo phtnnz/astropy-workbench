@@ -40,6 +40,7 @@ import astropy.units as u
 from astropy.units import Quantity, Magnitude
 from astropy.time import Time, TimeDelta
 from astropy.table import QTable, Row
+import numpy as np
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -152,14 +153,14 @@ def total_exp(max_motion: Quantity, mag: Magnitude) -> Exposure:
 
 def max_motion(ephemeris: QTable, column: str="motion") -> Quantity:
     """
-    Get max value for motion column from ephemeris table
+    Get max value for motion column(s) from ephemeris table
 
     Parameters
     ----------
     ephemeris : QTable
         Ephemeris table
     column : str, optional
-        Motion column name, by default "motion"
+        Motion column name(s), by default "motion", comma separated for RA/DEC motion
 
     Returns
     -------
@@ -167,9 +168,21 @@ def max_motion(ephemeris: QTable, column: str="motion") -> Quantity:
         Max motion of object
     """
     max_m = -1 * u.arcsec / u.min
+    if "," in column:
+        # Separate RA*cos(DEC), DEC motion columns
+        col1, col2 = column.split(",")
+    else:
+        # Single column with proper motion
+        col1 = column
+        col2 = None
     for row in ephemeris:
-        if row[column] > max_m:
-            max_m = row[column]
+        if col2:
+            motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
+        else:
+            motion = row[col1]
+        if motion > max_m:
+            max_m = motion
+
     return max_m
 
 
