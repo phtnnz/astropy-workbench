@@ -39,6 +39,7 @@ from astropy.coordinates import errors
 from astropy.time        import Time, TimeDelta
 from astropy.units import Quantity, Magnitude
 import astropy.units as u
+import numpy as np
 from sbpy.data import Ephem
 from sbpy.data import Obs
 from astroquery.mpc import MPC
@@ -129,13 +130,23 @@ def main():
         # ic(eph._table.info)
         # print(eph["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
         #           "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", "Tmag", "Nmag", "velocityPA"])
-        eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
+
+        # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
+        eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
+                             ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
+                             dec_format={'sep': ':', 'precision': 1})
         ic(eph._table.info)
         print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
 
-        obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-        print(obs)
-        mag = obs["mag"][-1]
+        # obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
+        # print(obs)
+        # # Handle masked entries
+        # for i in range(-1, -10, -1):
+        #     mag = obs["mag"][i].unmasked
+        #     if mag > Magnitude(0):
+        #         break
+
+        mag = eph["V"][0]
         exp = exposure_from_ephemeris(eph, "Proper motion", mag)
         print(exp)
 
