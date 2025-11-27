@@ -106,8 +106,8 @@ class JSONConfig:
         Any
             Value of attribute
         """
-        ic("getattr", name)
         value = self.get(name)
+        ic("JSONConfig.getattr", name, value)
         # self.__dict__[name] = value
         return value
     
