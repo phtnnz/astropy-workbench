@@ -70,7 +70,9 @@ def main():
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("-f", "--file", help="read list of objects from file")
     arg.add_argument("-t", "--time", help="time for ephemeris")
-    arg.add_argument("-j", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
+    arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
+    arg.add_argument("--obs", action="store_true", help="output MPC obs")
+    arg.add_argument("--clear", action="store_true", help="clear MPC cache")
     arg.add_argument("object", nargs="*", help="object name")
 
     args = arg.parse_args()
@@ -101,6 +103,10 @@ def main():
     ic(objects)
     if not objects:
         error("no objects from file or command line")
+
+    # Clear astroquery cache
+    if args.clear:
+        MPC.clear_cache()    
 
     for obj in objects:
         verbose(f"object {obj}")
@@ -147,14 +153,14 @@ def main():
             exp = exposure_from_ephemeris(eph, "Proper motion", mag)
             print(exp)
 
-        # obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-        # print(obs)
-        # # Handle masked entries
-        # for i in range(-1, -10, -1):
-        #     mag = obs["mag"][i].unmasked
-        #     if mag > Magnitude(0):
-        #         break
-
+        if args.obs:
+            obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
+            print(obs)
+            # # Handle masked entries
+            # for i in range(-1, -10, -1):
+            #     mag = obs["mag"][i].unmasked
+            #     if mag > Magnitude(0):
+            #         break
 
 
 
