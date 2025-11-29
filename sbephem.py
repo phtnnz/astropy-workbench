@@ -97,7 +97,10 @@ def main():
 
     # Objects
     objects = []
-    ##ADD: read from file
+    if args.file:
+        with open(args.file, "r") as file:
+            for line in file:
+                objects.append(line.strip())
     if args.object:
         objects.extend(args.object)
     ic(objects)
@@ -153,14 +156,14 @@ def main():
             exp = exposure_from_ephemeris(eph, "Proper motion", mag)
             print(exp)
 
-        if args.obs:
-            obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-            print(obs)
-            # # Handle masked entries
-            # for i in range(-1, -10, -1):
-            #     mag = obs["mag"][i].unmasked
-            #     if mag > Magnitude(0):
-            #         break
+            if args.obs:
+                obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
+                print(obs)
+                # # Handle masked entries
+                # for i in range(-1, -10, -1):
+                #     mag = obs["mag"][i].unmasked
+                #     if mag > Magnitude(0):
+                #         break
 
 
 
