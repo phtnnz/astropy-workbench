@@ -8,6 +8,8 @@ Camera: QHY 268 M, L filter
 
 Calculation / planning by neocp.py script
 
+Configured base exposure: 240 s for mag 18 object
+
 
 ## 2025-10-31
 
@@ -34,4 +36,16 @@ Rising moon, moon distance 56 deg
 60 x 2 s = 120 s = 60 %  
 Tycho: limiting mag 16.3, stack limiting mag 17.3  
 Object found, LogSNR 1.01-1.05, measured mag 16.9-17.0
+
+## 2025-12-14
+
+Moon below horizon, moon distance 163 deg  
+60 x 15 s = 15 min = 54 %  
+Tycho: limiting mag 17.4, stack limiting mag 18.4  
+Object found, LogSNR 0.58-0.99, measured mag 18.9-19.4, ephem mag 20.1
+
+Moon below horizon, moon distance 134 deg  
+60 x 5 s = 5 min = 86 %  
+Tycho: limiting mag 17.0, stack limiting mag 18.0  
+Object found, LogSNR 1.06-1.10, measured mag 17.7-17.8, ephem mag 18.4
 
