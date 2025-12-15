@@ -19,107 +19,146 @@
 #       Module for parsing ra/dec coordinates in various format, not depending on astropy
 # Version 0.2 / 2025-10-03
 #       Fixed sign handling for DEC
+# Version 0.3 / 2025-10-15
+#       Rewritten using AstroPy's SkyCoord
 
-VERSION = "0.2 / 2025-10-03"
+VERSION = "0.3 / 2025-12-15"
 AUTHOR  = "Martin Junius"
 NAME    = "radec"
 
 import argparse
-import re
-from  typing import Tuple, Any
 
 # The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
+
+# AstroPy
+from astropy.coordinates import SkyCoord
+from astropy.coordinates import Angle
+import astropy.units as u
+
 # Local modules
-from verbose import verbose, warning, error
+from verbose import verbose, error
 
 
 
-class Coord:
-    """ Simple coordinate class for storing RA/DEC """
+# Coord class derived from SkyCoord
+class Coord(SkyCoord):
+    """Coord(inate) class based on AstroPy SkyCoord"""
 
-    def __init__(self, ra: Any=None, dec: Any=None):
-        if ra and dec:
-            ic(ra, dec)
-            self.parse_ra_dec(ra, dec)
+    def __init__(self, ra: any, dec: any) -> None:
+        """
+        Initialize Coord object
+
+        Parameters
+        ----------
+        ra : any
+            RA coordinate, any input accepted by SkyCoord (hourangle)
+        dec : any
+            DEC coordinate, any input accepted by SkyCoord (degree)
+        """
+        ic(ra, dec)
+        super().__init__(ra, dec, unit=(u.hourangle, u.degree))
+        ic(self.ra, self.dec)
+
+        self.ra_h,  self.ra_m,  self.ra_s  = self._split_hms(self.ra)
+        self.dec_sign, self.dec_d, self.dec_m, self.dec_s = self._split_signed_dms(self.dec)
+        _, self.dec_pm, self.dec_neg = self._dec_sign(self.dec_sign)
+
+        ic(self.ra_h,  self.ra_m,  self.ra_s,
+            self.dec_sign, self.dec_d, self.dec_m, self.dec_s,
+            self.dec_pm, self.dec_neg)
 
 
-    def parse_ra_dec(self, ra: Any, dec: Any):
-        self.ra,  sign, self.ra_h,  self.ra_m,  self.ra_s  = self._parse_string(ra,  type="RA")
-        self.dec, sign, self.dec_d, self.dec_m, self.dec_s = self._parse_string(dec, type="DEC")
-        self.dec_sign, self.dec_pm, self.dec_neg = self._dec_sign(self.dec)
-        ic(self.ra, self.ra_h, self.ra_m, self.ra_s, 
-           self.dec, self.dec_sign, self.dec_pm, self.dec_neg, self.dec_d, self.dec_m, self.dec_s)
+    def _split_signed_dms(self, a: Angle) -> tuple[int, int, int, float]:
+        """
+        Internal: get signed_dms tuple for DEC
 
-    def _dec_sign(self, v: float) -> Tuple[int, str, bool]:
+        Parameters
+        ----------
+        a : Angle
+            DEC angle
+
+        Returns
+        -------
+        tuple[int, int, int, float]
+            sign, degrees (positive), minutes, seconds
+        """
+        sgn, d, m, s = a.signed_dms
+        return int(sgn), int(d), int(m), float(s)
+
+
+    def _split_hms(self, a: Angle) -> tuple[int, int, float]:
+        """
+        Internal: get hms tuple for RA
+
+        Parameters
+        ----------
+        a : Angle
+            RA hourangle
+
+        Returns
+        -------
+        tuple[int, int, float]
+            hours, minutes, seconds
+        """
+        h, m, s = a.hms
+        return int(h), int(m), float(s)
+
+
+    def _dec_sign(self, v: float) -> tuple[int, str, bool]:
+        """
+        Internal: get sign representations for DEC
+
+        Parameters
+        ----------
+        v : float
+            DEC decimal angle or -1/+1
+
+        Returns
+        -------
+        tuple[int, str, bool]
+            DEC sign tuple (-1, "-", True) if negative / (1, "+", False) if positive
+        """
         return (-1, "-", True) if v < 0 else (+1, "+", False)
 
 
-    def _decimal_from_dms(self, sign: int, d: int, m: int, s: float) -> float:
-        return sign * (d + m/60 + s/3600)
-    
-    def _decimal_to_dms(self, v: float) -> Tuple[int, int, int, int]:
-        sign = -1 if v < 0 else +1
-        va   = abs(v)
-        d = int(va)
-        m = int((va - d) * 60)
-        s = float((va - d - m/60) * 3600)
-        return (sign, d, m, s)
-
-
-    def _parse_string(self, s: Any, type: str="") -> Tuple[float, int, int, int, float]:
-        # Convert float &c. to string
-        s = str(s)
-
-        if type == "DEC":
-            # +/- only allowed in DEC
-            regex1 = r'^([+-]?)([0-9]{1,2})[ :d]([0-9]{1,2})[ :m]([0-9.]+)s?$'
-            regex2 = r'^([+-]?[0-9]+\.?[0-9]*)$'
-        else:
-            regex1 = r'^()([0-9]{1,2})[ :h]([0-9]{1,2})[ :m]([0-9.]+)s?$'
-            regex2 = r'^([0-9]+\.?[0-9]*)$'
-        ic(regex1, regex2)
-
-        m = re.match(regex1, s)
-        if m:
-            ic(m.groups())
-            sign = -1 if m.group(1) == "-" else +1
-            m1 = int(m.group(2))
-            m2 = int(m.group(3))
-            m3 = float(m.group(4))
-            md = self._decimal_from_dms(sign, m1, m2, m3)
-            if (type == "RA" and md < 24 and m2 < 60 and m3 < 60 or
-                type == "DEC" and md >= -90 and md <= +90 and m2 < 60 and m3 < 60):
-                return (md, sign, m1, m2, m3)
-
-        m = re.match(regex2, s)
-        if m:
-            ic(m.groups())
-            md = float(m.group(1))
-            (sign, m1, m2, m3) = self._decimal_to_dms(md)
-            if (type == "RA" and md < 24 or
-                type == "DEC" and md >= -90 and md <= +90):
-                return (md, sign, m1, m2, m3)
-
-        raise ValueError(f"illegal {type} coordinate {s}")
-
-
     def to_string(self, format: str="hmsdms") -> str:
+        """
+        Convert coordinate to string
+
+        Parameters
+        ----------
+        format : str, optional
+            Format string, by default "hmsdms"
+            Supported: "hmsdms", "decimal", " ", "mpc", "mpc1"
+
+        Returns
+        -------
+        str
+            String representation of coordinates
+        """
         if format == "decimal":
-            return f"{self.ra:.7f} {self.dec:.7f}"
-        elif format == " ":
+            return f"{self.ra.degree:.7f} {self.dec.degree:.7f}"
+        if format == " ":
             return f"{self.ra_h:02d} {self.ra_m:02d} {self.ra_s:06.3f} {self.dec_pm}{self.dec_d:02d} {self.dec_m:02d} {self.dec_s:06.3f}"
-        elif format == "mpc":
+        if format == "mpc":
             return f"{self.ra_h:02d} {self.ra_m:02d} {self.ra_s:06.3f}{self.dec_pm}{self.dec_d:02d} {self.dec_m:02d} {self.dec_s:05.2f}"
-        elif format == "mpc1":
+        if format == "mpc1":
             return f"{self.ra_h:02d} {self.ra_m:02d} {self.ra_s:05.2f} {self.dec_pm}{self.dec_d:02d} {self.dec_m:02d} {self.dec_s:04.1f} "
-        else:
-            return f"{self.ra_h:02d}h{self.ra_m:02d}m{self.ra_s:06.3f}s {self.dec_pm}{self.dec_d:02d}d{self.dec_m:02d}m{self.dec_s:06.3f}s"
+        return f"{self.ra_h:02d}h{self.ra_m:02d}m{self.ra_s:06.3f}s {self.dec_pm}{self.dec_d:02d}d{self.dec_m:02d}m{self.dec_s:06.3f}s"
 
 
     def __repr__(self) -> str:
+        """
+        String representation
+
+        Returns
+        -------
+        str
+            String representation, format "hmsdms"
+        """
         return self.to_string()
 
 
@@ -144,7 +183,11 @@ def main():
         ic.enable()
 
     print(f"{args.ra=} {args.dec=}")
-    coord1 = Coord(args.ra, args.dec)
+    try:
+        coord1 = Coord(args.ra, args.dec)
+    except ValueError as e:
+        error(f"illegal RA/DEC values")
+
     print(f"{coord1 = }\n{coord1.to_string(format='decimal') = }")
     print("Regression with coord1 decimal values ...")
     coord2 = Coord(coord1.ra, coord1.dec)
@@ -154,6 +197,7 @@ def main():
     print(f"{coord2.to_string(format=' ')       = }")
     print(f"{coord2.to_string(format='mpc')     = }")
     print(f"{coord2.to_string(format='mpc1')    = }")
+
 
     
 
