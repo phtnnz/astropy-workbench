@@ -276,8 +276,10 @@ class NINATarget(NINABase):
         self.coord["RAHours"]   = int(data.coord.ra_h)
         self.coord["RAMinutes"] = int(data.coord.ra_m)
         self.coord["RASeconds"] = float(data.coord.ra_s)
-        self.coord["NegativeDec"] = data.coord.dec_neg
         # NINA: for negative DEC values, both NegativeDec is set to Ture *and* DecDegrees is negative!
+        #       DEC = -01:29:39 -> "NegativeDec": true, "DecDegrees": -1
+        #       DEC = -00:29:39 -> "NegativeDec": true, "DecDegrees": 0
+        self.coord["NegativeDec"] = data.coord.dec_neg
         self.coord["DecDegrees"] = int(data.coord.dec_d) * data.coord.dec_sign
         self.coord["DecMinutes"] = int(data.coord.dec_m)
         self.coord["DecSeconds"] = float(data.coord.dec_s)
