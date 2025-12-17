@@ -549,11 +549,11 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
     """
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
-    verbose("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris   / end ephemeris                  Max motion")
-    verbose("                                                    Time before            / after meridian              Moon distance")
-    verbose("                                                    Time start exposure    / end exposure")
-    verbose("                                                    # x Exp = total exposure time")
-    verbose("                                                    RA, DEC, Alt, Az")
+    message("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris   / end ephemeris                  Max motion")
+    message("                                                    Time before            / after meridian              Moon distance")
+    message("                                                    Time start exposure    / end exposure")
+    message("                                                    # x Exp = total exposure time")
+    message("                                                    RA, DEC, Alt, Az")
 
     csv_row = None
     csv_rows = []
@@ -575,13 +575,13 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         time_alt_first, time_alt_last = time["alt_first"], time["alt_last"]
         max_m = max_motion(qt)
 
-        verbose("-----------------------------------------------------------------------------------------------------------------------")
-        verbose(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
+        message("-----------------------------------------------------------------------------------------------------------------------")
+        message(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
 
         # Calculate single exposure, number of exposures, total exposure, total time
         exp   = exp_time_from_motion(max_m)         # Single exposure / s
         if exp == None:                             # Object too fast
-            warning(f"SKIPPED: object too fast (>{motion_limit():.1f})")
+            message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
             continue
 
         min_n_exp = config.min_n_exp
@@ -636,29 +636,29 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ##### Skip object for various reasons ... #####
         # Skip, if below threshold for # obs
         if nobs < config.min_n_obs:
-            warning(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
+            message(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
             continue
 
         # Skip, if not seen for more than threshold days
         max_notseen = config.max_notseen * u.day
         if notseen > max_notseen:
-            warning(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
+            message(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
             continue
 
         # Skip, if percentage of total exposure time is less than threshold
         if perc_of_required < config.min_perc_required:
-            warning(f"SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {config.min_perc_required}%)")
+            message(f"SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {config.min_perc_required}%)")
             continue
 
         # Skip, if arc is less than threshold
         min_arc = config.min_arc * u.day
         if arc < min_arc:
-            warning(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
+            message(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
             continue
 
         # Skip, if failed to allocate total_time
         if time_end_exp > time_last:
-            warning(f"SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
+            message(f"SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
             continue
 
         # Table row best matching time_start_exp
@@ -668,7 +668,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # Skip, if moon distance is too small
         min_moon_dist = config.min_moon_dist * u.degree
         if moon_dist < min_moon_dist:
-            warning(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+            message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
             continue
 
         ##### Good to go! #####
@@ -679,11 +679,11 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ra, dec = row["ra"], row["dec"]
         alt, az = row["alt"], row["az"]
 
-        verbose(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
-        verbose(f"                                                    {time_start_exp}/{time_end_exp}")
+        message(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
+        message(f"                                                    {time_start_exp}/{time_end_exp}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
-        verbose(f"                                                    {total}")
-        verbose(f"                                                    RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
+        message(f"                                                    {total}")
+        message(f"                                                    RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
         # CSV output:
         #   start time, end time, 
@@ -733,8 +733,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
             warning("no objects, no CSV output")
 
     # Return list of planned objects
-    verbose("-----------------------------------------------------------------------------------------------------------------------")
-    verbose(f"{len(objects)} object(s) planned: {" ".join(objects)}")
+    message("-----------------------------------------------------------------------------------------------------------------------")
+    message(f"{len(objects)} object(s) planned: {" ".join(objects)}")
     return objects
 
 
@@ -779,10 +779,10 @@ def print_ephemerides(ephemerides: dict) -> None:
         Ephemerides dictionary
     """
     for id, qt in ephemerides.items():
-        print("===================================================================================================================")
-        print(f"NEOCP {id} ephemerides")
-        print(qt)
-    print("===================================================================================================================")
+        verbose("===================================================================================================================")
+        verbose(f"NEOCP {id} ephemerides")
+        verbose.print_lines(qt)
+    verbose("===================================================================================================================")
 
 
 
