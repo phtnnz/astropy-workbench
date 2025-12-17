@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2023-2024 Martin Junius
+# Copyright 2023-2025 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,12 +28,15 @@
 #       Added docstrings
 # Version 1.3 / 2024-12-16
 #       Added message(), just like print(), but can be disabled
+# Version 1.4 / 2025-12-17
+#       Added .print_lines(), splits multi-line string representations
 #
 #       Usage:  from verbose import message, verbose, warning, error
 #               message(print-like-args)
 #               verbose(print-like-args)
 #               warning(print-like-args)
 #               error(print-like-args)
+#               .print_lines(line(s), ...)
 #               .enable(flag=True)
 #               .disable()
 #               .enabled
@@ -43,7 +46,7 @@
 import argparse
 import sys
 
-VERSION = "1.3 / 2024-12-16"
+VERSION = "1.4 / 2025-12-17"
 AUTHOR  = "Martin Junius"
 NAME    = "verbose"
 
@@ -84,6 +87,16 @@ class Verbose:
         print(*args, **kwargs)
         if self.abort:
             self._exit()
+
+
+    def print_lines(self, *args, **kwargs) -> None:
+        """
+        Print multi-line string representation of object(s)
+        """
+        for arg in args:
+            for line in str(arg).splitlines():
+                self.__call__(line, **kwargs)
+
 
     def enable(self, flag: bool=True):
         """
@@ -162,6 +175,7 @@ def main():
     warning("A", "warning", "message", " --- but no abort here!")
     warning.set_prog(NAME+"3")
     warning("Another change to progname occurred")
+    verbose.print_lines("abc", "def", "line1\nline2\nline3")
     error.set_errno(99)
     error("Error test", "for Verbose module")
 
