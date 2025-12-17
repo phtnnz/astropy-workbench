@@ -549,6 +549,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
     """
     ic(ephemerides.keys(), neocp_list.keys(), pccp_list.keys())
 
+    message("-----------------------------------------------------------------------------------------------------------------------")
     message("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris   / end ephemeris                  Max motion")
     message("                                                    Time before            / after meridian              Moon distance")
     message("                                                    Time start exposure    / end exposure")
