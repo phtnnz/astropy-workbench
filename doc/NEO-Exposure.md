@@ -63,3 +63,24 @@ Moon below horizon, moon distance 103 deg
 Tycho: limiting mag 18.0, stack limiting mag 19.0  
 Object found, LogSNR 0.40-0.74, measured mag 19.8-20.7, ephem mag 19.8
 
+## 2025-12-17
+
+Moon below horizon, moon distance 142 deg, altitude 67 deg  
+60 x 5 s = 5 min = 38 %  
+Tycho: limiting mag 17.7, stack 18.5  
+Object found, LogSNR 0.73-0.83, measured mag 19.1-19.4, ephem mag 19.3
+
+Moon below horizon, moon distance 141 deg, altitude 61 deg  
+51 x 30 s = 25.5 min = 100 %  
+Tycho: limiting mag 19.7, stack 20.6  
+Object found, LogSNR 0.80-1.02, measured mag 19.9-20.6, ephem mag 20.0
+
+Moon below horizon, moon distance 163 deg, altitude 28 deg  
+60 x 15 s = 15 min = 49 %  
+Tycho: limiting mag 17.8, stack 19.2  
+Object not found, ephem mag 20.2
+
+Moon below horizon, moon distance 149 deg, altitude 49 deg  
+60 x 5 s = 5 min = 31 %  
+Tycho: limiting mag 17.3, stack 18.3  
+Object found, LogSNR 0.55-0.76, measured mag 19.1-19.8, ephem mag 19.5
