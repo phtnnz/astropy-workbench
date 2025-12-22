@@ -35,9 +35,10 @@
 # Version 0.7 / 2025-11-05
 #       Added output of greatest eclipse (for -C --central-line)
 #
-# See [ESAA] Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
-# Chapter 11 - Eclipses of the Sun and Moon
-
+# References:
+# [ESAA]    Explanatory Supplement to the Astronomical Almanac, 3rd Edtion
+#           Chapter 11 - Eclipses of the Sun and Moon
+# [MEEUS]   Jean Meeus, Elements of Solar Eclipses, 1951-2200
 
 VERSION     = "0.7 / 2024-11-05"
 AUTHOR      = "Martin Junius"
@@ -92,7 +93,8 @@ e2_earth = 1 -  R_earth_pol**2 / R_earth**2     # ellipticity squared
 # Moon equatorial radius
 R_moon = 1738100.0 * unit.m
 R_moon = 0.2725076 * R_earth        # IAU 1982
-R_moon = 0.272281  * R_earth        # smaller value from https://eclipse.gsfc.nasa.gov/SEpubs/20080801/TP214149b.pdf
+R_moon = 0.272274  * R_earth        # Meeus Elements, §2, k
+R_moon = 0.272281  * R_earth        # Value from https://eclipse.gsfc.nasa.gov/SEpubs/20080801/TP214149b.pdf
 
 
 
