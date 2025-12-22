@@ -6,3 +6,4 @@ venv/
 references/
 downloads/
 neocp-data/
+.vscode/
