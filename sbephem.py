@@ -17,15 +17,16 @@
 # ChangeLog
 # Version 0.0 / 2025-11-22
 #       Get ephemeris for solar system objects
+# Version 0.1 / 2025-12-23
+#       Somewhat usable now ;-)
 
-VERSION     = "0.0 / 2025-11-22"
+VERSION     = "0.1 / 2025-12-23"
 AUTHOR      = "Martin Junius"
 NAME        = "sbephem"
 DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
-from typing import Tuple, Any
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -44,12 +45,14 @@ from sbpy.data import Ephem
 from sbpy.data import Obs
 from astroquery.mpc import MPC
 from astroquery.exceptions import EmptyResponseError, InvalidQueryError
+from astroplan import Observer
 
 # Local modules
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location     # ...
 from neoutils import Exposure, exposure_from_ephemeris, id_type_from_name
 
+##FIXME: use config
 DEFAULT_LOCATION = "M49"
 
 
@@ -69,8 +72,9 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("-f", "--file", help="read list of objects from file")
-    arg.add_argument("-t", "--time", help="time for ephemeris")
+    arg.add_argument("-t", "--time", help="start time for ephemeris (1h, 5min steps)")
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
+    arg.add_argument("-a", "--allnight", action="store_true", help="ephemeris for midnight +/- 8h (30min steps)")
     arg.add_argument("--obs", action="store_true", help="output MPC obs")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
     arg.add_argument("object", nargs="*", help="object name")
@@ -90,10 +94,42 @@ def main():
     Options.loc = loc
     verbose(f"location {location_to_string(loc)}")
 
+    observer = Observer(location=loc, description=loc.info.name)
+    ic(observer)
+
     # Observation time
     time = Time(args.time) if args.time else Time.now()
     ic(time)
-    verbose(f"time {time} ({time.scale.upper()})")
+    verbose(f"time {time.iso} ({time.scale.upper()})")
+
+    midnight = observer.midnight(time, which="next")
+    twilight_evening = observer.twilight_evening_nautical(time, which="next")
+    twilight_morning = observer.twilight_morning_nautical(time, which="next")
+    if twilight_evening > twilight_morning:
+        twilight_evening = observer.twilight_evening_nautical(time, which="previous")
+    ic(midnight.iso, twilight_evening.iso, twilight_morning.iso)
+
+    # Round midnight time to nearest 30 min
+    rem, day = np.modf(midnight.jd)
+    n_round = 24 * 2    # 24 h / 30 min
+    rem = round(rem*n_round + 0.5) / n_round
+    jd1 = day + rem
+    midnight1 = Time(jd1, format="jd")
+    ic(day, rem, midnight1.iso)
+    verbose(f"midnight {midnight.iso} / rounded {midnight1.iso} ({time.scale.upper()})")
+    verbose(f"nautical twilight {twilight_evening.iso} / {twilight_morning.iso} ({time.scale.upper()})")
+
+    if args.allnight:
+        epochs = {"start":  midnight1 - 8 * u.hour,
+                  "step":   30 * u.min,
+                  "stop":   midnight1 + 9 * u.hour
+                  }
+    else:
+        epochs = {"start":  time,
+                  "step":   5 * u.min,
+                  "stop":   time + 1 * u.hour
+                  }
+    ic(epochs)
 
     # Objects
     objects = []
@@ -132,10 +168,6 @@ def main():
         #     obs = None
 
         # Get ephemerides via sbpy
-        epochs = {"start":  time,
-                  "step":   5 * u.min,
-                  "stop":   time + 1 * u.hour
-                  }
         if args.jpl:
             eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
             ic(eph.field_names)
@@ -148,11 +180,16 @@ def main():
         else:
             # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
             eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
-                                ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
-                                dec_format={'sep': ':', 'precision': 1})
+                                 ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
+                                 dec_format={'sep': ':', 'precision': 1} )
             ic(eph.field_names)
             mag = eph["V"][0]
-            print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+            # print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+            ##FIXME: get min altitude from config
+            mask = (eph["Altitude"] > 25 * u.deg) & (eph["Date"] > twilight_evening) & (eph["Date"] < twilight_morning)
+            eph1 = eph[mask]
+            print(eph1["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+
             exp = exposure_from_ephemeris(eph, "Proper motion", mag)
             print(exp)
 
