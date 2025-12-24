@@ -112,7 +112,7 @@ def main():
     # Round midnight time to nearest 30 min
     rem, day = np.modf(midnight.jd)
     n_round = 24 * 2    # 24 h / 30 min
-    rem = round(rem*n_round + 0.5) / n_round
+    rem = round(rem*n_round) / n_round
     jd1 = day + rem
     midnight1 = Time(jd1, format="jd")
     ic(day, rem, midnight1.iso)
