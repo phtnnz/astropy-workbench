@@ -176,9 +176,8 @@ def main():
             ##FIXME: get min altitude from config
             mask = (eph["EL"] > 25 * u.deg) & (eph["Time"] > twilight_evening) & (eph["Time"] < twilight_morning)
             eph1 = eph[mask]
-            s = str(eph1["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
-                    "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", mag_col, "velocityPA"])
-            message.print_lines(s)
+            message.print_lines(eph1["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
+                                     "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", mag_col, "velocityPA"])
 
             exp = exposure_from_ephemeris(eph, "RA*cos(Dec)_rate,DEC_rate", mag)
             message(exp)
@@ -193,8 +192,8 @@ def main():
             ##FIXME: get min altitude from config
             mask = (eph["Altitude"] > 25 * u.deg) & (eph["Date"] > twilight_evening) & (eph["Date"] < twilight_morning)
             eph1 = eph[mask]
-            s = str(eph1["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
-            message.print_lines(s)
+            message.print_lines(eph1["Targetname", "Date", "RA", "Dec", "V", 
+                                     "Proper motion", "Direction", "Azimuth", "Altitude"])
 
             exp = exposure_from_ephemeris(eph, "Proper motion", mag)
             message(exp)
