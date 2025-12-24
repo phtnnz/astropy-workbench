@@ -173,10 +173,15 @@ def main():
             ic(eph.field_names)
             mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
             mag = eph[mag_col][0]
-            print(eph["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
+            ##FIXME: get min altitude from config
+            mask = (eph["EL"] > 25 * u.deg) & (eph["Time"] > twilight_evening) & (eph["Time"] < twilight_morning)
+            eph1 = eph[mask]
+            s = str(eph1["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
                     "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", mag_col, "velocityPA"])
+            message.print_lines(s)
+
             exp = exposure_from_ephemeris(eph, "RA*cos(Dec)_rate,DEC_rate", mag)
-            print(exp)
+            message(exp)
         else:
             # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
             eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
@@ -188,10 +193,11 @@ def main():
             ##FIXME: get min altitude from config
             mask = (eph["Altitude"] > 25 * u.deg) & (eph["Date"] > twilight_evening) & (eph["Date"] < twilight_morning)
             eph1 = eph[mask]
-            print(eph1["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+            s = str(eph1["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+            message.print_lines(s)
 
             exp = exposure_from_ephemeris(eph, "Proper motion", mag)
-            print(exp)
+            message(exp)
 
             if args.obs:
                 obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
