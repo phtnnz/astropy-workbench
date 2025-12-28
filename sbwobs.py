@@ -385,7 +385,8 @@ def main():
     arg.add_argument("--asteroids", action="store_true", help=f"get asteroids default={config.sb_kind}")
     arg.add_argument("--neo", action="store_true", help=f"get NEOs default={config.sb_group}")
     arg.add_argument("--pha", action="store_true", help=f"get PHAs")
-    arg.add_argument("--comets", action="store_true", help="fget comets (overrides asteroid options)")
+    arg.add_argument("--comets", action="store_true", help=f"get comets (overrides asteroid options)")
+    arg.add_argument("-o", "--output", help="write object list to OUTPUT")
 
     args = arg.parse_args()
 
@@ -414,11 +415,11 @@ def main():
 
     if args.comets:
         # Comets
-        keys_selected = keys1
+        keys_selected = sorted(keys1)
         verbose("---------------------------------------")
         verbose("Designation Rise   Trans  Set     Vmag")
         verbose("---------------------------------------")
-        for key in sorted(keys_selected):
+        for key in keys_selected:
             verbose(to_string1(objs1.get(key)))
         verbose("---------------------------------------")
 
@@ -430,13 +431,13 @@ def main():
         verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
 
         # Intersection 1 & 2: observable objects also in DLU list
-        keys_selected = keys1 & keys2
+        keys_selected = sorted(keys1 & keys2)
         verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
 
         verbose("-----------------------------------------------------")
         verbose("Designation Rise   Trans  Set     Vmag  U  Last Obs")
         verbose("-----------------------------------------------------")
-        for key in sorted(keys_selected):
+        for key in keys_selected:
             verbose(to_string(objs1.get(key), objs2.get(key)))
         verbose("-----------------------------------------------------")
 
@@ -450,6 +451,10 @@ def main():
     # objs4 = mpc_parse_lastobs(None, "tmp/lastobs.txt")
     # keys4 = sorted(objs4.keys())
     # verbose(f"Last obs objects ({len(keys4)}): {", ".join(keys4)}")
+
+    if args.output:
+        with open(args.output, "w") as file:
+            file.writelines([line + "\n" for line in keys_selected])
 
 
 
