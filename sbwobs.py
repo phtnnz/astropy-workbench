@@ -66,7 +66,7 @@ class Options:
 
 
 
-def jpl_query_sbwobs(url: str, filename: str) -> None:
+def jpl_query_sbwobs(url: str, filename: str=None) -> None:
     """
     Retrieve What's Observable from JPL
 
@@ -104,12 +104,14 @@ def jpl_query_sbwobs(url: str, filename: str) -> None:
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    with open(filename, mode="w", encoding=response.encoding) as file:
-        file.write(response.text)
+    if filename:
+        with open(filename, mode="w", encoding=response.encoding) as file:
+            file.write(response.text)
+    return response.text
 
 
 
-def jpl_parse_sbwobs(text: str, filename: str) -> dict:
+def jpl_parse_sbwobs(text: str, filename: str = None) -> dict:
     """
     Parse JSON retrieve from JPL What's Observable
 
@@ -185,7 +187,7 @@ def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
         "mag1":         0,                          # V mag limits
         "mag2":         config.vmag_max,
         "to":           1,                          # Single-opposition unnumbered objects
-        "wh":           list_type
+        "wh":           list_type                   # "DLN" | "DLU"
         # Valid list types:
         # *DLN   Dates Of Last Observation Of NEOs
         #  DLNR  Dates Of Last Observation Of NEOs (R.A. order)
@@ -204,8 +206,10 @@ def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    with open(filename, mode="w", encoding=response.encoding) as file:
-        file.write(response.text)
+    if filename:
+        with open(filename, mode="w", encoding=response.encoding) as file:
+            file.write(response.text)
+    return response.text
 
 
 
@@ -335,7 +339,7 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
 
 
 
-def mpc_query_lastobs(url: str, filename: str) -> None:
+def mpc_query_lastobs(url: str, filename: str = None) -> None:
     ic(url, filename)
 
     timeout = config.requests_timeout
@@ -347,12 +351,14 @@ def mpc_query_lastobs(url: str, filename: str) -> None:
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    with open(filename, mode="w", encoding=response.encoding) as file:
-        file.write(response.text)
+    if filename:
+        with open(filename, mode="w", encoding=response.encoding) as file:
+            file.write(response.text)
+    return response.text
 
 
 
-def mpc_parse_lastobs(content: str, filename: str) -> dict:
+def mpc_parse_lastobs(content: str, filename: str = None) -> dict:
     if not content:
         with open(filename) as file:
             content = file.read()
@@ -408,8 +414,9 @@ def main():
         Options.sb_kind = "c"
         Options.sb_group = None
 
-    jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
-    objs1 = jpl_parse_sbwobs(None, "tmp/sbwobs.json")
+    # get sbwobs objects from JPL
+    query = jpl_query_sbwobs(config.sbwobs_url, None)
+    objs1 = jpl_parse_sbwobs(query, None)
     keys1 = objs1.keys()
     verbose(f"WOBS objects ({len(keys1)}): {", ".join(keys1)}")
 
@@ -425,8 +432,8 @@ def main():
 
     else:
         # Asteroids
-        mpc_query_customize(config.customize_url, "tmp/dlu.html", "DLU")   # "DLN" | "DLU"
-        objs2 = mpc_parse_customize(None, "tmp/dlu.html", "DLU")
+        query = mpc_query_customize(config.customize_url, None, "DLU")   # "DLN" | "DLU"
+        objs2 = mpc_parse_customize(query, None, "DLU")
         keys2 = objs2.keys()
         verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
 
