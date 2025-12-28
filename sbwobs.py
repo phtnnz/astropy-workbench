@@ -21,7 +21,7 @@
 #       Added MPC "Dates Of Last Observation Of NEOs", "Dates Of Last Observation 
 #       Of Unusual Minor Planets", output observable objects also in "Unusual" list
 # Version 0.2 / 2025-12-28
-#       New options -a --asteroids / -c --comets / -n --neo / -p --pha for sbwobs
+#       New options --asteroids / --comets / --neo / --pha for sbwobs
 #       object selection
 
 VERSION     = "0.2 / 2025-12-28"
@@ -164,6 +164,9 @@ def jpl_parse_sbwobs(text: str, filename: str) -> dict:
 
 def to_string(obj1: dict, obj2: dict) -> str:
     return f"{obj1.get("Designation"):11s} {obj1.get("Rise time"):6s} {obj1.get("Transit time"):6s} {obj1.get("Set time"):6s}  {float(obj1.get("Vmag")):4.1f}  {obj2.get("Uncertainty")}  {obj2.get("Last OBS")}"
+
+def to_string1(obj1: dict) -> str:
+    return f"{obj1.get("Designation"):11s} {obj1.get("Rise time"):6s} {obj1.get("Transit time"):6s} {obj1.get("Set time"):6s}  {obj1.get("Vmag")}"
 
 
 
@@ -379,10 +382,10 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("-a", "--asteroids", action="store_true", help=f"get asteroids default={config.sb_kind}")
-    arg.add_argument("-n", "--neo", action="store_true", help=f"get NEOs default={config.sb_group}")
-    arg.add_argument("-p", "--pha", action="store_true", help=f"get PHAs")
-    arg.add_argument("-c", "--comets", action="store_true", help="fget comets (overrides asteroid options)")
+    arg.add_argument("--asteroids", action="store_true", help=f"get asteroids default={config.sb_kind}")
+    arg.add_argument("--neo", action="store_true", help=f"get NEOs default={config.sb_group}")
+    arg.add_argument("--pha", action="store_true", help=f"get PHAs")
+    arg.add_argument("--comets", action="store_true", help="fget comets (overrides asteroid options)")
 
     args = arg.parse_args()
 
@@ -409,21 +412,33 @@ def main():
     keys1 = objs1.keys()
     verbose(f"WOBS objects ({len(keys1)}): {", ".join(keys1)}")
 
-    mpc_query_customize(config.customize_url, "tmp/dlu.html", "DLU")   # "DLN" | "DLU"
-    objs2 = mpc_parse_customize(None, "tmp/dlu.html", "DLU")
-    keys2 = objs2.keys()
-    verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
+    if args.comets:
+        # Comets
+        keys_selected = keys1
+        verbose("---------------------------------------")
+        verbose("Designation Rise   Trans  Set     Vmag")
+        verbose("---------------------------------------")
+        for key in sorted(keys_selected):
+            verbose(to_string1(objs1.get(key)))
+        verbose("---------------------------------------")
 
-    # Intersection 1 & 2: observable objects also in DLU list
-    keys_1_2 = keys1 & keys2
-    verbose(f"WOBS & DLU objects ({len(keys_1_2)}): {", ".join(keys_1_2)}")
+    else:
+        # Asteroids
+        mpc_query_customize(config.customize_url, "tmp/dlu.html", "DLU")   # "DLN" | "DLU"
+        objs2 = mpc_parse_customize(None, "tmp/dlu.html", "DLU")
+        keys2 = objs2.keys()
+        verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
 
-    verbose("-----------------------------------------------------")
-    verbose("Designation Rise   Trans  Set     Vmag  U  Last Obs")
-    verbose("-----------------------------------------------------")
-    for key in sorted(keys_1_2):
-        verbose(to_string(objs1.get(key), objs2.get(key)))
-    verbose("-----------------------------------------------------")
+        # Intersection 1 & 2: observable objects also in DLU list
+        keys_selected = keys1 & keys2
+        verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
+
+        verbose("-----------------------------------------------------")
+        verbose("Designation Rise   Trans  Set     Vmag  U  Last Obs")
+        verbose("-----------------------------------------------------")
+        for key in sorted(keys_selected):
+            verbose(to_string(objs1.get(key), objs2.get(key)))
+        verbose("-----------------------------------------------------")
 
     # DLN is a subset of DLU, tested on 2025-11-18, not used
     # mpc_query_customize(config.customize_url, "tmp/dln.html", "DLN")   # "DLN" | "DLU"
