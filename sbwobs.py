@@ -20,8 +20,11 @@
 # Version 0.1 / 2025-11-18
 #       Added MPC "Dates Of Last Observation Of NEOs", "Dates Of Last Observation 
 #       Of Unusual Minor Planets", output observable objects also in "Unusual" list
+# Version 0.2 / 2025-12-28
+#       New options -a --asteroids / -c --comets / -n --neo / -p --pha for sbwobs
+#       object selection
 
-VERSION     = "0.1 / 2025-11-18"
+VERSION     = "0.2 / 2025-12-28"
 AUTHOR      = "Martin Junius"
 NAME        = "sbwobs"
 DESCRIPTION = "Retrieve observable NEOs from JPL/MPC"
@@ -58,7 +61,8 @@ DEFAULT_LOCATION = "M49"
 
 # Command line options
 class Options:
-    pass
+    sb_kind     = config.sb_kind    # -a --asteroids / -c --comets
+    sb_group    = config.sb_group   # -n --neo / -p --pha
 
 
 
@@ -87,9 +91,11 @@ def jpl_query_sbwobs(url: str, filename: str) -> None:
         "output-sort":  config.output_sort, # Sort records
 
         "sb-ns":        config.sb_ns,       # Numbered (n) ./. unnumbered (u)
-        "sb-kind":      config.sb_kind,     # Asteroids (a) ./. comets (c)
-        "sb-group":     config.sb_group     # NEOs (neo) ./. PHA (pha)
+        "sb-kind":      Options.sb_kind,    # Asteroids (a) ./. comets (c)
+        # "sb-group":     config.sb_group     # NEOs (neo) ./. PHA (pha)
     }
+    if Options.sb_group:
+        data["sb-group"] = Options.sb_group
 
     ic(url, data)
     verbose(f"query {url}")
@@ -373,6 +379,10 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
+    arg.add_argument("-a", "--asteroids", action="store_true", help=f"get asteroids default={config.sb_kind}")
+    arg.add_argument("-n", "--neo", action="store_true", help=f"get NEOs default={config.sb_group}")
+    arg.add_argument("-p", "--pha", action="store_true", help=f"get PHAs")
+    arg.add_argument("-c", "--comets", action="store_true", help="fget comets (overrides asteroid options)")
 
     args = arg.parse_args()
 
@@ -382,6 +392,17 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
+
+    # defaults from config
+    if args.asteroids:
+        Options.sb_kind = "a"
+    if args.neo:
+        Options.sb_group = "neo"
+    if args.pha:
+        Options.sb_group = "pha"
+    if args.comets:
+        Options.sb_kind = "c"
+        Options.sb_group = None
 
     jpl_query_sbwobs(config.sbwobs_url, "tmp/sbwobs.json")
     objs1 = jpl_parse_sbwobs(None, "tmp/sbwobs.json")
