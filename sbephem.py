@@ -41,10 +41,14 @@ from astropy.time        import Time, TimeDelta
 from astropy.units import Quantity, Magnitude
 import astropy.units as u
 import numpy as np
+
 from sbpy.data import Ephem
 from sbpy.data import Obs
+from sbpy.data.core import QueryError
+
 from astroquery.mpc import MPC
 from astroquery.exceptions import EmptyResponseError, InvalidQueryError
+
 from astroplan import Observer
 
 # Local modules
@@ -182,30 +186,38 @@ def main():
             exp = exposure_from_ephemeris(eph, "RA*cos(Dec)_rate,DEC_rate", mag)
             message(exp)
         else:
-            # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
-            eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
-                                 ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
-                                 dec_format={'sep': ':', 'precision': 1} )
-            ic(eph.field_names)
-            mag = eph["V"][0]
-            # print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
-            ##FIXME: get min altitude from config
-            mask = (eph["Altitude"] > 25 * u.deg) & (eph["Date"] > twilight_evening) & (eph["Date"] < twilight_morning)
-            eph1 = eph[mask]
-            message.print_lines(eph1["Targetname", "Date", "RA", "Dec", "V", 
-                                     "Proper motion", "Direction", "Azimuth", "Altitude"])
+            try:
+                # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
+                eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
+                                        ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
+                                        dec_format={'sep': ':', 'precision': 1} )
+                ic(eph.field_names)
+                mag = eph["V"][0]
+                # print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+                ##FIXME: get min altitude from config
+                mask = (eph["Altitude"] > 25 * u.deg) & (eph["Date"] > twilight_evening) & (eph["Date"] < twilight_morning)
+                eph1 = eph[mask]
+                message.print_lines(eph1["Targetname", "Date", "RA", "Dec", "V", 
+                                        "Proper motion", "Direction", "Azimuth", "Altitude"])
 
-            exp = exposure_from_ephemeris(eph, "Proper motion", mag)
-            message(exp)
+                exp = exposure_from_ephemeris(eph, "Proper motion", mag)
+                message(exp)
+            except QueryError as e:
+                warning(f"MPC ephemeris for {obj} failed")
 
-            if args.obs:
-                obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-                print(obs)
-                # # Handle masked entries
-                # for i in range(-1, -10, -1):
-                #     mag = obs["mag"][i].unmasked
-                #     if mag > Magnitude(0):
-                #         break
+            try:
+                if args.obs:
+                    obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
+                    print(obs)
+                    # # Handle masked entries
+                    # for i in range(-1, -10, -1):
+                    #     mag = obs["mag"][i].unmasked
+                    #     if mag > Magnitude(0):
+                    #         break
+            except QueryError as e:
+                warning(f"MPC observations for {obj} failed")
+            except ConnectionError as e:
+                warning(f"MPC request failed: {e}")
 
 
 
