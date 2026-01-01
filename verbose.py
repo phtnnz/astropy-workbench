@@ -80,11 +80,16 @@ class Verbose:
         """
         if not self.enabled:
             return
+
+        preargs = ()
         if Verbose.progname:
-            print(Verbose.progname + ": ", end="")
+            preargs = (f"{Verbose.progname}:", )
         if self.prefix:
-            print(self.prefix + ": ", end="")
+            preargs = preargs + (f"{self.prefix}:", )
+        if preargs:
+            args = preargs + args
         print(*args, **kwargs)
+
         if self.abort:
             self._exit()
 
