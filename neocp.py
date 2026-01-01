@@ -715,10 +715,16 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         ##MJ: only 1st object for debugging
         # return
 
+    # Return list of planned objects
+    message("-----------------------------------------------------------------------------------------------------------------------")
+    message(f"{len(objects)} object(s) planned: {" ".join(objects)}")
+
     # Output to CSV file for nina-create-sequence2
     if Options.csv:
+        verbose(f"planned objects for nina-create-sequence2: {Options.output}")
+        # csv_row is the last object, if any were found
         if csv_row:
-            ##FIXME: use improved csvoutput module
+            ##FIXME: improve csvoutput module to cover this usage
             fieldnames = csv_row.keys()
             ic(fieldnames)
             if Options.output:
@@ -733,9 +739,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         else:
             warning("no objects, no CSV output")
 
-    # Return list of planned objects
-    message("-----------------------------------------------------------------------------------------------------------------------")
-    message(f"{len(objects)} object(s) planned: {" ".join(objects)}")
+    # Return planned objects
     return objects
 
 
