@@ -15,21 +15,8 @@
 # limitations under the License.
 
 # ChangeLog
-# Version 0.1 / 2023-11-04
-#       First version of verbose module
-# Version 0.2 / 2023-12-18
-#       Added warning(), error() with abort
-# Version 1.0 / 2024-01-06
-#       Version bumped to 1.0
-# Version 1.1 / 2024-08-08
-#       Output "exiting" message only if verbose is enabled
-#       errno is now global for verbose, warning, error
-# Version 1.2 / 2024-12-15
-#       Added docstrings
-# Version 1.3 / 2024-12-16
-#       Added message(), just like print(), but can be disabled
-# Version 1.4 / 2025-12-17
-#       Added .print_lines(), splits multi-line string representations
+# Version 0.1 / 2026-01-02
+#       Based on verbose 1.4, using logging for output
 #
 #       Usage:  from verbose import message, verbose, warning, error
 #               message(print-like-args)
@@ -45,21 +32,23 @@
 
 import argparse
 import sys
+import logging
 
-VERSION = "1.4 / 2025-12-17"
+VERSION = "0.1 / 2026-01-02"
 AUTHOR  = "Martin Junius"
-NAME    = "verbose"
+NAME    = "verboselog"
 
 
 
 class Verbose:
     """
-    Class for verbose-style objects
+    Class for verbose-style objects using logging
     """
-    progname = None             # global program name
-    errno    = 1                # exit code, 1 for generic errors
+    progname: str = ""              # global program name
+    errno: int    = 1               # exit code, 1 for generic errors
+    logger: logging.Logger = None   # global logger object
 
-    def __init__(self, flag: bool=False, prefix: str=None, abort: bool=False):
+    def __init__(self, flag: bool, level: int=logging.INFO, abort: bool=False):
         """
         Create verbose-style object
 
@@ -71,8 +60,9 @@ class Verbose:
         :type abort: bool, optional
         """
         self.enabled = flag
-        self.prefix = prefix
+        self.level = level
         self.abort = abort
+
 
     def __call__(self, *args, **kwargs):
         """
@@ -81,15 +71,13 @@ class Verbose:
         if not self.enabled:
             return
 
-        preargs = ()
-        if Verbose.progname:
-            preargs = (f"{Verbose.progname}:", )
-        if self.prefix:
-            preargs = preargs + (f"{self.prefix}:", )
-        if preargs:
-            args = preargs + args
-        print(*args, **kwargs)
+        # Make sure that logger exists
+        if not Verbose.logger:
+            self.set_prog()
 
+        # print(*args, **kwargs)
+        msg = " ".join(args)
+        Verbose.logger.log(self.level, msg, **kwargs)
         if self.abort:
             self._exit()
 
@@ -118,14 +106,22 @@ class Verbose:
         """
         self.enabled = False
 
-    def set_prog(self, name: str):
+    def set_prog(self, name: str=""):
         """
         Set program name prefix
 
         :param name: program name
         :type name: str
         """
+        if name:
+            format = "%(asctime)s %(name)s:%(levelname)s: %(message)s"
+        else:
+            format = "%(asctime)s %(levelname)s: %(message)s"
+        logging.basicConfig(encoding='utf-8', level=logging.DEBUG,
+                            format=format, datefmt='%Y-%m-%d %H:%M:%S')
+        Verbose.logger = logging.getLogger(name)
         Verbose.progname = name
+
 
     def set_errno(self, errno: int):
         """
@@ -140,18 +136,14 @@ class Verbose:
         """
         Internal, exit program
         """
-        if verbose.enabled:
-            if Verbose.progname:
-                print(Verbose.progname + ": ", end="")
-            print(f"exiting ({Verbose.errno})")
+        Verbose.logger.error(f"exiting ({Verbose.errno})")
         sys.exit(Verbose.errno)
 
 
-message = Verbose(True)
-verbose = Verbose()
-warning = Verbose(True, "WARNING")
-error   = Verbose(True, "ERROR", True)
-
+message = Verbose(True, logging.INFO)
+verbose = Verbose(False, logging.INFO)
+warning = Verbose(True, logging.WARNING)
+error   = Verbose(True, logging.ERROR, True)
 
 
 
@@ -174,10 +166,10 @@ def main():
     message("Just", "a", "message at the beginning")
     warning("Just a first warning ;-)")
     verbose("Test", "1", "for", "verbose()")
-    verbose("Test", "2", "for more", "verbose()", "with some formatting {:04d}".format(11+12))
+    verbose("Test", "2", "for more", "verbose()", f"with some formatting {11+12=:04d}")
     verbose("Changing progname")
     verbose.set_prog(NAME+"2")
-    warning("A", "warning", "message", " --- but no abort here!")
+    warning("A", "warning", "message", "--- but no abort here!")
     warning.set_prog(NAME+"3")
     warning("Another change to progname occurred")
     verbose.print_lines("abc", "def", "line1\nline2\nline3")
