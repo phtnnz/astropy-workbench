@@ -24,7 +24,8 @@
 #       New options --asteroids / --comets / --neo / --pha for sbwobs
 #       object selection
 # Version 0.3 / 2026-01-03
-#       New option -M --mag-limit to override values in config
+#       New option -M --mag-limit to override values in config, filter for last obs
+#       in the last 14 days
 
 VERSION     = "0.3 / 2026-01-03"
 AUTHOR      = "Martin Junius"
@@ -48,7 +49,7 @@ ic.disable()
 # from astropy.coordinates import Angle
 # from astropy.coordinates import errors
 from astropy.time        import Time, TimeDelta
-# import astropy.units as u
+import astropy.units as u
 # import astropy.constants as const
 # import numpy as np
 
@@ -383,6 +384,30 @@ def mpc_parse_lastobs(content: str, filename: str = None) -> dict:
 
 
 
+def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
+    ic(key, obj1, obj2)
+
+    if obj1:
+        # not yet checking anything here
+        pass
+    if obj2:
+        last_obs = obj2.get("Last OBS")
+        if last_obs:
+            t_obs = Time(last_obs)
+            t_now = Time.now()
+            ic(t_obs, t_now)
+            ##FIXME: add config option
+            if t_obs < t_now - 14 * u.day:
+                verbose(f"{key}: last obs {last_obs} too old")
+                return False
+            else:
+                return True
+
+    # Default is filtered out
+    return False
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -424,7 +449,7 @@ def main():
     query = jpl_query_sbwobs(config.sbwobs_url, None)
     objs1 = jpl_parse_sbwobs(query, None)
     keys1 = objs1.keys()
-    verbose(f"WOBS objects ({len(keys1)}): {", ".join(keys1)}")
+    verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
 
     if args.comets:
         # Comets
@@ -441,10 +466,13 @@ def main():
         query = mpc_query_customize(config.customize_url, None, "DLU")   # "DLN" | "DLU"
         objs2 = mpc_parse_customize(query, None, "DLU")
         keys2 = objs2.keys()
-        verbose(f"DLU objects ({len(keys2)}): {", ".join(keys2)}")
+        verbose(f"DLU objects ({len(keys2)}): {", ".join(sorted(keys2))}")
+
+        # Filter DLU for "Last OBS"
+        keys2_filtered = [ k for k in keys2 if object_filter(k, objs1.get(k), objs2.get(k)) ]
 
         # Intersection 1 & 2: observable objects also in DLU list
-        keys_selected = sorted(keys1 & keys2)
+        keys_selected = sorted(keys1 & keys2_filtered)
         verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
 
         verbose("-----------------------------------------------------")
