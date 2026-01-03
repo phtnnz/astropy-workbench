@@ -507,6 +507,7 @@ def get_times_from_eph(ephemerides: dict) -> dict:
     for id, qt in ephemerides.items():
         time_before, time_after = flip_times(qt)
         if not time_before:     # No meridian passing
+                ##CHECK: better solution than this hack?
                 time_before, time_after = max_alt_times(qt)
         time_0 = qt["obstime"][0]
         time_1 = qt["obstime"][-1]
@@ -620,7 +621,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # ok if end <= before or start >= after and start >= previous
 
         # 2nd try: start at time_before - total = before passing meridian
-        if time_end_exp > time_before and time_start_exp < time_after:
+        if time_end_exp > time_before and time_start_exp <= time_after:
             time_start_exp = time_before - total_time
             time_end_exp   = time_before
             ic("2nd try - before meridian", time_start_exp, time_end_exp)
@@ -659,7 +660,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
 
         # Skip, if failed to allocate total_time
         if time_end_exp > time_last:
-            message(f"SKIPPED: can't allocate exposure time {total_time} ({time_first} -- {time_last})")
+            message(f"SKIPPED: can't allocate exposure time {total_time:.2f} ({time_first} -- {time_last})")
             continue
 
         # Table row best matching time_start_exp
