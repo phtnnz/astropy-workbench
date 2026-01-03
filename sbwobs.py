@@ -24,8 +24,8 @@
 #       New options --asteroids / --comets / --neo / --pha for sbwobs
 #       object selection
 # Version 0.3 / 2026-01-03
-#       New option -M --mag-limit to override values in config, filter for last obs
-#       in the last 14 days
+#       New option -M --mag-limit to override values in config, filter out last obs
+#       older than 14 days or uncertainty < 3
 
 VERSION     = "0.3 / 2026-01-03"
 AUTHOR      = "Martin Junius"
@@ -398,13 +398,18 @@ def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
             ic(t_obs, t_now)
             ##FIXME: add config option
             if t_obs < t_now - 14 * u.day:
-                verbose(f"{key}: last obs {last_obs} too old")
+                verbose(f"{key}: last obs {last_obs} too old, not included")
                 return False
-            else:
-                return True
 
-    # Default is filtered out
-    return False
+        uncertainty = obj2.get("Uncertainty")
+        if uncertainty:
+            ##FIXME: add config option
+            if int(uncertainty) < 3:
+                verbose(f"{key}: uncertainty < 3, not included")
+                return False
+
+    # Default is not filtered
+    return True
 
 
 
