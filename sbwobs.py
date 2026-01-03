@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius
+# Copyright 2025-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,11 +23,13 @@
 # Version 0.2 / 2025-12-28
 #       New options --asteroids / --comets / --neo / --pha for sbwobs
 #       object selection
+# Version 0.3 / 2026-01-03
+#       New option -M --mag-limit to override values in config
 
-VERSION     = "0.2 / 2025-12-28"
+VERSION     = "0.3 / 2026-01-03"
 AUTHOR      = "Martin Junius"
 NAME        = "sbwobs"
-DESCRIPTION = "Retrieve observable NEOs from JPL/MPC"
+DESCRIPTION = "Retrieve observable NEOs/comets from JPL/MPC"
 
 import sys
 import argparse
@@ -393,6 +395,7 @@ def main():
     arg.add_argument("--pha", action="store_true", help=f"get PHAs")
     arg.add_argument("--comets", action="store_true", help=f"get comets (overrides asteroid options)")
     arg.add_argument("-o", "--output", help="write object list to OUTPUT")
+    arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
 
     args = arg.parse_args()
 
@@ -403,7 +406,10 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
-    # defaults from config
+    # override defaults from config
+    if args.mag_limit:
+        config.mag_limit = float(args.mag_limit)
+        config.vmag_max  = float(args.mag_limit)
     if args.asteroids:
         Options.sb_kind = "a"
     if args.neo:
