@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius
+# Copyright 2025-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@
 #       Get ephemeris for solar system objects
 # Version 0.1 / 2025-12-23
 #       Somewhat usable now ;-)
+# Version 0.2 / 2026-01-03
+#       Common column names for ephemeris tables
 
-VERSION     = "0.1 / 2025-12-23"
+VERSION     = "0.2 / 2026-01-03"
 AUTHOR      = "Martin Junius"
 NAME        = "sbephem"
 DESCRIPTION = "Ephemeris for solar system objects"
@@ -69,7 +71,7 @@ class Options:
 
 
 def rename_columns_mpc(eph: Ephem) -> None:
-    """Renaming ephemeris table to common column names
+    """Rename MPC ephemeris table to common column names
 
     Args:
         table (Table): Ephemeris table
@@ -78,6 +80,18 @@ def rename_columns_mpc(eph: Ephem) -> None:
                                "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
                               ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
                                "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
+
+
+def rename_columns_jpl(eph: Ephem) -> None:
+    """Rename JPL ephemeris table to common column names
+
+    Args:
+        table (Table): Ephemeris table
+    """
+
+    mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
+    eph.table.rename_columns(("targetname", "epoch",   "AZ", "EL",  mag_col, "velocityPA"),
+                             ("Targetname", "Obstime", "Az", "Alt", "Mag",   "PA" ))
 
 
 
@@ -188,16 +202,19 @@ def main():
         # Get ephemerides via sbpy
         if args.jpl:
             eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
+            # Compute total motion from RA/DEC rates
+            eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
+            # Rename columns to common names
+            rename_columns_jpl(eph)
             ic(eph.field_names)
-            mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
-            mag = eph[mag_col][0]
-            ##FIXME: get min altitude from config
-            mask = (eph["EL"] > 25 * u.deg) & (eph["Time"] > twilight_evening) & (eph["Time"] < twilight_morning)
-            eph1 = eph[mask]
-            message.print_lines(eph1["targetname", "epoch", "solar_presence", "lunar_presence", "RA", "DEC", 
-                                     "RA*cos(Dec)_rate", "DEC_rate", "AZ", "EL", mag_col, "velocityPA"])
 
-            exp = exposure_from_ephemeris(eph, "RA*cos(Dec)_rate,DEC_rate", mag)
+            mag = eph["Mag"][0]
+            ##FIXME: get min altitude from config
+            mask = (eph["Alt"] > 25 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
+            eph1 = eph[mask]
+            message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", "Motion", "PA", "Az", "Alt"])
+
+            exp = exposure_from_ephemeris(eph, "Motion", mag)
             message(exp)
         else:
             try:
@@ -205,14 +222,16 @@ def main():
                 eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
                                         ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
                                         dec_format={'sep': ':', 'precision': 1} )
+                # Rename columns to common names
                 rename_columns_mpc(eph)
                 ic(eph.field_names)
+
                 mag = eph["Mag"][0]
                 ##FIXME: get min altitude from config
                 mask = (eph["Alt"] > 25 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
                 eph1 = eph[mask]
                 message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                        "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+                                         "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
 
                 exp = exposure_from_ephemeris(eph, "Motion", mag)
                 message(exp)
