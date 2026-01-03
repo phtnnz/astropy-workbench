@@ -35,10 +35,11 @@ ic.disable()
 
 # AstroPy
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-from astropy.coordinates import Angle
-from astropy.coordinates import errors
+# from astropy.coordinates import Angle
+# from astropy.coordinates import errors
 from astropy.time        import Time, TimeDelta
-from astropy.units import Quantity, Magnitude
+from astropy.table       import Table
+# from astropy.units       import Quantity, Magnitude
 import astropy.units as u
 import numpy as np
 
@@ -64,6 +65,19 @@ DEFAULT_LOCATION = "M49"
 # Command line options
 class Options:
     loc: EarthLocation = None       # -l --location
+
+
+
+def rename_columns_mpc(eph: Ephem) -> None:
+    """Renaming ephemeris table to common column names
+
+    Args:
+        table (Table): Ephemeris table
+    """
+    eph._table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
+                               "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
+                              ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
+                               "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
 
 
 
@@ -191,16 +205,16 @@ def main():
                 eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
                                         ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
                                         dec_format={'sep': ':', 'precision': 1} )
+                rename_columns_mpc(eph)
                 ic(eph.field_names)
-                mag = eph["V"][0]
-                # print(eph["Targetname", "Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
+                mag = eph["Mag"][0]
                 ##FIXME: get min altitude from config
-                mask = (eph["Altitude"] > 25 * u.deg) & (eph["Date"] > twilight_evening) & (eph["Date"] < twilight_morning)
+                mask = (eph["Alt"] > 25 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
                 eph1 = eph[mask]
-                message.print_lines(eph1["Targetname", "Date", "RA", "Dec", "V", 
-                                        "Proper motion", "Direction", "Azimuth", "Altitude"])
+                message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", 
+                                        "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
 
-                exp = exposure_from_ephemeris(eph, "Proper motion", mag)
+                exp = exposure_from_ephemeris(eph, "Motion", mag)
                 message(exp)
             except QueryError as e:
                 warning(f"MPC ephemeris for {obj} failed")
