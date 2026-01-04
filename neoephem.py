@@ -25,6 +25,7 @@ DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
+from dataclasses import dataclass
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -60,13 +61,7 @@ DEFAULT_LOCATION = config.code
 
 
 
-# Command line options
-class Options:
-    loc: EarthLocation = None       # -l --location
-
-
-
-def rename_columns_mpc(eph: Ephem) -> None:
+def rename_columns_MPC(eph: Ephem) -> None:
     """Rename MPC ephemeris table to common column names
 
     Args:
@@ -78,7 +73,7 @@ def rename_columns_mpc(eph: Ephem) -> None:
                                "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
 
 
-def rename_columns_jpl(eph: Ephem) -> None:
+def rename_columns_JPL(eph: Ephem) -> None:
     """Rename JPL ephemeris table to common column names
 
     Args:
@@ -91,6 +86,84 @@ def rename_columns_jpl(eph: Ephem) -> None:
 
 
 
+@dataclass
+class EphemTimes:
+    start: Time             # ephemeris start time
+    end: Time               # ephemeris end time
+    before: Time            # time before meridian
+    after: Time             # time after meridian
+    alt_start: Time         # start time of optimal altitude
+    alt_end: Time           # end time of optimal altitude
+    plan_start: Time        # planned start time
+    plan_end: Time          # planned end time
+
+@dataclass
+class EphemData:
+    obj: str
+    sort_time: Time
+    ephem: Ephem
+    times: EphemTimes
+
+@dataclass
+class LocalCircumstances:
+    loc: EarthLocation      # location
+    naut_dusk: Time         # nautical dusk
+    naut_dawn: Time         # nautical dawn
+
+
+
+def get_ephem_MPC(objects: list, epochs: dict, local: LocalCircumstances) -> dict[EphemData]:
+    min_alt = config.min_alt
+
+    for obj in objects:
+        verbose(f"object {obj}")
+
+        try:
+            # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
+            eph = Ephem.from_mpc(obj, location=local.loc, epochs=epochs, 
+                                    ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
+                                    dec_format={'sep': ':', 'precision': 1} )
+            # Rename columns to common names
+            rename_columns_MPC(eph)
+            ic(eph.field_names)
+
+            mag = eph["Mag"][0]
+            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] > local.naut_dusk) & (eph["Obstime"] < local.naut_dawn)
+            eph1 = eph[mask]
+            message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", 
+                                        "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+
+            exp = exposure_from_ephemeris(eph, "Motion", mag)
+            message(exp)
+        except QueryError as e:
+            warning(f"MPC ephemeris for {obj} failed")
+
+
+
+def get_ephem_JPL(objects: list, epochs: dict, local: LocalCircumstances) -> dict[EphemData]:
+    min_alt = config.min_alt
+
+    for obj in objects:
+        verbose(f"object {obj}")
+
+        eph = Ephem.from_horizons(obj, location=local.loc, epochs=epochs)
+        # Compute total motion from RA/DEC rates
+        eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
+        # Rename columns to common names
+        rename_columns_JPL(eph)
+        ic(eph.field_names)
+
+        mag = eph["Mag"][0]
+        mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] > local.naut_dusk) & (eph["Obstime"] < local.naut_dawn)
+        eph1 = eph[mask]
+        ##FIXME: missing Moon_dist, Moon_alt in JPL ephemeris?
+        message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", "Motion", "PA", "Az", "Alt"])
+
+        exp = exposure_from_ephemeris(eph, "Motion", mag)
+        message(exp)
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -100,10 +173,7 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("-f", "--file", help="read list of objects from file")
-    arg.add_argument("-t", "--time", help="start time for ephemeris (1h, 5min steps)")
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
-    arg.add_argument("-a", "--allnight", action="store_true", help="ephemeris for midnight +/- 8h (30min steps)")
-    arg.add_argument("--obs", action="store_true", help="output MPC obs")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
     arg.add_argument("object", nargs="*", help="object name")
 
@@ -119,14 +189,13 @@ def main():
     # Observer location
     loc = get_location(args.location if args.location else DEFAULT_LOCATION)
     ic(loc, loc.to_geodetic())
-    Options.loc = loc
     verbose(f"location {location_to_string(loc)}")
 
     observer = Observer(location=loc, description=loc.info.name)
     ic(observer)
 
-    # Observation time
-    time = Time(args.time) if args.time else Time.now()
+    # Observation times for upcoming night
+    time = Time.now()
     ic(time)
     verbose(f"time {time.iso} ({time.scale.upper()})")
 
@@ -146,17 +215,12 @@ def main():
     ic(day, rem, midnight1.iso)
     verbose(f"midnight {midnight.iso} / rounded {midnight1.iso} ({time.scale.upper()})")
     verbose(f"nautical twilight {twilight_evening.iso} / {twilight_morning.iso} ({time.scale.upper()})")
+    local = LocalCircumstances(loc, twilight_evening, twilight_morning)
 
-    if args.allnight:
-        epochs = {"start":  midnight1 - 8 * u.hour,
-                  "step":   30 * u.min,
-                  "stop":   midnight1 + 9 * u.hour
-                  }
-    else:
-        epochs = {"start":  time,
-                  "step":   5 * u.min,
-                  "stop":   time + 1 * u.hour
-                  }
+    epochs = {"start":  midnight1 - 8 * u.hour,
+              "step":   30 * u.min,
+              "stop":   midnight1 + 9 * u.hour
+             }
     ic(epochs)
 
     # Objects
@@ -175,78 +239,10 @@ def main():
     if args.clear:
         MPC.clear_cache()    
 
-    for obj in objects:
-        verbose(f"object {obj}")
-
-        # # Object ephemeris
-        # try:
-        #     eph = MPC.get_ephemeris(obj, location=loc, start=time, step=5*u.min, number=12)
-        #     print(eph["Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
-        # except InvalidQueryError as err:
-        #     warning(f"query MPC ephemeris for failed {obj}!")
-        #     eph = None
-
-        # # Observations
-        # try:
-        #     ##FIXME: must specify id_type
-        #     obs = MPC.get_observations(obj, id_type="comet number")
-        #     print(obs)
-        # except (EmptyResponseError, ValueError) as err:
-        #     warning(f"query MPC observations failed for {obj}!")
-        #     obs = None
-
-        # Get ephemerides via sbpy
-        if args.jpl:
-            eph = Ephem.from_horizons(obj, location=loc, epochs=epochs)
-            # Compute total motion from RA/DEC rates
-            eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
-            # Rename columns to common names
-            rename_columns_jpl(eph)
-            ic(eph.field_names)
-
-            mag = eph["Mag"][0]
-            ##FIXME: get min altitude from config
-            mask = (eph["Alt"] > 25 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
-            eph1 = eph[mask]
-            message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", "Motion", "PA", "Az", "Alt"])
-
-            exp = exposure_from_ephemeris(eph, "Motion", mag)
-            message(exp)
-        else:
-            try:
-                # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
-                eph = Ephem.from_mpc(obj, location=loc, epochs=epochs, 
-                                        ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
-                                        dec_format={'sep': ':', 'precision': 1} )
-                # Rename columns to common names
-                rename_columns_mpc(eph)
-                ic(eph.field_names)
-
-                mag = eph["Mag"][0]
-                ##FIXME: get min altitude from config
-                mask = (eph["Alt"] > 25 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
-                eph1 = eph[mask]
-                message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                         "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-
-                exp = exposure_from_ephemeris(eph, "Motion", mag)
-                message(exp)
-            except QueryError as e:
-                warning(f"MPC ephemeris for {obj} failed")
-
-            try:
-                if args.obs:
-                    obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-                    print(obs)
-                    # # Handle masked entries
-                    # for i in range(-1, -10, -1):
-                    #     mag = obs["mag"][i].unmasked
-                    #     if mag > Magnitude(0):
-                    #         break
-            except QueryError as e:
-                warning(f"MPC observations for {obj} failed")
-            except ConnectionError as e:
-                warning(f"MPC request failed: {e}")
+    if args.jpl:
+        get_ephem_JPL(objects, epochs, local)
+    else:
+        get_ephem_MPC(objects, epochs, local)
 
 
 
