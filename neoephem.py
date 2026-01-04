@@ -61,7 +61,7 @@ DEFAULT_LOCATION = config.code
 
 
 
-def rename_columns_MPC(eph: Ephem) -> None:
+def rename_columns_mpc(eph: Ephem) -> None:
     """Rename MPC ephemeris table to common column names
 
     Args:
@@ -73,7 +73,7 @@ def rename_columns_MPC(eph: Ephem) -> None:
                                "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
 
 
-def rename_columns_JPL(eph: Ephem) -> None:
+def rename_columns_jpl(eph: Ephem) -> None:
     """Rename JPL ephemeris table to common column names
 
     Args:
@@ -107,12 +107,14 @@ class EphemData:
 @dataclass
 class LocalCircumstances:
     loc: EarthLocation      # location
+    observer: Observer      # astroplan observer
     naut_dusk: Time         # nautical dusk
     naut_dawn: Time         # nautical dawn
+    epochs: dict            # epochs parameter for Ephem.from_mpc()/from_jpb()
 
 
 
-def get_ephem_MPC(objects: list, epochs: dict, local: LocalCircumstances) -> dict[EphemData]:
+def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[EphemData]:
     min_alt = config.min_alt
 
     for obj in objects:
@@ -120,11 +122,11 @@ def get_ephem_MPC(objects: list, epochs: dict, local: LocalCircumstances) -> dic
 
         try:
             # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
-            eph = Ephem.from_mpc(obj, location=local.loc, epochs=epochs, 
+            eph = Ephem.from_mpc(obj, location=local.loc, epochs=local.epochs, 
                                     ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
                                     dec_format={'sep': ':', 'precision': 1} )
             # Rename columns to common names
-            rename_columns_MPC(eph)
+            rename_columns_mpc(eph)
             ic(eph.field_names)
 
             mag = eph["Mag"][0]
@@ -140,17 +142,17 @@ def get_ephem_MPC(objects: list, epochs: dict, local: LocalCircumstances) -> dic
 
 
 
-def get_ephem_JPL(objects: list, epochs: dict, local: LocalCircumstances) -> dict[EphemData]:
+def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[EphemData]:
     min_alt = config.min_alt
 
     for obj in objects:
         verbose(f"object {obj}")
 
-        eph = Ephem.from_horizons(obj, location=local.loc, epochs=epochs)
+        eph = Ephem.from_horizons(obj, location=local.loc, epochs=local.epochs)
         # Compute total motion from RA/DEC rates
         eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
         # Rename columns to common names
-        rename_columns_JPL(eph)
+        rename_columns_jpl(eph)
         ic(eph.field_names)
 
         mag = eph["Mag"][0]
@@ -161,6 +163,41 @@ def get_ephem_JPL(objects: list, epochs: dict, local: LocalCircumstances) -> dic
 
         exp = exposure_from_ephemeris(eph, "Motion", mag)
         message(exp)
+
+
+
+def get_local_circumstances(loc: EarthLocation) -> LocalCircumstances:
+    observer = Observer(location=loc, description=loc.info.name)
+    ic(observer)
+
+    # Observation times for upcoming night
+    time = Time.now()
+    ic(time)
+    verbose(f"time {time.iso} ({time.scale.upper()})")
+
+    midnight = observer.midnight(time, which="next")
+    twilight_evening = observer.twilight_evening_nautical(time, which="next")
+    twilight_morning = observer.twilight_morning_nautical(time, which="next")
+    if twilight_evening > twilight_morning:
+        twilight_evening = observer.twilight_evening_nautical(time, which="previous")
+    ic(midnight.iso, twilight_evening.iso, twilight_morning.iso)
+
+    # Round midnight time to nearest 30 min
+    rem, day = np.modf(midnight.jd)
+    n_round = 24 * 2    # 24 h / 30 min
+    rem = round(rem*n_round) / n_round
+    jd1 = day + rem
+    midnight1 = Time(jd1, format="jd")
+    ic(day, rem, midnight1.iso)
+    verbose(f"midnight {midnight.iso} / rounded {midnight1.iso} ({time.scale.upper()})")
+    verbose(f"nautical twilight {twilight_evening.iso} / {twilight_morning.iso} ({time.scale.upper()})")
+    epochs = {"start":  midnight1 - 8 * u.hour,
+              "step":   30 * u.min,
+              "stop":   midnight1 + 9 * u.hour
+             }
+    ic(epochs)
+
+    return LocalCircumstances(loc, observer, twilight_evening, twilight_morning, epochs)
 
 
 
@@ -186,42 +223,11 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
-    # Observer location
+    # Observer location and local circumstances
     loc = get_location(args.location if args.location else DEFAULT_LOCATION)
     ic(loc, loc.to_geodetic())
     verbose(f"location {location_to_string(loc)}")
-
-    observer = Observer(location=loc, description=loc.info.name)
-    ic(observer)
-
-    # Observation times for upcoming night
-    time = Time.now()
-    ic(time)
-    verbose(f"time {time.iso} ({time.scale.upper()})")
-
-    midnight = observer.midnight(time, which="next")
-    twilight_evening = observer.twilight_evening_nautical(time, which="next")
-    twilight_morning = observer.twilight_morning_nautical(time, which="next")
-    if twilight_evening > twilight_morning:
-        twilight_evening = observer.twilight_evening_nautical(time, which="previous")
-    ic(midnight.iso, twilight_evening.iso, twilight_morning.iso)
-
-    # Round midnight time to nearest 30 min
-    rem, day = np.modf(midnight.jd)
-    n_round = 24 * 2    # 24 h / 30 min
-    rem = round(rem*n_round) / n_round
-    jd1 = day + rem
-    midnight1 = Time(jd1, format="jd")
-    ic(day, rem, midnight1.iso)
-    verbose(f"midnight {midnight.iso} / rounded {midnight1.iso} ({time.scale.upper()})")
-    verbose(f"nautical twilight {twilight_evening.iso} / {twilight_morning.iso} ({time.scale.upper()})")
-    local = LocalCircumstances(loc, twilight_evening, twilight_morning)
-
-    epochs = {"start":  midnight1 - 8 * u.hour,
-              "step":   30 * u.min,
-              "stop":   midnight1 + 9 * u.hour
-             }
-    ic(epochs)
+    local = get_local_circumstances(loc)
 
     # Objects
     objects = []
@@ -240,9 +246,9 @@ def main():
         MPC.clear_cache()    
 
     if args.jpl:
-        get_ephem_JPL(objects, epochs, local)
+        get_ephem_jpl(objects, local)
     else:
-        get_ephem_MPC(objects, epochs, local)
+        get_ephem_mpc(objects, local)
 
 
 
