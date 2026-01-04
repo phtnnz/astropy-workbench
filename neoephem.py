@@ -25,7 +25,6 @@ DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
-from dataclasses import dataclass
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -53,8 +52,9 @@ from astroplan import Observer
 
 # Local modules
 from verbose import verbose, warning, error, message
-from astroutils import location_to_string, get_location     # ...
-from neoutils import Exposure, exposure_from_ephemeris
+from astroutils import location_to_string, get_location
+from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
+from neoutils import exposure_from_ephemeris
 from neoconfig import config
 
 DEFAULT_LOCATION = config.code
@@ -83,38 +83,6 @@ def rename_columns_jpl(eph: Ephem) -> None:
     mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
     eph.table.rename_columns(("targetname", "epoch",   "AZ", "EL",  mag_col, "velocityPA"),
                              ("Targetname", "Obstime", "Az", "Alt", "Mag",   "PA" ))
-
-
-
-@dataclass
-class EphemTimes:
-    start: Time             # ephemeris start time
-    end: Time               # ephemeris end time
-    before: Time            # time before meridian
-    after: Time             # time after meridian
-    alt_start: Time         # start time of optimal altitude
-    alt_end: Time           # end time of optimal altitude
-    plan_start: Time        # planned start time
-    plan_end: Time          # planned end time
-
-@dataclass
-class EphemData:
-    obj: str
-    sort_time: Time
-    ephem: Ephem
-    times: EphemTimes
-    exposure: Exposure
-
-@dataclass
-class LocalCircumstances:
-    loc: EarthLocation      # location
-    observer: Observer      # astroplan observer
-    naut_dusk: Time         # nautical dusk
-    naut_dawn: Time         # nautical dawn
-    epochs: dict            # epochs parameter for Ephem.from_mpc()/from_jpb()
-
-    def __str__(self):
-        return f"location {location_to_string(self.loc)}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
 
 
 

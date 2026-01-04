@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius
+# Copyright 2025-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ DESCRIPTION = "NEO utility functions"
 
 import re
 from typing import Tuple
-from dataclasses import dataclass
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -45,16 +44,7 @@ import numpy as np
 # Local modules
 from verbose import verbose, warning, error, message
 from neoconfig import config
-
-
-
-@dataclass
-class Exposure:
-    number: int
-    single: Quantity
-    total: Quantity
-    total_time: Quantity
-    percentage: float
+from neoclasses import Exposure
 
 
 

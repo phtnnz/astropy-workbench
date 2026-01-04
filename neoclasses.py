@@ -16,7 +16,7 @@
 
 # ChangeLog
 # Version 0.1 / 2026-01-04
-#       Dataclasses from neoephem
+#       Dataclasses from neoephem, neoutils
 
 VERSION     = "0.1 / 2026-01-04"
 AUTHOR      = "Martin Junius"
