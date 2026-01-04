@@ -65,7 +65,7 @@ def rename_columns_mpc(eph: Ephem) -> None:
     """Rename MPC ephemeris table to common column names
 
     Args:
-        table (Table): Ephemeris table
+        eph (Ephem): Ephemeris table
     """
     eph._table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
                                "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
@@ -77,7 +77,7 @@ def rename_columns_jpl(eph: Ephem) -> None:
     """Rename JPL ephemeris table to common column names
 
     Args:
-        table (Table): Ephemeris table
+        eph (Ephem): Ephemeris table
     """
 
     mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
@@ -119,6 +119,15 @@ class LocalCircumstances:
 
 
 def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[EphemData]:
+    """Get ephemerides for object list from MPC
+
+    Args:
+        objects (list): object list
+        local (LocalCircumstances): local circumstances for upcoming observation night
+
+    Returns:
+        dict[EphemData]: object dict with ephemerides data
+    """
     min_alt = config.min_alt
     obj_data = {}
 
@@ -146,6 +155,15 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[EphemData]:
 
 
 def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[EphemData]:
+    """Get ephemerides for object list from JPL
+
+    Args:
+        objects (list): object list
+        local (LocalCircumstances): local circumstances for upcoming observation night
+
+    Returns:
+        dict[EphemData]: object dict with ephemerides data
+    """
     min_alt = config.min_alt
     obj_data = {}
 
@@ -172,6 +190,14 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[EphemData]:
 
 
 def get_local_circumstances(loc: EarthLocation) -> LocalCircumstances:
+    """Get local circumentances: location, observer, dusk, dawn, epochs parameter
+
+    Args:
+        loc (EarthLocation): observer location
+
+    Returns:
+        LocalCircumstances: local circumstances data
+    """
     observer = Observer(location=loc, description=loc.info.name)
     ic(observer)
 
