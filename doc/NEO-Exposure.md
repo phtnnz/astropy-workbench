@@ -84,3 +84,11 @@ Moon below horizon, moon distance 149 deg, altitude 49 deg
 60 x 5 s = 5 min = 31 %  
 Tycho: limiting mag 17.3, stack 18.3  
 Object found, LogSNR 0.55-0.76, measured mag 19.1-19.8, ephem mag 19.5
+
+## 2026-01-03
+
+Moon 99%, moon distance 82 deg, altitude 24 deg  
+15 x 60 s = 15 min  
+Tycho: limiting mag 17.7, stack 19.6  
+Object found, LogSNR 0.87-0.93, measured mag 18.4-18.6, ephem mag 18.9
+
