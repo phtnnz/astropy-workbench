@@ -61,7 +61,7 @@ DEFAULT_LOCATION = config.code
 
 
 
-def rename_columns_mpc(eph: Ephem) -> None:
+def _rename_columns_mpc(eph: Ephem) -> None:
     """Rename MPC ephemeris table to common column names
 
     Args:
@@ -73,7 +73,7 @@ def rename_columns_mpc(eph: Ephem) -> None:
                                "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
 
 
-def rename_columns_jpl(eph: Ephem) -> None:
+def _rename_columns_jpl(eph: Ephem) -> None:
     """Rename JPL ephemeris table to common column names
 
     Args:
@@ -106,7 +106,7 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[EphemData]:
                                     ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
                                     dec_format={'sep': ':', 'precision': 1} )
             # Rename columns to common names
-            rename_columns_mpc(eph)
+            _rename_columns_mpc(eph)
             ic(eph.field_names)
 
             mag = eph["Mag"][0]
@@ -140,7 +140,7 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[EphemData]:
         # Compute total motion from RA/DEC rates
         eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
         # Rename columns to common names
-        rename_columns_jpl(eph)
+        _rename_columns_jpl(eph)
         ic(eph.field_names)
 
         mag = eph["Mag"][0]
