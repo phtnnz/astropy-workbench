@@ -16,7 +16,8 @@
 
 # ChangeLog
 # Version 0.1 / 2026-01-05
-#       Copy of neoephem 0.1, importing neoephem functions
+#       Copy of neoephem 0.1, importing neoephem functions, moved/adapted
+#       functions from neocp 0.7 to neoutils, new options -s --start / -e --end
 
 VERSION     = "0.1 / 2026-01-05"
 AUTHOR      = "Martin Junius"
@@ -59,6 +60,32 @@ from neoconfig import config
 from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 
 DEFAULT_LOCATION = config.code
+
+
+
+def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> dict:
+    # Start planner at naut. dusk / start time from options
+    last_start_time = local.naut_dusk
+
+    for obj, edata in obj_data.items():
+        exp_start = None
+        exp_end = None
+
+        etimes = edata.times
+        start = etimes.start
+        end = etimes.end
+        total_time = edata.exposure.total_time
+        ic(obj, start, end, total_time)
+
+        alt_start = etimes.alt_start
+        alt_end = etimes.alt_end
+        before = etimes.before
+        after = etimes.after
+
+        ##TODO: implement new strategy
+
+        ic(exp_start, exp_end)
+
 
 
 
@@ -132,6 +159,9 @@ def main():
 
     obj_data = sort_obj_ephm_data(obj_data)
     verbose(f"sorted object sequence: {", ".join(obj_data.keys())}")
+
+    # Run obs planner
+    obs_planner_1(obj_data, local)
 
 
 
