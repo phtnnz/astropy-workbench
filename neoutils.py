@@ -33,8 +33,9 @@ ic.disable()
 
 # AstroPy & friends
 import astropy.units as u
+from astropy.coordinates import Angle
 from astropy.units import Quantity, Magnitude
-from astropy.time import Time, TimeDelta
+from astropy.time import Time
 from astropy.table import QTable, Row
 import numpy as np
 from sbpy.data import Ephem
@@ -185,17 +186,153 @@ def exposure_from_ephemeris(ephemeris: Ephem, column: str, mag: Magnitude) -> Ex
 
 
 
-def process_ephm_data(edata: Ephem) -> None:
+def is_east(az: Angle) -> bool:
+    """
+    Test for east azimut position
+
+    Parameters
+    ----------
+    az : Angle
+        Azimut angle
+
+    Returns
+    -------
+    bool
+        True if east, False if west
+    """
+    az180     = 180 * u.degree
+    return True if az >= 0 and az < az180 else False
+
+def is_west(az: Angle) -> bool:
+    """
+    Test for west azimut position
+
+    Parameters
+    ----------
+    az : Angle
+        Azimut angle
+
+    Returns
+    -------
+    bool
+        True if west, False if east
+    """
+    az180     = 180 * u.degree
+    az360     = 360 * u.degree
+    return True if az >= az180 and az < az360 else False
+
+def flip_times(eph: Ephem) -> tuple[Time, Time]:
+    """
+    Get time before and after meridian passing from ephemeris table
+
+    Parameters
+    ----------
+    eph : Ephem
+        Ephemeris table
+
+    Returns
+    -------
+    Tuple[Time, Time]
+        Time before meridian, time after meridian passing
+        None, None if object doesn't pass meridian
+    """
+    prev_time = None
+    prev_az   = None
+
+    for row in eph:
+        time = row["Obstime"]
+        az   = row["Az"]
+        # ic(time, az)
+        if not prev_az == None:
+            if is_east(prev_az) and is_west(az):     # South flip
+                return (prev_time, time)
+            if is_west(prev_az) and is_east(az):     # North flip
+                return (prev_time, time)
+        prev_time = time
+        prev_az   = az
+
+    # No meridian passing found
+    return None, None
+
+
+
+def opt_alt_times(eph: Ephem, alt: Angle) -> tuple[Time, Time]:
+    """
+    Get times for object above specified altitude
+
+    Parameters
+    ----------
+    eph : Ephem
+        Ephemeris table
+    alt : Angle
+        Altitude angle
+
+    Returns
+    -------
+    tuple[Time, Time]
+        Start time above altitude, end time above altitude
+    """
+    time_alt0 = None
+    time_alt1 = None
+
+    for row in eph:
+        if time_alt0 == None and row["Alt"] >= alt:
+            time_alt0 = row["Obstime"]
+        if time_alt0 != None and row["Alt"] >= alt:
+            time_alt1 = row["Obstime"]
+        if time_alt1 != None and row["Alt"] < alt:
+            break
+    
+    return time_alt0, time_alt1
+
+
+
+def max_alt_time(eph: Ephem) -> Time:
+    """
+    Get time of maximum altitude from ephemeris table
+
+    Parameters
+    ----------
+    eph : Ephem
+        Ephemeris table
+
+    Returns
+    -------
+    Time
+        Time of max altitude
+    """
+    max_alt = -90 * u.degree
+    time_max = None
+    for row in eph:
+        if row["Alt"] > max_alt:
+            max_alt = row["Alt"]
+            time_max = row["Obstime"]
+    return time_max
+
+
+
+def process_ephm_data(edata: EphemData) -> None:
     eph = edata.ephem
     edata.times = EphemTimes(eph["Obstime"][0], eph["Obstime"][-1],
                              None, None, None, None, None, None)
     etimes = edata.times
-    ic(etimes)
+    etimes.before, etimes.after = flip_times(eph)
+    etimes.alt_start, etimes.alt_end = opt_alt_times(eph, config.opt_alt * u.deg)
+
+    edata.sort_time = max_alt_time(eph)
+    if etimes.alt_start != None:
+        edata.sort_time = etimes.alt_start
 
 
 
 def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> None:
     for obj in obj_data.keys():
         process_ephm_data(obj_data[obj])
+    return obj_data
 
+
+
+def sort_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
+    # Sort dict by sort_time (item[0] = obj, item[1] = edata)
+    return { obj: edata for obj, edata in sorted(obj_data.items(), key=lambda item: item[1].sort_time) }
 
