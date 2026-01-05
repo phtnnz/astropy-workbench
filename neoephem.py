@@ -104,7 +104,7 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             ic(eph.field_names)
 
             mag = eph["Mag"][0]
-            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] > local.naut_dusk) & (eph["Obstime"] < local.naut_dawn)
+            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
             eph1 = eph[mask]
             exp = exposure_from_ephemeris(eph1, "Motion", mag)
             data = EphemData(obj, None, eph1, None, exp)
@@ -138,7 +138,7 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
         ic(eph.field_names)
 
         mag = eph["Mag"][0]
-        mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] > local.naut_dusk) & (eph["Obstime"] < local.naut_dawn)
+        mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
         eph1 = eph[mask]
         ##Quick hack: missing Moon_dist, Moon_alt in JPL ephemeris?
         eph1["Moon_dist"] = 180 * u.degree
