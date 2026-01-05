@@ -54,7 +54,7 @@ from astroplan import Observer
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location
 from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
-from neoutils import exposure_from_ephemeris
+from neoutils import process_obj_ephm_data
 from neoconfig import config
 from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 
@@ -117,6 +117,9 @@ def main():
         verbose.print_lines(data.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                        "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
         verbose(data.exposure)
+
+    # Process objects
+    process_obj_ephm_data(obj_data)
 
 
 

@@ -42,7 +42,7 @@ from sbpy.data import Ephem
 # Local modules
 from verbose import verbose, warning, error, message
 from neoconfig import config
-from neoclasses import Exposure
+from neoclasses import Exposure, EphemData, EphemTimes
 
 
 
@@ -183,5 +183,19 @@ def exposure_from_ephemeris(ephemeris: Ephem, column: str, mag: Magnitude) -> Ex
     ic(max_m, mag)
     return total_exp(max_m, mag)
 
+
+
+def process_ephm_data(edata: Ephem) -> None:
+    eph = edata.ephem
+    edata.times = EphemTimes(eph["Obstime"][0], eph["Obstime"][-1],
+                             None, None, None, None, None, None)
+    etimes = edata.times
+    ic(etimes)
+
+
+
+def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> None:
+    for obj in obj_data.keys():
+        process_ephm_data(obj_data[obj])
 
 
