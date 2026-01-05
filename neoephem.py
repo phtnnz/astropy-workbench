@@ -32,27 +32,21 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-# from astropy.coordinates import Angle
-# from astropy.coordinates import errors
-from astropy.time        import Time, TimeDelta
-from astropy.table       import Table
-# from astropy.units       import Quantity, Magnitude
+from astropy.coordinates import AltAz, EarthLocation
+from astropy.time        import Time
 import astropy.units as u
 import numpy as np
 
 from sbpy.data import Ephem
-from sbpy.data import Obs
 from sbpy.data.core import QueryError
 
 from astroquery.mpc import MPC
-from astroquery.exceptions import EmptyResponseError, InvalidQueryError
 
 from astroplan import Observer
 
 # Local modules
 from verbose import verbose, warning, error, message
-from astroutils import location_to_string, get_location
+from astroutils import get_location
 from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
 from neoutils import exposure_from_ephemeris
 from neoconfig import config
