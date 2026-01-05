@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+
+# Copyright 2025-2026 Martin Junius
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ChangeLog
+# Version 0.1 / 2026-01-05
+#       Copy of neoephem 0.1, importing neoephem functions
+
+VERSION     = "0.1 / 2026-01-05"
+AUTHOR      = "Martin Junius"
+NAME        = "neo-obs-planner"
+DESCRIPTION = "Plan NEO observations"
+
+import sys
+import argparse
+
+# The following libs must be installed with pip
+from icecream import ic
+# Disable debugging
+ic.disable()
+
+# AstroPy
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+# from astropy.coordinates import Angle
+# from astropy.coordinates import errors
+from astropy.time        import Time, TimeDelta
+from astropy.table       import Table
+# from astropy.units       import Quantity, Magnitude
+import astropy.units as u
+import numpy as np
+
+from sbpy.data import Ephem
+from sbpy.data import Obs
+from sbpy.data.core import QueryError
+
+from astroquery.mpc import MPC
+from astroquery.exceptions import EmptyResponseError, InvalidQueryError
+
+from astroplan import Observer
+
+# Local modules
+from verbose import verbose, warning, error, message
+from astroutils import location_to_string, get_location
+from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
+from neoutils import exposure_from_ephemeris
+from neoconfig import config
+from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
+
+DEFAULT_LOCATION = config.code
+
+
+
+def main():
+    arg = argparse.ArgumentParser(
+        prog        = NAME,
+        description = DESCRIPTION,
+        epilog      = "Version " + VERSION + " / " + AUTHOR)
+    arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
+    arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
+    arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
+    arg.add_argument("-f", "--file", help="read list of objects from file")
+    arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
+    arg.add_argument("--clear", action="store_true", help="clear MPC cache")
+    arg.add_argument("object", nargs="*", help="object name")
+
+    args = arg.parse_args()
+
+    if args.debug:
+        ic.enable()
+        ic(sys.version_info, sys.path, args)
+    if args.verbose:
+        verbose.set_prog(NAME)
+        verbose.enable()
+
+    # Observer location and local circumstances
+    loc = get_location(args.location if args.location else DEFAULT_LOCATION)
+    ic(loc, loc.to_geodetic())
+    local = get_local_circumstances(loc)
+
+    # Objects
+    objects = []
+    if args.file:
+        with open(args.file, "r") as file:
+            for line in file:
+                objects.append(line.strip())
+    if args.object:
+        objects.extend(args.object)
+    ic(objects)
+    if not objects:
+        error("no objects from file or command line")
+
+    # Clear astroquery cache
+    if args.clear:
+        MPC.clear_cache()    
+
+    verbose.print_lines(local)
+
+    if args.jpl:
+        obj_data = get_ephem_jpl(objects, local)
+    else:
+        obj_data = get_ephem_mpc(objects, local)
+
+    ic(obj_data)
+    for obj, data in obj_data.items():
+        verbose.print_lines(data.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+                                       "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+        verbose(data.exposure)
+
+
+
+if __name__ == "__main__":
+    main()
