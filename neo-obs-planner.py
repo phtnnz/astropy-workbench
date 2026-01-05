@@ -54,7 +54,7 @@ from astroplan import Observer
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location
 from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
-from neoutils import process_obj_ephm_data
+from neoutils import process_obj_ephm_data, sort_obj_ephm_data
 from neoconfig import config
 from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 
@@ -107,19 +107,23 @@ def main():
 
     verbose.print_lines(local)
 
+    # Get ephemerides
     if args.jpl:
         obj_data = get_ephem_jpl(objects, local)
     else:
         obj_data = get_ephem_mpc(objects, local)
-
-    ic(obj_data)
-    for obj, data in obj_data.items():
-        verbose.print_lines(data.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                       "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-        verbose(data.exposure)
-
     # Process objects
-    process_obj_ephm_data(obj_data)
+    obj_data = process_obj_ephm_data(obj_data)
+    verbose(f"original object sequence: {", ".join(obj_data.keys())}")
+
+    for obj, edata in obj_data.items():
+        verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+                                       "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+        verbose(edata.exposure)
+        verbose(edata.times)
+
+    obj_data = sort_obj_ephm_data(obj_data)
+    verbose(f"sorted object sequence: {", ".join(obj_data.keys())}")
 
 
 
