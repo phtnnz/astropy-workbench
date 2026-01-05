@@ -71,6 +71,9 @@ def main():
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("-f", "--file", help="read list of objects from file")
+    arg.add_argument("-s", "--start", help="start time (UTC) (default naut. dusk)")
+    arg.add_argument("-e", "--end", help="end time (UTC) (default naut. dawn)")
+
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
     arg.add_argument("object", nargs="*", help="object name")
@@ -105,6 +108,11 @@ def main():
     if args.clear:
         MPC.clear_cache()    
 
+    # Override start/end time
+    if args.start:
+        local.naut_dusk = Time(args.start)
+    if args.end:
+        local.naut_dawn = Time(args.end)
     verbose.print_lines(local)
 
     # Get ephemerides
