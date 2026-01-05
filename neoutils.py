@@ -26,20 +26,18 @@ AUTHOR      = "Martin Junius"
 NAME        = "neoutils"
 DESCRIPTION = "NEO utility functions"
 
-import re
-from typing import Tuple
-
 # The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
 
-# AstroPy
+# AstroPy & friends
 import astropy.units as u
 from astropy.units import Quantity, Magnitude
 from astropy.time import Time, TimeDelta
 from astropy.table import QTable, Row
 import numpy as np
+from sbpy.data import Ephem
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -141,7 +139,7 @@ def total_exp(max_motion: Quantity, mag: Magnitude) -> Exposure:
 
 
 
-def max_motion(ephemeris: QTable, column: str="motion") -> Quantity:
+def max_motion(ephemeris: Ephem, column: str="Motion") -> Quantity:
     """
     Get max value for motion column(s) from ephemeris table
 
@@ -177,7 +175,7 @@ def max_motion(ephemeris: QTable, column: str="motion") -> Quantity:
 
 
 
-def exposure_from_ephemeris(ephemeris: QTable, column: str, mag: Magnitude) -> Exposure:
+def exposure_from_ephemeris(ephemeris: Ephem, column: str, mag: Magnitude) -> Exposure:
     max_m = max_motion(ephemeris, column)
     if max_m == None:
         return None
@@ -185,21 +183,5 @@ def exposure_from_ephemeris(ephemeris: QTable, column: str, mag: Magnitude) -> E
     ic(max_m, mag)
     return total_exp(max_m, mag)
 
-
-
-def id_type_from_name(name: str) -> str:
-    id_type_regex = {   "asteroid numer":         "^[1-9][0-9]*$",
-                        "asteroid designation":   "^20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$",
-                        "comet number":           "^[0-9]{1,3}[PIA]$",
-                        "comet designation":      "^[PDCXAI]/20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$"
-                    }
-
-    for id in id_type_regex.keys():
-        m = re.match(id_type_regex[id], name)
-        if m:
-            ic(name, id)
-            return id
-    ## Default None or "asteroid designation"?
-    return None
 
 

@@ -29,6 +29,7 @@ DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
+import re
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -57,7 +58,7 @@ from astroplan import Observer
 # Local modules
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location     # ...
-from neoutils import Exposure, exposure_from_ephemeris, id_type_from_name
+from neoutils import Exposure, exposure_from_ephemeris
 
 ##FIXME: use config
 DEFAULT_LOCATION = "M49"
@@ -92,6 +93,25 @@ def rename_columns_jpl(eph: Ephem) -> None:
     mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
     eph.table.rename_columns(("targetname", "epoch",   "AZ", "EL",  mag_col, "velocityPA"),
                              ("Targetname", "Obstime", "Az", "Alt", "Mag",   "PA" ))
+
+
+
+def id_type_from_name(name: str) -> str:
+    id_type_regex = {   "asteroid numer":         "^[1-9][0-9]*$",
+                        "asteroid designation":   "^20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$",
+                        "comet number":           "^[0-9]{1,3}[PIA]$",
+                        "comet designation":      "^[PDCXAI]/20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$"
+                    }
+
+    for id in id_type_regex.keys():
+        m = re.match(id_type_regex[id], name)
+        if m:
+            ic(name, id)
+            return id
+    ## Default None or "asteroid designation"?
+    return None
+
+
 
 
 
