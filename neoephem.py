@@ -80,7 +80,7 @@ def _rename_columns_jpl(eph: Ephem) -> None:
 
 
 
-def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[EphemData]:
+def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemData]:
     """Get ephemerides for object list from MPC
 
     Args:
@@ -116,7 +116,7 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[EphemData]:
 
 
 
-def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[EphemData]:
+def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemData]:
     """Get ephemerides for object list from JPL
 
     Args:
