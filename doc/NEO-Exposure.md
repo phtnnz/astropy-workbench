@@ -98,3 +98,10 @@ Moon 96%, moon distance 69 deg, altitude 34 deg
 30 x 60 s = 30 min  
 Tycho: limiting mag 18.4, stack 20.7  
 Object found, LogSNR 1.10-1.13, measured mag 18.6-18.8, ephem mag 18.9
+
+## 2026-01-05
+
+Moon 91%, moon distance 56 deg, altitude 48 deg  
+30 x 60 s = 30 min  
+Tycho: limiting mag , stack   
+Object found, LogSNR , measured mag , ephem mag 18.9
