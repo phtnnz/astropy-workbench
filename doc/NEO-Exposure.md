@@ -103,5 +103,5 @@ Object found, LogSNR 1.10-1.13, measured mag 18.6-18.8, ephem mag 18.9
 
 Moon 91%, moon distance 56 deg, altitude 48 deg  
 30 x 60 s = 30 min  
-Tycho: limiting mag , stack   
-Object found, LogSNR , measured mag , ephem mag 18.9
+Tycho: limiting mag 18.0, stack 20.3  
+Object found, LogSNR 1.02-1.17, measured mag 18.5-18.8, ephem mag 18.9
