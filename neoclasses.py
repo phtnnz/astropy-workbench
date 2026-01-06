@@ -31,7 +31,7 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import EarthLocation, Angle
 from astropy.time        import Time
 from sbpy.data import Ephem
 from astroplan import Observer
@@ -78,6 +78,8 @@ class EphemData:
     exposure: Exposure      # exposure data object
     mag: Magnitude          # magnitude of object
     motion: Quantity        # max. motion of object
+    ra: Angle = None        # planned RA
+    dec: Angle = None       # planned DEC
 
 
 
