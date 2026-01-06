@@ -26,6 +26,9 @@ AUTHOR      = "Martin Junius"
 NAME        = "neoutils"
 DESCRIPTION = "NEO utility functions"
 
+
+from itertools import pairwise
+
 # The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
@@ -328,4 +331,29 @@ def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> None:
 def sort_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
     # Sort dict by sort_time (item[0] = obj, item[1] = edata)
     return { obj: edata for obj, edata in sorted(obj_data.items(), key=lambda item: item[1].sort_time) }
+
+
+
+def get_row_for_time(eph: Ephem, t: Time) -> Row:
+    """
+    Get row from ephemeris table closest to specified time
+
+    Parameters
+    ----------
+    eph : Ephem
+        Ephemeris table
+    t : Time
+        Time for retrieving row
+
+    Returns
+    -------
+    Row
+        Corresponding row from ephemeris table
+        None, if not found
+    """
+    for r1, r2 in pairwise(eph):
+        if r1["obstime"] <= t and t <= r2["obstime"]:
+            return r1
+    # Not matching interval found
+    return None
 
