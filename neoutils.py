@@ -90,7 +90,7 @@ def motion_limit() -> Quantity:
 
 
 
-def total_exp(max_motion: Quantity, mag: Magnitude) -> Exposure:
+def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
     """
     Calculate number of exposures, single exposure time, total exposure time, total time, percentage
     from object motion and magnitude
@@ -168,21 +168,12 @@ def max_motion(ephemeris: Ephem, column: str="Motion") -> Quantity:
         if col2:
             motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
         else:
-            motion = row[col1]
+            ##HACK: ...[0] necessary to get scalar, not array with single element
+            motion = row[col1][0]
         if motion > max_m:
             max_m = motion
 
     return max_m
-
-
-
-def exposure_from_ephemeris(ephemeris: Ephem, column: str, mag: Magnitude) -> Exposure:
-    max_m = max_motion(ephemeris, column)
-    if max_m == None:
-        return None
-    
-    ic(max_m, mag)
-    return total_exp(max_m, mag)
 
 
 
