@@ -189,6 +189,8 @@ def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
             #   start time, end time, 
             #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
             #   type, mag, nobs, arc, notseen, total
+            # RA output  = hourangle !!!
+            # DEC output = degree
             csv_row = { "target": obj,
                         "obstime": f_time(edata.times.plan_start, add_tz=True),
                         "ra": float(edata.ra.value),
