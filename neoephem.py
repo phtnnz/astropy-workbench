@@ -48,7 +48,7 @@ from astroplan import Observer
 from verbose import verbose, warning, error, message
 from astroutils import get_location
 from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
-from neoutils import exposure_from_ephemeris
+from neoutils import exposure_calc, max_motion
 from neoconfig import config
 
 DEFAULT_LOCATION = config.code
@@ -106,8 +106,9 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             mag = eph["Mag"][0]
             mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
             eph1 = eph[mask]
-            exp = exposure_from_ephemeris(eph1, "Motion", mag)
-            data = EphemData(obj, None, eph1, None, exp)
+            motion = max_motion(eph1, "Motion")
+            exp = exposure_calc(motion, mag)
+            data = EphemData(obj, None, eph1, None, exp, mag, motion)
             obj_data[obj] = data
         except QueryError as e:
             warning(f"MPC ephemeris for {obj} failed")
@@ -143,8 +144,9 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
         ##Quick hack: missing Moon_dist, Moon_alt in JPL ephemeris?
         eph1["Moon_dist"] = 180 * u.degree
         eph1["Moon_alt"]  = -90 * u.degree
-        exp = exposure_from_ephemeris(eph, "Motion", mag)
-        data = EphemData(obj, None, eph1, None, exp)
+        motion = max_motion(eph1, "Motion")
+        exp = exposure_calc(motion, mag)
+        data = EphemData(obj, None, eph1, None, exp, mag, motion)
         obj_data[obj] = data
 
     return obj_data
