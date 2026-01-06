@@ -58,7 +58,6 @@ from astroplan import Observer
 # Local modules
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location     # ...
-from neoutils import Exposure, exposure_from_ephemeris
 
 ##FIXME: use config
 DEFAULT_LOCATION = "M49"
@@ -234,8 +233,6 @@ def main():
             eph1 = eph[mask]
             message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", "Motion", "PA", "Az", "Alt"])
 
-            exp = exposure_from_ephemeris(eph, "Motion", mag)
-            message(exp)
         else:
             try:
                 # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
@@ -252,9 +249,6 @@ def main():
                 eph1 = eph[mask]
                 message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                          "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-
-                exp = exposure_from_ephemeris(eph, "Motion", mag)
-                message(exp)
             except QueryError as e:
                 warning(f"MPC ephemeris for {obj} failed")
 
