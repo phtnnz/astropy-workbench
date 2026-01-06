@@ -67,6 +67,13 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
     # Start planner at naut. dusk / start time from options
     next_start_time = local.naut_dusk
 
+    message("----------------------------------------------------------------------------------------")
+    message("Object      Mag      Time start ephemeris   / end ephemeris                   Max motion")
+    message("                     Time before            / after meridian               Moon distance")
+    message("                     Time start exposure    / end exposure")
+    message("                     # x Exp = total exposure time")
+    message("                     RA, DEC, Alt, Az")
+
     for obj, edata in obj_data.items():
         exp_start = None
         exp_end = None
@@ -79,6 +86,9 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         alt_end = etimes.alt_end
         before = etimes.before
         after = etimes.after
+
+        message("----------------------------------------------------------------------------------------")
+        message(f"{obj:9s}  {edata.mag}  {start}/{end}  {edata.motion:5.1f}")
 
         # check overlap with previous object
         if next_start_time > start:
@@ -134,6 +144,15 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
             next_start_time = exp_end
             etimes.plan_start = exp_start
             etimes.plan_end = exp_end
+
+        # Skip, if failed to allocate total_time
+        if exp_start == None:
+            message(f"SKIPPED: can't allocate exposure time {total_time:.2f} ({start} -- {end})")
+            continue
+
+
+    # end for
+    message("----------------------------------------------------------------------------------------")
 
 
 
