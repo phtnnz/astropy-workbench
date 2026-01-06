@@ -352,7 +352,7 @@ def get_row_for_time(eph: Ephem, t: Time) -> Row:
         None, if not found
     """
     for r1, r2 in pairwise(eph):
-        if r1["obstime"] <= t and t <= r2["obstime"]:
+        if r1["Obstime"] <= t and t <= r2["Obstime"]:
             return r1
     # Not matching interval found
     return None
