@@ -118,7 +118,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
             # before meridian
             if before != None and start + total_time <= before:
                 exp_start = start
-                exp_end = end
+                exp_end = start + total_time
             # after meridian
             elif after != None and end != None and after + total_time <= end:
                 exp_start = after
@@ -130,8 +130,10 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
 
         ic(exp_start, exp_end)
 
-        if exp_end != None:
+        if exp_start != None and exp_end != None:
             next_start_time = exp_end
+            etimes.plan_start = exp_start
+            etimes.plan_end = exp_end
 
 
 
