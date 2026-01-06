@@ -26,6 +26,7 @@ DESCRIPTION = "Plan NEO observations"
 
 import sys
 import argparse
+import csv
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -60,8 +61,17 @@ from neoconfig import config
 from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 
 DEFAULT_LOCATION = config.code
-
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+# Command line options
+class Options:
+    """
+    Command line options
+    """
+    csv: bool = False           # -C --csv
+    output: str = None          # -o --output
+
 
 
 def f_time(time: Time|None) -> str:
@@ -79,6 +89,9 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
     message("                     Time start exposure / end exposure")
     message("                     # x Exp = total exposure time")
     message("                     RA, DEC, Alt, Az")
+
+    ##FIXME: separate CSV output
+    csv_rows = list()
 
     for obj, edata in obj_data.items():
         exp_start = None
@@ -182,9 +195,55 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         message(f"                     {total}")
         message(f"                     RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
+        ##FIXME: store output data in EphemData, separate function###########################################
+        # CSV output:
+        #   start time, end time, 
+        #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
+        #   type, mag, nobs, arc, notseen, total
+        csv_row = { "target": obj,
+                    # "+0000" to enforce UTC
+                    "obstime": exp_start.strftime("%Y-%m-%d %H:%M:%S+0000"),
+                    "ra": float(ra.value),
+                    "dec": float(dec.value),
+                    "exposure": float(edata.exposure.single.value),
+                    "number": edata.exposure.number,
+                    "filter": "L",
+                    "start time": str(exp_start),
+                    "end time": str(exp_end),
+                    "type": "",
+                    "mag": float(edata.mag.value),
+                    "nobs": "",
+                    "arc": "",
+                    "notseen": "",
+                    "total": total
+                    }
+        ic(csv_row)
+        csv_rows.append(csv_row)
+        #####################################################################################################
+
 
     # end for
     message("----------------------------------------------------------------------------------")
+
+    # Output to CSV file for nina-create-sequence2
+    if Options.csv:
+        verbose(f"planned objects for nina-create-sequence2: {Options.output}")
+        # csv_row is the last object, if any were found
+        if csv_row:
+            ##FIXME: improve csvoutput module to cover this usage
+            fieldnames = csv_row.keys()
+            ic(fieldnames)
+            if Options.output:
+                with open(Options.output, "w", newline="") as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(csv_rows)
+            else:
+                writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(csv_rows)
+        else:
+            warning("no objects, no CSV output")
 
 
 
@@ -199,6 +258,8 @@ def main():
     arg.add_argument("-f", "--file", help="read list of objects from file")
     arg.add_argument("-s", "--start", help="start time (UTC) (default naut. dusk)")
     arg.add_argument("-e", "--end", help="end time (UTC) (default naut. dawn)")
+    arg.add_argument("-o", "--output", help="write CSV to OUTPUT file")
+    arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
 
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
@@ -212,6 +273,9 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
+
+    Options.csv    = args.csv
+    Options.output = args.output
 
     # Observer location and local circumstances
     loc = get_location(args.location if args.location else DEFAULT_LOCATION)
