@@ -240,8 +240,9 @@ def flip_times(eph: Ephem) -> tuple[Time, Time]:
     prev_az   = None
 
     for row in eph:
-        time = row["Obstime"]
-        az   = row["Az"]
+        ##HACK: ...[0] necessary to get scalar, not array with single element
+        time = row["Obstime"][0]
+        az   = row["Az"][0]
         # ic(time, az)
         if not prev_az == None:
             if is_east(prev_az) and is_west(az):     # South flip
@@ -276,10 +277,11 @@ def opt_alt_times(eph: Ephem, alt: Angle) -> tuple[Time, Time]:
     time_alt1 = None
 
     for row in eph:
+        ##HACK: ...[0] necessary to get scalar, not array with single element
         if time_alt0 == None and row["Alt"] >= alt:
-            time_alt0 = row["Obstime"]
+            time_alt0 = row["Obstime"][0]
         if time_alt0 != None and row["Alt"] >= alt:
-            time_alt1 = row["Obstime"]
+            time_alt1 = row["Obstime"][0]
         if time_alt1 != None and row["Alt"] < alt:
             break
     
