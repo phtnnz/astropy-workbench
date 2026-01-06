@@ -173,7 +173,7 @@ def max_motion(ephemeris: Ephem, column: str="Motion") -> Quantity:
         if motion > max_m:
             max_m = motion
 
-    return max_m
+    return max_m.to(u.arcsec / u.min)
 
 
 
