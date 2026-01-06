@@ -55,11 +55,17 @@ from astroplan import Observer
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location
 from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
-from neoutils import process_obj_ephm_data, sort_obj_ephm_data
+from neoutils import process_obj_ephm_data, sort_obj_ephm_data, get_row_for_time
 from neoconfig import config
 from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 
 DEFAULT_LOCATION = config.code
+
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def f_time(time: Time|None) -> str:
+    return time.strftime(TIME_FORMAT) if time != None else "-" * 19
 
 
 
@@ -67,10 +73,10 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
     # Start planner at naut. dusk / start time from options
     next_start_time = local.naut_dusk
 
-    message("----------------------------------------------------------------------------------------")
-    message("Object      Mag      Time start ephemeris   / end ephemeris                   Max motion")
-    message("                     Time before            / after meridian               Moon distance")
-    message("                     Time start exposure    / end exposure")
+    message("----------------------------------------------------------------------------------")
+    message("Object      Mag      Time start ephemeris/ end ephemeris                Max motion")
+    message("                     Time before         / after meridian            Moon distance")
+    message("                     Time start exposure / end exposure")
     message("                     # x Exp = total exposure time")
     message("                     RA, DEC, Alt, Az")
 
@@ -87,8 +93,8 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         before = etimes.before
         after = etimes.after
 
-        message("----------------------------------------------------------------------------------------")
-        message(f"{obj:9s}  {edata.mag}  {start}/{end}  {edata.motion:5.1f}")
+        message("----------------------------------------------------------------------------------")
+        message(f"{obj:9s}  {edata.mag}  {f_time(start)} / {f_time(end)}  {edata.motion:5.1f}")
 
         # check overlap with previous object
         if next_start_time > start:
@@ -140,19 +146,45 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
 
         ic(exp_start, exp_end)
 
-        if exp_start != None and exp_end != None:
-            next_start_time = exp_end
-            etimes.plan_start = exp_start
-            etimes.plan_end = exp_end
-
         # Skip, if failed to allocate total_time
         if exp_start == None:
             message(f"SKIPPED: can't allocate exposure time {total_time:.2f} ({start} -- {end})")
             continue
 
+        # Ephemeris row best matching start time
+        row = get_row_for_time(edata.ephem, exp_start)
+        ic(row)
+
+        # Skip, if percentage of total exposure time is less than threshold
+        if edata.exposure.percentage < config.min_perc_required:
+            message(f"SKIPPED: only {edata.exposure.percentage:.0f}% of required total exposure time (< {config.min_perc_required}%)")
+            continue
+
+        # Skip, if moon distance is too small
+        moon_dist = row["Moon_dist"][0]
+        min_moon_dist = config.min_moon_dist * u.degree
+        if moon_dist < min_moon_dist:
+            message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+            continue
+
+        # Good to go!
+        # Remember end of exposure
+        next_start_time = exp_end
+        etimes.plan_start = exp_start
+        etimes.plan_end = exp_end
+
+        ra, dec = row["RA"][0], row["DEC"][0]
+        alt, az = row["Alt"][0], row["Az"][0]
+
+        total = f"{edata.exposure.number} x {edata.exposure.single:2.0f} = {edata.exposure.total:3.1f} ({edata.exposure.percentage:.0f}%) / total {edata.exposure.total_time:3.1f}"
+        message(f"                     {f_time(before)} / {f_time(after)}             {moon_dist:3.0f}")
+        message(f"                     {f_time(exp_start)} / {f_time(exp_end)}")
+        message(f"                     {total}")
+        message(f"                     RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
+
 
     # end for
-    message("----------------------------------------------------------------------------------------")
+    message("----------------------------------------------------------------------------------")
 
 
 
@@ -221,8 +253,8 @@ def main():
     for obj, edata in obj_data.items():
         verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                        "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-        verbose(edata.exposure)
-        verbose(edata.times)
+        # verbose(edata.exposure)
+        # verbose(edata.times)
 
     obj_data = sort_obj_ephm_data(obj_data)
     verbose(f"sorted object sequence: {", ".join(obj_data.keys())}")
