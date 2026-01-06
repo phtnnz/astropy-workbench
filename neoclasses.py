@@ -35,9 +35,9 @@ from astropy.coordinates import EarthLocation
 from astropy.time        import Time
 from sbpy.data import Ephem
 from astroplan import Observer
-from astropy.units import Quantity
+from astropy.units import Quantity, Magnitude
 
-# Local objects
+# Local modules
 from astroutils import location_to_string
 
 
@@ -73,6 +73,8 @@ class EphemData:
     ephem: Ephem            # ephemeris of object
     times: EphemTimes       # ephemeris/planned times
     exposure: Exposure      # exposure data object
+    mag: Magnitude          # magnitude of object
+    motion: Quantity        # max. motion of object
 
 
 
