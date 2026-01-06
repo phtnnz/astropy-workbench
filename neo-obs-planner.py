@@ -15,11 +15,12 @@
 # limitations under the License.
 
 # ChangeLog
-# Version 0.1 / 2026-01-05
+# Version 0.1 / 2026-01-06
 #       Copy of neoephem 0.1, importing neoephem functions, moved/adapted
-#       functions from neocp 0.7 to neoutils, new options -s --start / -e --end
+#       functions from neocp 0.7 to neoutils, new options -s --start / -e --end /,
+#       -C --csv / -o --output for CSV output, first working NEO obs planning
 
-VERSION     = "0.1 / 2026-01-05"
+VERSION     = "0.1 / 2026-01-06"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "Plan NEO observations"
@@ -62,6 +63,8 @@ from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 
 DEFAULT_LOCATION = config.code
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+TIME_FORMAT_TZ = "%Y-%m-%d %H:%M:%S+0000"
+
 
 
 # Command line options
@@ -74,8 +77,8 @@ class Options:
 
 
 
-def f_time(time: Time|None) -> str:
-    return time.strftime(TIME_FORMAT) if time != None else "-" * 19
+def f_time(time: Time|None, add_tz: bool=False) -> str:
+    return time.strftime(TIME_FORMAT_TZ if add_tz else TIME_FORMAT) if time != None else "-" * 19
 
 
 
@@ -189,10 +192,9 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         ra, dec = row["RA"][0], row["DEC"][0]
         alt, az = row["Alt"][0], row["Az"][0]
 
-        total = f"{edata.exposure.number} x {edata.exposure.single:2.0f} = {edata.exposure.total:3.1f} ({edata.exposure.percentage:.0f}%) / total {edata.exposure.total_time:3.1f}"
         message(f"                     {f_time(before)} / {f_time(after)}             {moon_dist:3.0f}")
         message(f"                     {f_time(exp_start)} / {f_time(exp_end)}")
-        message(f"                     {total}")
+        message(f"                     {edata.exposure}")
         message(f"                     RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
         ##FIXME: store output data in EphemData, separate function###########################################
@@ -202,7 +204,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         #   type, mag, nobs, arc, notseen, total
         csv_row = { "target": obj,
                     # "+0000" to enforce UTC
-                    "obstime": exp_start.strftime("%Y-%m-%d %H:%M:%S+0000"),
+                    "obstime": f_time(exp_start, add_tz=True),
                     "ra": float(ra.value),
                     "dec": float(dec.value),
                     "exposure": float(edata.exposure.single.value),
@@ -215,7 +217,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
                     "nobs": "",
                     "arc": "",
                     "notseen": "",
-                    "total": total
+                    "total": str(edata.exposure)
                     }
         ic(csv_row)
         csv_rows.append(csv_row)
