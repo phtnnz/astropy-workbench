@@ -19,11 +19,13 @@
 #       Copy of neoephem 0.1, importing neoephem functions, moved/adapted
 #       functions from neocp 0.7 to neoutils, new options -s --start / -e --end /,
 #       -C --csv / -o --output for CSV output, first working NEO obs planning
+# Version 0.2 / 2026-01-06
+#       Somewhat usable now, moved CSV output to separate function
 
-VERSION     = "0.1 / 2026-01-06"
+VERSION     = "0.2 / 2026-01-06"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
-DESCRIPTION = "Plan NEO observations"
+DESCRIPTION = "NEO observation planner"
 
 import sys
 import argparse
@@ -35,45 +37,21 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-# from astropy.coordinates import Angle
-# from astropy.coordinates import errors
-from astropy.time        import Time, TimeDelta
-from astropy.table       import Table
-# from astropy.units       import Quantity, Magnitude
+from astropy.time import Time
 import astropy.units as u
-import numpy as np
-
-from sbpy.data import Ephem
-from sbpy.data import Obs
-from sbpy.data.core import QueryError
-
 from astroquery.mpc import MPC
-from astroquery.exceptions import EmptyResponseError, InvalidQueryError
-
-from astroplan import Observer
 
 # Local modules
-from verbose import verbose, warning, error, message
-from astroutils import location_to_string, get_location
-from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
-from neoutils import process_obj_ephm_data, sort_obj_ephm_data, get_row_for_time
-from neoconfig import config
-from neoephem import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
+from verbose    import verbose, warning, error, message
+from astroutils import get_location
+from neoconfig  import config
+from neoclasses import EphemData, LocalCircumstances
+from neoutils   import process_obj_ephm_data, sort_obj_ephm_data, get_row_for_time
+from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 
 DEFAULT_LOCATION = config.code
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 TIME_FORMAT_TZ = "%Y-%m-%d %H:%M:%S+0000"
-
-
-
-# Command line options
-class Options:
-    """
-    Command line options
-    """
-    csv: bool = False           # -C --csv
-    output: str = None          # -o --output
 
 
 
@@ -92,9 +70,6 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
     message("                     Time start exposure / end exposure")
     message("                     # x Exp = total exposure time")
     message("                     RA, DEC, Alt, Az")
-
-    ##FIXME: separate CSV output
-    csv_rows = list()
 
     for obj, edata in obj_data.items():
         exp_start = None
@@ -191,61 +166,67 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
 
         ra, dec = row["RA"][0], row["DEC"][0]
         alt, az = row["Alt"][0], row["Az"][0]
+        edata.ra, edata.dec = ra, dec
 
         message(f"                     {f_time(before)} / {f_time(after)}             {moon_dist:3.0f}")
         message(f"                     {f_time(exp_start)} / {f_time(exp_end)}")
         message(f"                     {edata.exposure}")
         message(f"                     RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
-        ##FIXME: store output data in EphemData, separate function###########################################
-        # CSV output:
-        #   start time, end time, 
-        #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
-        #   type, mag, nobs, arc, notseen, total
-        csv_row = { "target": obj,
-                    # "+0000" to enforce UTC
-                    "obstime": f_time(exp_start, add_tz=True),
-                    "ra": float(ra.value),
-                    "dec": float(dec.value),
-                    "exposure": float(edata.exposure.single.value),
-                    "number": edata.exposure.number,
-                    "filter": "L",
-                    "start time": str(exp_start),
-                    "end time": str(exp_end),
-                    "type": "",
-                    "mag": float(edata.mag.value),
-                    "nobs": "",
-                    "arc": "",
-                    "notseen": "",
-                    "total": str(edata.exposure)
-                    }
-        ic(csv_row)
-        csv_rows.append(csv_row)
-        #####################################################################################################
-
-
     # end for
     message("----------------------------------------------------------------------------------")
 
+
+
+
+def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
+    csv_rows = list()
+
+    # Traverse objects, only those with valid plan_start time
+    for obj, edata in obj_data.items():
+        if edata.times.plan_start != None:
+            # CSV output:
+            #   start time, end time, 
+            #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
+            #   type, mag, nobs, arc, notseen, total
+            csv_row = { "target": obj,
+                        "obstime": f_time(edata.times.plan_start, add_tz=True),
+                        "ra": float(edata.ra.value),
+                        "dec": float(edata.dec.value),
+                        "exposure": float(edata.exposure.single.value),
+                        "number": edata.exposure.number,
+                        "filter": "L",
+                        "start time": f_time(edata.times.plan_start),
+                        "end time": f_time(edata.times.plan_end),
+                        "type": "",
+                        "mag": float(edata.mag.value),
+                        "nobs": "",
+                        "arc": "",
+                        "notseen": "",
+                        "total": str(edata.exposure)
+                        }
+            ic(csv_row)
+            csv_rows.append(csv_row)
+
     # Output to CSV file for nina-create-sequence2
-    if Options.csv:
-        verbose(f"planned objects for nina-create-sequence2: {Options.output}")
-        # csv_row is the last object, if any were found
-        if csv_row:
-            ##FIXME: improve csvoutput module to cover this usage
-            fieldnames = csv_row.keys()
-            ic(fieldnames)
-            if Options.output:
-                with open(Options.output, "w", newline="") as csvfile:
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writeheader()
-                    writer.writerows(csv_rows)
-            else:
-                writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+    verbose(f"planned objects for nina-create-sequence2: {output}")
+    # csv_row is the last object, if any were found
+    if csv_row:
+        ##FIXME: improve csvoutput module to cover this usage
+        fieldnames = csv_row.keys()
+        ic(fieldnames)
+        if output:
+            with open(output, "w", newline="") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(csv_rows)
         else:
-            warning("no objects, no CSV output")
+            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+    else:
+        warning("no objects, no CSV output")
+
 
 
 
@@ -275,9 +256,6 @@ def main():
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
-
-    Options.csv    = args.csv
-    Options.output = args.output
 
     # Observer location and local circumstances
     loc = get_location(args.location if args.location else DEFAULT_LOCATION)
@@ -327,6 +305,8 @@ def main():
 
     # Run obs planner
     obs_planner_1(obj_data, local)
+    if args.csv:
+        obs_csv_output(obj_data, args.output)
 
 
 
