@@ -65,7 +65,7 @@ DEFAULT_LOCATION = config.code
 
 def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> dict:
     # Start planner at naut. dusk / start time from options
-    last_start_time = local.naut_dusk
+    next_start_time = local.naut_dusk
 
     for obj, edata in obj_data.items():
         exp_start = None
@@ -75,17 +75,63 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         start = etimes.start
         end = etimes.end
         total_time = edata.exposure.total_time
-        ic(obj, start, end, total_time)
-
         alt_start = etimes.alt_start
         alt_end = etimes.alt_end
         before = etimes.before
         after = etimes.after
 
-        ##TODO: implement new strategy
+        # check overlap with previous object
+        if next_start_time > start:
+            start = next_start_time
+        if alt_start != None and next_start_time > alt_start:
+            alt_start = next_start_time
+        if alt_end != None and next_start_time > alt_end:
+            alt_start = None
+            alt_end = None
+        if before != None and next_start_time > before:
+            before = None
+        if after != None and next_start_time > after:
+            after = next_start_time
+        if next_start_time > end:
+            end = None
+
+        ic(next_start_time.iso)
+        ic(obj, start, end, total_time, alt_start, alt_end, before, after)
+
+        # try to fit in alt_start ... alt_end interval
+        if alt_start != None:
+            # before meridian
+            if before != None and alt_start + total_time <= before:
+                exp_start = alt_start
+                exp_end = alt_start + total_time
+            # after meridian
+            elif after != None and end != None and after + total_time <= end:
+                exp_start = after
+                exp_end = after + total_time
+            # no meridian passing
+            elif end != None and alt_start + total_time <= end:
+                exp_start = alt_start
+                exp_end = alt_start + total_time
+        
+        # no slot found, try to fit in start ... end interval
+        if exp_start == None:
+            # before meridian
+            if before != None and start + total_time <= before:
+                exp_start = start
+                exp_end = end
+            # after meridian
+            elif after != None and end != None and after + total_time <= end:
+                exp_start = after
+                exp_end = after + total_time
+            # no meridian passing
+            elif end != None and start + total_time <= end:
+                exp_start = start
+                exp_end = start + total_time
 
         ic(exp_start, exp_end)
 
+        if exp_end != None:
+            next_start_time = exp_end
 
 
 
