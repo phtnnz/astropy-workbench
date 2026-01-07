@@ -450,7 +450,7 @@ class NINASequence(NINABase):
 
 
     def append_target(self, target):
-        verbose("NINASequence(append_target):", "name =", target.name)
+        # verbose("NINASequence(append_target):", "name =", target.name)
 
         self.targets_list.append(target.obj)
 
@@ -530,8 +530,8 @@ class NINASequence(NINABase):
                 # in filename templates under Options > Imaging
                 target = formatted_target
 
-                verbose("------------------------------------------------------------------")
-                verbose(f"#{seq:03d} {target:32s} {coord}")
+                message("------------------------------------------------------------------")
+                message(f"#{seq:03d} {target:32s} {coord}")
 
                 # Just output the target list
                 if Options.list_targets:
@@ -539,8 +539,8 @@ class NINASequence(NINABase):
                     continue
 
                 if time_utc:
-                    verbose(f"UT={time_utc} / local {time_local}")
-                verbose(f"{number:d}x{exp:.1f}s filter={filter}")
+                    message(f"UT={time_utc} / local {time_local}")
+                message(f"{number:d}x{exp:.1f}s filter={filter}")
 
                 # AF only for first target if option "autofocus_first_target_only" is set
                 no_af = autofocus1 and not first_target
@@ -564,7 +564,7 @@ class NINASequence(NINABase):
 
                 first_target = False
 
-            verbose("------------------------------------------------------------------")
+            message("------------------------------------------------------------------")
 
         # update all SelectedProvider {...} with references
         self.traverse(NINABase.process_provider, self.provider_dict)
