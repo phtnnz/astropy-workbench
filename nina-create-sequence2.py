@@ -530,13 +530,13 @@ class NINASequence(NINABase):
                 # in filename templates under Options > Imaging
                 target = formatted_target
 
-                message("------------------------------------------------------------------")
-                message(f"#{seq:03d} {target:32s} {coord}")
-
                 # Just output the target list
                 if Options.list_targets:
                     print(target)
                     continue
+
+                message("------------------------------------------------------------------")
+                message(f"#{seq:03d} {target:32s} {coord}")
 
                 if time_utc:
                     message(f"UT={time_utc} / local {time_local}")
@@ -564,7 +564,8 @@ class NINASequence(NINABase):
 
                 first_target = False
 
-            message("------------------------------------------------------------------")
+            if not Options.list_targets:
+                message("------------------------------------------------------------------")
 
         # update all SelectedProvider {...} with references
         self.traverse(NINABase.process_provider, self.provider_dict)
