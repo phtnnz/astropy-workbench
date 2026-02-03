@@ -287,7 +287,7 @@ def opt_alt_times(eph: Ephem, alt: Angle) -> tuple[Time, Time]:
 
 
 
-def max_alt_time(eph: Ephem) -> Time:
+def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> Time:
     """
     Get time of maximum altitude from ephemeris table
 
@@ -295,6 +295,10 @@ def max_alt_time(eph: Ephem) -> Time:
     ----------
     eph : Ephem
         Ephemeris table
+    col_obstime : str
+        Name of obstime column
+    col_alt : str
+        Name of altitude column
 
     Returns
     -------
@@ -305,8 +309,8 @@ def max_alt_time(eph: Ephem) -> Time:
     time_max = None
     for row in eph:
         if row["Alt"] > max_alt:
-            max_alt = row["Alt"]
-            time_max = row["Obstime"]
+            max_alt = row[col_alt]
+            time_max = row[col_obstime]
     return time_max
 
 
