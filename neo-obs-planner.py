@@ -48,6 +48,9 @@ from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
 from neoutils   import process_obj_ephm_data, sort_obj_ephm_data, get_row_for_time
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
+from neoplot    import plot_objects2
+
+
 
 DEFAULT_LOCATION = config.code
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -245,6 +248,7 @@ def main():
     arg.add_argument("-e", "--end", help="end time (UTC) (default naut. dawn)")
     arg.add_argument("-o", "--output", help="write CSV to OUTPUT file")
     arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
+    arg.add_argument("-P", "--plot", action="store_true", help="create altitude and sky plot with objects")
 
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
@@ -309,6 +313,14 @@ def main():
     obs_planner_1(obj_data, local)
     if args.csv:
         obs_csv_output(obj_data, args.output)
+
+    # Plot objects and Moon
+    if args.plot:
+        verbose("altitude and sky plot for objects")
+        plot_objects2(obj_data,
+                      ##FIXME##
+                      "tmp/neos-plot.png",
+                      loc)
 
 
 
