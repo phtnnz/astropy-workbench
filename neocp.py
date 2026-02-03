@@ -123,7 +123,6 @@ from neoutils import opt_alt_times as _opt_alt_times
 ## Wrapper for new functions ##
 def max_motion(qt: QTable) -> Quantity:
     ephem = Ephem.from_table(qt)
-    ic(qt, ephem)
     return _max_motion(ephem, "motion")
 
 def flip_times(qt: QTable) -> tuple[Time, Time]:
