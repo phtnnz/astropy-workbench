@@ -119,56 +119,9 @@ def max_motion(qt: QTable) -> Quantity:
     ic(qt, ephem)
     return _max_motion(ephem, "motion")
 
-from neoutils import single_exp
+from neoutils import single_exp, motion_limit, is_east, is_west
 
 
-def motion_limit() -> Quantity:
-    """
-    Get motion limit
-
-    Returns
-    -------
-    Quantity
-        Motion limit derived from minimum exposure time
-    """
-    return config.pixel_tolerance * config.resolution * u.arcsec / (EXP_TIMES[0] * u.s).to(u.min)
-
-
-
-def is_east(az: Angle) -> bool:
-    """
-    Test for east azimut position
-
-    Parameters
-    ----------
-    az : Angle
-        Azimut angle
-
-    Returns
-    -------
-    bool
-        True if east, False if west
-    """
-    az180     = 180 * u.degree
-    return True if az >= 0 and az < az180 else False
-
-def is_west(az: Angle) -> bool:
-    """
-    Test for west azimut position
-
-    Parameters
-    ----------
-    az : Angle
-        Azimut angle
-
-    Returns
-    -------
-    bool
-        True if west, False if east
-    """
-    az180     = 180 * u.degree
-    az360     = 360 * u.degree
-    return True if az >= az180 and az < az360 else False
 
 def flip_times(qt: QTable) -> Tuple[Time, Time]:
     """
