@@ -255,7 +255,7 @@ def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tupl
 
 
 
-def opt_alt_times(eph: Ephem, alt: Angle) -> tuple[Time, Time]:
+def opt_alt_times(eph: Ephem, alt: Angle, col_obstime: str="Obstime", col_alt: str="Alt") -> tuple[Time, Time]:
     """
     Get times for object above specified altitude
 
@@ -265,6 +265,10 @@ def opt_alt_times(eph: Ephem, alt: Angle) -> tuple[Time, Time]:
         Ephemeris table
     alt : Angle
         Altitude angle
+    col_obstime : str
+        Name of obstime column
+    col_alt : str
+        Name of altitude column
 
     Returns
     -------
@@ -276,11 +280,11 @@ def opt_alt_times(eph: Ephem, alt: Angle) -> tuple[Time, Time]:
 
     for row in eph:
         ##HACK: ...[0] necessary to get scalar, not array with single element
-        if time_alt0 == None and row["Alt"] >= alt:
-            time_alt0 = row["Obstime"][0]
-        if time_alt0 != None and row["Alt"] >= alt:
-            time_alt1 = row["Obstime"][0]
-        if time_alt1 != None and row["Alt"] < alt:
+        if time_alt0 == None and row[col_alt] >= alt:
+            time_alt0 = row[col_obstime][0]
+        if time_alt0 != None and row[col_alt] >= alt:
+            time_alt1 = row[col_obstime][0]
+        if time_alt1 != None and row[col_alt] < alt:
             break
     
     return time_alt0, time_alt1
@@ -315,9 +319,36 @@ def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> 
 
 
 
-def process_ephm_data(edata: EphemData) -> None:
+def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
+    """
+    Get row from ephemeris table closest to specified time
+
+    Parameters
+    ----------
+    eph : Ephem
+        Ephemeris table
+    t : Time
+        Time for retrieving row
+    col_obstime : str
+        Name of obstime column
+
+    Returns
+    -------
+    Row
+        Corresponding row from ephemeris table
+        None, if not found
+    """
+    for r1, r2 in pairwise(eph):
+        if r1[col_obstime] <= t and t <= r2[col_obstime]:
+            return r1
+    # Not matching interval found
+    return None
+
+
+
+def process_ephm_data(edata: EphemData, col_obstime: str="Obstime") -> None:
     eph = edata.ephem
-    edata.times = EphemTimes(eph["Obstime"][0], eph["Obstime"][-1],
+    edata.times = EphemTimes(eph[col_obstime][0], eph[col_obstime][-1],
                              None, None, None, None, None, None)
     etimes = edata.times
     etimes.before, etimes.after = flip_times(eph)
@@ -339,29 +370,3 @@ def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> None:
 def sort_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
     # Sort dict by sort_time (item[0] = obj, item[1] = edata)
     return { obj: edata for obj, edata in sorted(obj_data.items(), key=lambda item: item[1].sort_time) }
-
-
-
-def get_row_for_time(eph: Ephem, t: Time) -> Row:
-    """
-    Get row from ephemeris table closest to specified time
-
-    Parameters
-    ----------
-    eph : Ephem
-        Ephemeris table
-    t : Time
-        Time for retrieving row
-
-    Returns
-    -------
-    Row
-        Corresponding row from ephemeris table
-        None, if not found
-    """
-    for r1, r2 in pairwise(eph):
-        if r1["Obstime"] <= t and t <= r2["Obstime"]:
-            return r1
-    # Not matching interval found
-    return None
-
