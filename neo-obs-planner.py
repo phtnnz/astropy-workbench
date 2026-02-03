@@ -66,6 +66,7 @@ def f_time(time: Time|None, add_tz: bool=False) -> str:
 def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> dict:
     # Start planner at naut. dusk / start time from options
     next_start_time = local.naut_dusk
+    objects  = []
 
     message("----------------------------------------------------------------------------------")
     message("Object      Mag      Time start ephemeris/ end ephemeris                Max motion")
@@ -170,6 +171,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         ra, dec = row["RA"][0].to(u.hourangle), row["DEC"][0]
         alt, az = row["Alt"][0], row["Az"][0]
         edata.ra, edata.dec = ra, dec
+        objects.append(obj)
 
         message(f"                     {f_time(before)} / {f_time(after)}             {moon_dist:3.0f}")
         message(f"                     {f_time(exp_start)} / {f_time(exp_end)}")
@@ -178,7 +180,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
 
     # end for
     message("----------------------------------------------------------------------------------")
-
+    message(f"{len(objects)} object(s) planned: {", ".join(objects)}")
 
 
 
