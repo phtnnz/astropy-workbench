@@ -112,8 +112,10 @@ class Options:
 
 from neoutils import Ephem
 from neoutils import single_exp, motion_limit
+
 from neoutils import max_motion as _max_motion
 from neoutils import flip_times as _flip_times
+from neoutils import max_alt_time as _max_alt_time
 
 ## Wrapper for new functions ##
 def max_motion(qt: QTable) -> Quantity:
@@ -125,30 +127,9 @@ def flip_times(qt: QTable) -> tuple[Time, Time]:
     ephem = Ephem.from_table(qt)
     return _flip_times(ephem, "obstime", "az")
 
-
-
-
-def max_alt_times(qt: QTable) -> Tuple[Time, Time]:
-    """
-    Get time of maximum altitude from ephemeris table
-
-    Parameters
-    ----------
-    qt : QTable
-        Ephemeris table
-
-    Returns
-    -------
-    Tuple[Time, Time]
-        Time of max altitude, Time of max altitude
-        (twice for return tuple to be compatible with flip_times())
-    """
-    max_alt = -90 * u.degree
-    time_max = None
-    for row in qt:
-        if row["alt"] > max_alt:
-            max_alt = row["alt"]
-            time_max = row["obstime"]
+def max_alt_times(qt: QTable) -> tuple[Time, Time]:
+    ephem = Ephem.from_table(qt)
+    time_max = _max_alt_time(ephem, "obstime", "alt")
     # Return tuple for compatibility with flip_times()
     return time_max, time_max
 
