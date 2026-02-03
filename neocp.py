@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius
+# Copyright 2025-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,8 +34,10 @@
 #       motion limit derived from minimum exposure time
 # Version 0.7 / 2025-10-15
 #       Joined altitude/sky plot, new option -P --plot
+# Version 0.8 / 2026-02-03
+#       Started code refactoring and adaption to new data structures
 
-VERSION = "0.7 / 2025-10-15"
+VERSION = "0.8 / 2026-02-03"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -43,10 +45,6 @@ import sys
 import os
 import argparse
 import csv
-import re
-import requests
-from typing import Tuple
-from itertools import pairwise
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -54,17 +52,14 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import SkyCoord, AltAz, Angle, EarthLocation, FK5
+from astropy.coordinates import Angle, EarthLocation
 import astropy.units as u
 from astropy.units import Quantity, Magnitude
-from astropy.time import Time, TimeDelta
-import numpy as np
+from astropy.time import Time
 from astropy.table import QTable, Row
 
 # Astroplan
-import matplotlib.pyplot as plt
 from astroplan import Observer
-from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -79,22 +74,6 @@ from mpcneocp import mpc_query_ephemerides, mpc_query_list, parse_html_eph, pars
 TIMEOUT = config.requests_timeout
 # Exposure times / s
 EXP_TIMES = config.exposure_times
-
-# MPC pages:
-# NEOCP form
-#       https://minorplanetcenter.net/iau/NEO/toconfirm_tabular.html
-# PCCP form
-#       https://minorplanetcenter.net/iau/NEO/pccp_tabular.html
-# NEOCP list (contains also PCCP objects)
-#       https://minorplanetcenter.net/iau/NEO/neocp.txt
-# PCCP list
-#       https://minorplanetcenter.net/iau/NEO/pccp.txt
-#
-# NEOCP/PCCP query ephemerides
-#       https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi
-#
-# Example request for M49
-# W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
 
 
@@ -139,7 +118,7 @@ def get_row_for_time(qt: QTable, t: Time) -> Row:
     ephem = Ephem.from_table(qt)
     return _get_row_for_time(ephem, t, "obstime")
 
-def opt_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
+def opt_alt_times(qt: QTable, alt: Angle) -> tuple[Time, Time]:
     ephem = Ephem.from_table(qt)
     return _opt_alt_times(ephem, alt, "obstime", "alt")
 
