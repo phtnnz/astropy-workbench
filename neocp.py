@@ -70,6 +70,7 @@ from astroplan.plots import plot_altitude, plot_sky
 from verbose import verbose, warning, error, message
 from astroutils import mpc_station_location, location_to_string
 from neoconfig import config
+from neoplot import plot_objects
 
 
 
@@ -188,89 +189,6 @@ def mpc_query_list(url: str, filename: str) -> None:
 
     with open(filename, mode="w", encoding=response.encoding) as file:
         file.write(response.text)
-
-
-
-def qtable_to_altaz(id: str, qt: QTable) -> AltAz:
-    """
-    Convert table rows "alt"/"az" to AltAz object
-
-    Parameters
-    ----------
-    id : str
-        NEOCP id = temporary designation
-    qt : QTable
-        Table with ephemeris, including alt/az
-
-    Returns
-    -------
-    AltAz
-        AltAz coordinates object for altitude/sky plot
-    """
-    altaz = AltAz(alt=qt["alt"], az=qt["az"], obstime=qt["obstime"], location=Options.loc)
-    # Quick hack to get a proper label for plot_altitude()
-    altaz.name = id
-    ic(altaz)
-    return altaz
-
-
-def plot_objects(ephemerides: dict, objects: list, filename: str) -> None:
-    """
-    Generate altitude and sky plot
-
-    Parameters
-    ----------
-    ephemerides : dict
-        Dictionary with ephemerides for all objects
-    objects : list
-        Subset list of objects for plot
-    filename : str
-        File name for generated PNG
-    """
-    # Get next midnight
-    time = Time(Time.now(), location=Options.loc)
-    observer = Observer(location=Options.loc, description=Options.code)
-    midnight = observer.midnight(Time.now(), which="next")
-    ic(midnight)
-
-    # Intervals around midnight
-    time_interval = midnight + np.linspace(-8, 8, 160)*u.hour
-    moon          = observer.moon_altaz(time_interval)
-    # Quick hack to get a proper label for plot_altitude()
-    moon.name     = "Moon"
-
-    # Subplots
-    fig = plt.figure(figsize=(15, 6))
-    ax1 = plt.subplot(1, 2, 1)
-
-    # Plot altitude for all NEOCP objects
-    for id in objects:
-        qt = ephemerides[id]
-        altaz = qtable_to_altaz(id, qt)
-        plot_altitude(altaz, observer, altaz.obstime, ax1, style_kwargs=dict(fmt="o"))
-    plot_altitude(moon, observer, moon.obstime, ax1, brightness_shading=True, style_kwargs=dict(fmt="y--"))
-    plt.legend(bbox_to_anchor=(1.0, 1.015))
-
-    # Hourly intervals around midnight
-    time_interval = midnight + np.linspace(-5, 5, 11)*u.hour
-    moon          = observer.moon_altaz(time_interval)
-    # Quick hack to get a proper label for plot_sky()
-    moon.name     = "Moon"
-
-    # Subplot for altitude
-    ax2 = plt.subplot(1, 2, 2, projection='polar')
-
-    # Plot sky for all NEOCP objects
-    for id in objects:
-        qt = ephemerides[id]
-        altaz = qtable_to_altaz(id, qt)
-        plot_sky(altaz, observer, altaz.obstime, ax2)
-    plot_sky(moon, observer, moon.obstime, ax2, style_kwargs=dict(color="y", marker="x"))
-    # plt.legend(bbox_to_anchor=(1.32, 1.15))
-
-    plt.subplots_adjust(wspace=0.3)
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close()
 
 
 
@@ -1097,8 +1015,9 @@ def main():
     # Plot objects and Moon
     if args.plot:
         verbose("altitude and sky plot for objects")
-        plot_objects(ephemerides, objects, os.path.join(config.downloads,
-                                                        f"{prefix}-neocp-plot.png") )
+        plot_objects(ephemerides, objects, 
+                     os.path.join(config.downloads, f"{prefix}-neocp-plot.png"),
+                     Options.loc)
 
 
 
