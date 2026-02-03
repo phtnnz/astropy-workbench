@@ -110,12 +110,15 @@ class Options:
 
 
 
+##FIXME: replace wrappers with new code ##
 from neoutils import Ephem
 from neoutils import single_exp, motion_limit
 
 from neoutils import max_motion as _max_motion
 from neoutils import flip_times as _flip_times
 from neoutils import max_alt_time as _max_alt_time
+from neoutils import get_row_for_time as _get_row_for_time
+from neoutils import opt_alt_times as _opt_alt_times
 
 ## Wrapper for new functions ##
 def max_motion(qt: QTable) -> Quantity:
@@ -133,61 +136,13 @@ def max_alt_times(qt: QTable) -> tuple[Time, Time]:
     # Return tuple for compatibility with flip_times()
     return time_max, time_max
 
-
-
 def get_row_for_time(qt: QTable, t: Time) -> Row:
-    """
-    Get row from ephemeris table closest to specified time
-
-    Parameters
-    ----------
-    qt : QTable
-        Ephemeris table
-    t : Time
-        Time for retrieving row
-
-    Returns
-    -------
-    Row
-        Corresponding row from ephemeris table
-        None, if not found
-    """
-    for r1, r2 in pairwise(qt):
-        if r1["obstime"] <= t and t <= r2["obstime"]:
-            return r1
-    # Not matching interval found
-    return None
-
-
+    ephem = Ephem.from_table(qt)
+    return _get_row_for_time(ephem, t, "obstime")
 
 def opt_alt_times(qt: QTable, alt: Angle) -> Tuple[Time, Time]:
-    """
-    Get times for object above specified altitude
-
-    Parameters
-    ----------
-    qt : QTable
-        Ephemeris table
-    alt : Angle
-        Altitude angle
-
-    Returns
-    -------
-    Tuple[Time, Time]
-        Start time above altitude, end time above altitude
-    """
-    time_alt0 = None
-    time_alt1 = None
-
-    for row in qt:
-        if time_alt0 == None and row["alt"] >= alt:
-            time_alt0 = row["obstime"]
-        if time_alt0 != None and row["alt"] >= alt:
-            time_alt1 = row["obstime"]
-        if time_alt1 != None and row["alt"] < alt:
-            break
-    
-    return time_alt0, time_alt1
+    ephem = Ephem.from_table(qt)
+    return _opt_alt_times(ephem, alt, "obstime", "alt")
 
 
 
@@ -370,7 +325,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # Table row best matching time_start_exp
         row = get_row_for_time(qt, time_start_exp)
         ic(row)
-        moon_dist = row["moon_dist"]
+        moon_dist = row["moon_dist"][0] ##!!!
+        ic(moon_dist)
         # Skip, if moon distance is too small
         min_moon_dist = config.min_moon_dist * u.degree
         if moon_dist < min_moon_dist:
@@ -382,8 +338,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         prev_time_end_exp = time_end_exp
         # Append to list of planned objects
         objects.append(id)
-        ra, dec = row["ra"], row["dec"]
-        alt, az = row["alt"], row["az"]
+        ra, dec = row["ra"][0], row["dec"][0] ##!!!
+        alt, az = row["alt"][0], row["az"][0] ##!!!
 
         message(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
         message(f"                                                    {time_start_exp}/{time_end_exp}")
