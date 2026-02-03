@@ -111,7 +111,9 @@ class Options:
 
 
 from neoutils import Ephem
+from neoutils import single_exp, motion_limit
 from neoutils import max_motion as _max_motion
+from neoutils import flip_times as _flip_times
 
 ## Wrapper for new functions ##
 def max_motion(qt: QTable) -> Quantity:
@@ -119,42 +121,10 @@ def max_motion(qt: QTable) -> Quantity:
     ic(qt, ephem)
     return _max_motion(ephem, "motion")
 
-from neoutils import single_exp, motion_limit, is_east, is_west
+def flip_times(qt: QTable) -> tuple[Time, Time]:
+    ephem = Ephem.from_table(qt)
+    return _flip_times(ephem, "obstime", "az")
 
-
-
-def flip_times(qt: QTable) -> Tuple[Time, Time]:
-    """
-    Get time before and after meridian passing from ephemeris table
-
-    Parameters
-    ----------
-    qt : QTable
-        Ephemeris table
-
-    Returns
-    -------
-    Tuple[Time, Time]
-        Time before meridian, time after meridian passing
-        None, None if object doesn't pass meridian
-    """
-    prev_time = None
-    prev_az   = None
-
-    for row in qt:
-        time = row["obstime"]
-        az   = row["az"]
-        # ic(time, az)
-        if not prev_az == None:
-            if is_east(prev_az) and is_west(az):     # South flip
-                return (prev_time, time)
-            if is_west(prev_az) and is_east(az):     # North flip
-                return (prev_time, time)
-        prev_time = time
-        prev_az   = az
-
-    # No meridian passing found
-    return None, None
 
 
 
