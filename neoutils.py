@@ -215,7 +215,7 @@ def is_west(az: Angle) -> bool:
     az360     = 360 * u.degree
     return True if az >= az180 and az < az360 else False
 
-def flip_times(eph: Ephem) -> tuple[Time, Time]:
+def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tuple[Time, Time]:
     """
     Get time before and after meridian passing from ephemeris table
 
@@ -223,6 +223,10 @@ def flip_times(eph: Ephem) -> tuple[Time, Time]:
     ----------
     eph : Ephem
         Ephemeris table
+    col_obstime : str
+        Name of obstime column
+    col_az : str
+        Name of azimuth column
 
     Returns
     -------
@@ -235,8 +239,8 @@ def flip_times(eph: Ephem) -> tuple[Time, Time]:
 
     for row in eph:
         ##HACK: ...[0] necessary to get scalar, not array with single element
-        time = row["Obstime"][0]
-        az   = row["Az"][0]
+        time = row[col_obstime][0]
+        az   = row[col_az][0]
         # ic(time, az)
         if not prev_az == None:
             if is_east(prev_az) and is_west(az):     # South flip
