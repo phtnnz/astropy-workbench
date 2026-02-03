@@ -110,25 +110,16 @@ class Options:
 
 
 
+from neoutils import Ephem
+from neoutils import max_motion as _max_motion
+
+## Wrapper for new functions ##
 def max_motion(qt: QTable) -> Quantity:
-    """
-    Get max value for "motion" from table
+    ephem = Ephem.from_table(qt)
+    ic(qt, ephem)
+    return _max_motion(ephem, "motion")
 
-    Parameters
-    ----------
-    qt : QTable
-        Ephemeris table
 
-    Returns
-    -------
-    Quantity
-        Max motion as arcsec/min
-    """
-    max_motion = -1 * u.arcsec / u.min
-    for row in qt:
-        if row["motion"] > max_motion:
-            max_motion = row["motion"]
-    return max_motion
 
 def exp_time_from_motion(motion: Quantity) -> Quantity:
     """
