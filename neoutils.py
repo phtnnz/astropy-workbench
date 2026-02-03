@@ -308,7 +308,7 @@ def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> 
     max_alt = -90 * u.degree
     time_max = None
     for row in eph:
-        if row["Alt"] > max_alt:
+        if row[col_alt] > max_alt:
             max_alt = row[col_alt]
             time_max = row[col_obstime]
     return time_max
