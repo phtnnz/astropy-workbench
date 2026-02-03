@@ -119,34 +119,7 @@ def max_motion(qt: QTable) -> Quantity:
     ic(qt, ephem)
     return _max_motion(ephem, "motion")
 
-
-
-def exp_time_from_motion(motion: Quantity) -> Quantity:
-    """
-    Compute exposure time depending on motion value,
-
-    Parameters
-    ----------
-    motion : Quantity
-        Motion value as arcsec/min
-
-    Returns
-    -------
-    Quantity
-        Exposure time as secs or None, if too fast
-    """
-    exp = config.pixel_tolerance * config.resolution * u.arcsec / motion
-    #            ^ pixels                 ^ arcsec/pixel          ^ arcsec/min
-    exp = exp.to(u.s).value
-    exp_min = EXP_TIMES[0]
-    if exp < 0.9 * exp_min: # allow a bit of tolerance
-        return None
-    for exp1 in EXP_TIMES:
-        if exp1 > exp:
-            break
-        exp_min = exp1
-    return exp_min * u.s
-
+from neoutils import single_exp
 
 
 def motion_limit() -> Quantity:
@@ -408,7 +381,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         message(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
 
         # Calculate single exposure, number of exposures, total exposure, total time
-        exp   = exp_time_from_motion(max_m)         # Single exposure / s
+        exp   = single_exp(max_m)         # Single exposure / s
         if exp == None:                             # Object too fast
             message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
             continue
