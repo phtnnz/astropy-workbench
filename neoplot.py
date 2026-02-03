@@ -40,6 +40,7 @@ from astroplan import Observer
 from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
+from neoclasses import EphemData, Ephem
 
 
 
@@ -99,7 +100,7 @@ def plot_objects(ephemerides: dict, objects: list, filename: str, loc: EarthLoca
     # Plot altitude for all NEOCP objects
     for id in objects:
         qt = ephemerides[id]
-        altaz = qtable_to_altaz(id, qt)
+        altaz = qtable_to_altaz(id, qt, loc)
         plot_altitude(altaz, observer, altaz.obstime, ax1, style_kwargs=dict(fmt="o"))
     plot_altitude(moon, observer, moon.obstime, ax1, brightness_shading=True, style_kwargs=dict(fmt="y--"))
     plt.legend(bbox_to_anchor=(1.0, 1.015))
@@ -116,8 +117,99 @@ def plot_objects(ephemerides: dict, objects: list, filename: str, loc: EarthLoca
     # Plot sky for all NEOCP objects
     for id in objects:
         qt = ephemerides[id]
-        altaz = qtable_to_altaz(id, qt)
+        altaz = qtable_to_altaz(id, qt, loc)
         plot_sky(altaz, observer, altaz.obstime, ax2)
+    plot_sky(moon, observer, moon.obstime, ax2, style_kwargs=dict(color="y", marker="x"))
+    # plt.legend(bbox_to_anchor=(1.32, 1.15))
+
+    plt.subplots_adjust(wspace=0.3)
+    plt.savefig(filename, bbox_inches="tight")
+    plt.close()
+
+
+
+## New version ##
+def ephem_to_altaz(id: str, eph: Ephem, loc: EarthLocation) -> AltAz:
+    """
+    Convert ephemeris cols "Alt"/"Az" to AltAz object
+
+    Parameters
+    ----------
+    id : str
+        NEOCP id = temporary designation
+    eph : Ephem
+        Ephemeris, including alt/az
+
+    Returns
+    -------
+    AltAz
+        AltAz coordinates object for altitude/sky plot
+    """
+    altaz = AltAz(alt=eph["Alt"], az=eph["Az"], obstime=eph["Obstime"], location=loc)
+    # Quick hack to get a proper label for plot_altitude()
+    altaz.name = id
+    ic(altaz)
+    return altaz
+
+
+
+def plot_objects2(obj_data: dict[str, EphemData], filename: str, loc: EarthLocation) -> None:
+    """
+    Generate altitude and sky plot
+
+    Parameters
+    ----------
+    obj_data : dict
+        Dictionary with EphemData for all objects
+    filename : str
+        File name for generated PNG
+    loc: EarthLocation
+        Observer location
+    """
+    # Get next midnight
+    observer = Observer(location=loc, description=loc.info.name)
+    midnight = observer.midnight(Time.now(), which="next")
+    ic(midnight)
+
+    # Intervals around midnight
+    time_interval = midnight + np.linspace(-8, 8, 160)*u.hour
+    moon          = observer.moon_altaz(time_interval)
+    # Quick hack to get a proper label for plot_altitude()
+    moon.name     = "Moon"
+
+    # Subplots
+    fig = plt.figure(figsize=(15, 6))
+    ax1 = plt.subplot(1, 2, 1)
+
+    # Plot altitude for all NEOCP objects
+
+    # Traverse objects, only those with valid plan_start time
+    for id, edata in obj_data.items():
+        if edata.times.plan_start != None:
+            altaz = ephem_to_altaz(id, edata.ephem, loc)
+            plot_altitude(altaz, observer, altaz.obstime, ax1, style_kwargs=dict(fmt="o"))
+
+    # Add Moon
+    plot_altitude(moon, observer, moon.obstime, ax1, brightness_shading=True, style_kwargs=dict(fmt="y--"))
+    plt.legend(bbox_to_anchor=(1.0, 1.015))
+
+    # Hourly intervals around midnight
+    time_interval = midnight + np.linspace(-5, 5, 11)*u.hour
+    moon          = observer.moon_altaz(time_interval)
+    # Quick hack to get a proper label for plot_sky()
+    moon.name     = "Moon"
+
+    # Subplot for altitude
+    ax2 = plt.subplot(1, 2, 2, projection='polar')
+
+    # Plot sky for all NEOCP objects
+    # Traverse objects, only those with valid plan_start time
+    for id, edata in obj_data.items():
+        if edata.times.plan_start != None:
+            altaz = ephem_to_altaz(id, edata.ephem, loc)
+            plot_sky(altaz, observer, altaz.obstime, ax2)
+
+    # Add Moon
     plot_sky(moon, observer, moon.obstime, ax2, style_kwargs=dict(color="y", marker="x"))
     # plt.legend(bbox_to_anchor=(1.32, 1.15))
 
