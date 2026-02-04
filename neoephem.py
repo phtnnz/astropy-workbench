@@ -95,6 +95,7 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
 
     for obj in objects:
         try:
+            verbose(f"{obj} ephemeris from MPC")
             # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
             eph = Ephem.from_mpc(obj, location=local.loc, epochs=local.epochs, 
                                     ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
@@ -131,6 +132,7 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
     obj_data = {}
 
     for obj in objects:
+        verbose(f"{obj} ephemeris from JPL")
         eph = Ephem.from_horizons(obj, location=local.loc, epochs=local.epochs)
         # Compute total motion from RA/DEC rates
         eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
