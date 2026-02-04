@@ -105,7 +105,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         if next_start_time > end:
             end = None
 
-        # check valid exposure data, if None object is too fast
+        # check valid exposure data, skip if None = object is too fast
         if edata.exposure:
             total_time = edata.exposure.total_time
         else:
