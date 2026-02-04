@@ -67,6 +67,7 @@ from astroutils import mpc_station_location, location_to_string
 from neoconfig import config
 from neoplot import plot_objects
 from mpcneocp import mpc_query_ephemerides, mpc_query_list, parse_html_eph, parse_neocp_list, convert_eph_list_to_qtable, print_ephemerides
+from neoclasses import Exposure
 
 
 
@@ -91,7 +92,7 @@ class Options:
 
 ##FIXME: replace wrappers with new code ##
 from neoutils import Ephem
-from neoutils import single_exp, motion_limit
+from neoutils import single_exp, motion_limit, exposure_calc
 
 from neoutils import max_motion as _max_motion
 from neoutils import flip_times as _flip_times
@@ -217,32 +218,17 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         message("-----------------------------------------------------------------------------------------------------------------------")
         message(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
 
-        # Calculate single exposure, number of exposures, total exposure, total time
-        exp   = single_exp(max_m)         # Single exposure / s
-        if exp == None:                             # Object too fast
+        # Get exposure data
+        exposure = exposure_calc(max_m, mag)
+        if not exposure:                             # Object too fast
             message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
             continue
 
-        min_n_exp = config.min_n_exp
-        max_n_exp = config.max_n_exp
-
-        rel_brightness = 10 ** (0.4 * (mag.value - config.base_mag))
-        total_exp = config.base_exp * u.s * rel_brightness  # Total exposure
-        n_exp = int(total_exp / exp) + 1                    # Number of exposures
-        perc_of_required = 100.                             # Percentage actual / total exposure
-        if n_exp < min_n_exp:
-            perc_of_required = min_n_exp / n_exp * 100
-            n_exp = min_n_exp
-        if n_exp > max_n_exp:
-            perc_of_required = max_n_exp / n_exp * 100
-            n_exp = max_n_exp
-        total_exp = (n_exp * exp).to(u.min)
-        total_time = (  total_exp 
-                      + config.dead_time_slew_center * u.s 
-                      + config.dead_time_af * u.s
-                      + config.dead_time_guiding * u.s  
-                      + config.safety_margin * u.s
-                      + n_exp * config.dead_time_image * u.s )
+        n_exp = exposure.number
+        exp = exposure.single
+        total_exp = exposure.total
+        total_time = exposure.total_time
+        perc_of_required = exposure.percentage        
         ic(n_exp, exp, total_exp, total_time, perc_of_required)
 
         ##### Plan exposure start and end time ... #####
