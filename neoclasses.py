@@ -17,8 +17,10 @@
 # ChangeLog
 # Version 0.1 / 2026-01-04
 #       Dataclasses from neoephem, neoutils
+# Version 0.2 / 2026-02-04
+#       Added NEOCPListData
 
-VERSION     = "0.1 / 2026-01-04"
+VERSION     = "0.2 / 2026-02-04"
 AUTHOR      = "Martin Junius"
 NAME        = "neoclasses"
 DESCRIPTION = "Dataclasses for ephemeris/planning"
@@ -44,12 +46,28 @@ from astroutils import location_to_string
 
 # Dataclasses
 @dataclass
+class NEOCPListData:
+    """Extra data from NEOCP / PCCP list"""
+    type: str                   # "PCCP" or "NEOCP"
+    score: int                  # NEOCP score
+    mag: Magnitude              # Magnitude
+    nobs: int                   # Number of observations
+    arc: Quantity               # Orbit arc (days last - first observation)
+    notseen: Quantity           # Not seen for x days
+
+    def __str__(self):
+        return f"{self.type} {self.score} {self.mag} #{self.nobs} {self.arc} {self.notseen}"
+
+
+
+@dataclass
 class Exposure:
-    number: int             # number of exposure
-    single: Quantity        # single exposure time
-    total: Quantity         # total net exposure time
-    total_time: Quantity    # total gross exposure time incl. overhead
-    percentage: float       # percentage of required total exposure time
+    """Exposure data"""
+    number: int                 # number of exposure
+    single: Quantity            # single exposure time
+    total: Quantity             # total net exposure time
+    total_time: Quantity        # total gross exposure time incl. overhead
+    percentage: float           # percentage of required total exposure time
 
     def __str__(self):
         return f"{self.number} x {self.single:2.0f} = {self.total:3.1f} ({self.percentage:.0f}%) / total {self.total_time:3.1f}"
@@ -58,38 +76,41 @@ class Exposure:
 
 @dataclass
 class EphemTimes:
-    start: Time             # ephemeris start time
-    end: Time               # ephemeris end time
-    before: Time            # time before meridian
-    after: Time             # time after meridian
-    alt_start: Time         # start time of optimal altitude
-    alt_end: Time           # end time of optimal altitude
-    plan_start: Time        # planned start time
-    plan_end: Time          # planned end time
+    """Times for planner"""
+    start: Time                 # ephemeris start time
+    end: Time                   # ephemeris end time
+    before: Time                # time before meridian
+    after: Time                 # time after meridian
+    alt_start: Time             # start time of optimal altitude
+    alt_end: Time               # end time of optimal altitude
+    plan_start: Time            # planned start time
+    plan_end: Time              # planned end time
 
 
 
 @dataclass
 class EphemData:
-    obj: str                # object name
-    sort_time: Time         # time for sorting objects
-    ephem: Ephem            # ephemeris of object
-    times: EphemTimes       # ephemeris/planned times
-    exposure: Exposure      # exposure data object
-    mag: Magnitude          # magnitude of object
-    motion: Quantity        # max. motion of object
-    ra: Angle = None        # planned RA
-    dec: Angle = None       # planned DEC
-
+    """All object data incl. ephemeris"""
+    obj: str                    # object name
+    sort_time: Time             # time for sorting objects
+    ephem: Ephem                # ephemeris of object
+    times: EphemTimes           # ephemeris/planned times
+    exposure: Exposure          # exposure data object
+    mag: Magnitude              # magnitude of object
+    motion: Quantity            # max. motion of object
+    ra: Angle = None            # planned RA
+    dec: Angle = None           # planned DEC
+    neocp: NEOCPListData = None # data from NEOCP list
 
 
 @dataclass
 class LocalCircumstances:
-    loc: EarthLocation      # location
-    observer: Observer      # astroplan observer
-    naut_dusk: Time         # nautical dusk
-    naut_dawn: Time         # nautical dawn
-    epochs: dict            # epochs parameter for Ephem.from_mpc()/from_jpb()
+    """Observer location and time data"""
+    loc: EarthLocation          # location
+    observer: Observer          # astroplan observer
+    naut_dusk: Time             # nautical dusk
+    naut_dawn: Time             # nautical dawn
+    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
 
     def __str__(self):
         return f"location {location_to_string(self.loc)}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
