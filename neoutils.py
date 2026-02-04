@@ -17,11 +17,13 @@
 # ChangeLog
 # Version 0.1 / 2025-11-25
 #       New module with NEO utility functions
+# Version 0.2 / 2026-02-04
+#       Ephemeris column names can be passed as optional parameters
 #
 # Usage:
 #       from neoutils import ...
 
-VERSION     = "0.1 / 2025-11-25"
+VERSION     = "0.2 / 2026-02-04"
 AUTHOR      = "Martin Junius"
 NAME        = "neoutils"
 DESCRIPTION = "NEO utility functions"
@@ -110,7 +112,7 @@ def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
     Exposure
         Exposure object
     """
-    exp   = single_exp(max_motion)     # Single exposure / s
+    exp   = single_exp(max_motion)                      # Single exposure / s
     if exp == None:                                     # Object too fast
         return None
 
@@ -120,7 +122,7 @@ def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
     base_exp  = config.base_exp
 
     rel_brightness = 10 ** (0.4 * (mag.value - base_mag))
-    total_exp = base_exp * u.s * rel_brightness  # Total exposure
+    total_exp = base_exp * u.s * rel_brightness         # Total exposure
     n_exp = int(total_exp / exp) + 1                    # Number of exposures
     ic(base_mag, base_exp, mag.value, rel_brightness, total_exp, n_exp)
     perc_of_required = 100.                             # Percentage actual / total exposure
@@ -131,25 +133,25 @@ def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
         perc_of_required = max_n_exp / n_exp * 100
         n_exp = max_n_exp
     total_exp = (n_exp * exp).to(u.min)
-    total_time = (  total_exp 
-                    + config.dead_time_slew_center * u.s 
-                    + config.dead_time_af * u.s
-                    + config.dead_time_guiding * u.s  
-                    + config.safety_margin * u.s
-                    + n_exp * config.dead_time_image * u.s )
+    total_time = ( total_exp 
+                   + config.dead_time_slew_center * u.s 
+                   + config.dead_time_af * u.s
+                   + config.dead_time_guiding * u.s  
+                   + config.safety_margin * u.s
+                   + n_exp * config.dead_time_image * u.s )
     ic(n_exp, exp, total_exp, total_time, perc_of_required)
 
     return Exposure(n_exp, exp, total_exp, total_time, perc_of_required)
 
 
 
-def max_motion(ephemeris: Ephem, column: str="Motion") -> Quantity:
+def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
     """
     Get max value for motion column(s) from ephemeris table
 
     Parameters
     ----------
-    ephemeris : QTable
+    eph : QTable
         Ephemeris table
     column : str, optional
         Motion column name(s), by default "motion", comma separated for RA/DEC motion
@@ -167,11 +169,11 @@ def max_motion(ephemeris: Ephem, column: str="Motion") -> Quantity:
         # Single column with proper motion
         col1 = column
         col2 = None
-    for row in ephemeris:
+    for row in eph:
         if col2:
             motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
         else:
-            ##HACK: ...[0] necessary to get scalar, not array with single element
+            ##HACK: must add [0] to get scalar!
             motion = row[col1][0]
         if motion > max_m:
             max_m = motion
@@ -238,7 +240,7 @@ def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tupl
     prev_az   = None
 
     for row in eph:
-        ##HACK: ...[0] necessary to get scalar, not array with single element
+        ##HACK: must add [0] to get scalar!
         time = row[col_obstime][0]
         az   = row[col_az][0]
         # ic(time, az)
@@ -279,7 +281,7 @@ def opt_alt_times(eph: Ephem, alt: Angle, col_obstime: str="Obstime", col_alt: s
     time_alt1 = None
 
     for row in eph:
-        ##HACK: ...[0] necessary to get scalar, not array with single element
+        ##HACK: must add [0] to get scalar!
         if time_alt0 == None and row[col_alt] >= alt:
             time_alt0 = row[col_obstime][0]
         if time_alt0 != None and row[col_alt] >= alt:
@@ -312,9 +314,10 @@ def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> 
     max_alt = -90 * u.degree
     time_max = None
     for row in eph:
-        if row[col_alt] > max_alt:
-            max_alt = row[col_alt]
-            time_max = row[col_obstime]
+        ##HACK: must add [0] to get scalar!
+        if row[col_alt][0] > max_alt:
+            max_alt = row[col_alt][0]
+            time_max = row[col_obstime][0]
     return time_max
 
 
@@ -341,12 +344,19 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
     for r1, r2 in pairwise(eph):
         if r1[col_obstime] <= t and t <= r2[col_obstime]:
             return r1
+            ##HACK: returns single row table, must add [0] to get scalar!
     # Not matching interval found
     return None
 
 
 
 def process_ephm_data(edata: EphemData, col_obstime: str="Obstime") -> None:
+    """Fill EphemTimes with times calculated from ephemeris
+
+    Args:
+        edata (EphemData): ephemeris data object
+        col_obstime (str, optional): name of obstime column. Defaults to "Obstime".
+    """
     eph = edata.ephem
     edata.times = EphemTimes(eph[col_obstime][0], eph[col_obstime][-1],
                              None, None, None, None, None, None)
@@ -360,7 +370,15 @@ def process_ephm_data(edata: EphemData, col_obstime: str="Obstime") -> None:
 
 
 
-def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> None:
+def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
+    """Fill EphemTimes for all objects
+
+    Args:
+        obj_data (dict[str, EphemData]): objects dict
+
+    Returns:
+        dict[str, EphemData]: processed objects dict
+    """
     for obj in obj_data.keys():
         process_ephm_data(obj_data[obj])
     return obj_data
@@ -368,5 +386,15 @@ def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> None:
 
 
 def sort_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
-    # Sort dict by sort_time (item[0] = obj, item[1] = edata)
+    """Sort objects dict by sort_time attribute
+
+    Args:
+        obj_data (dict[str, EphemData]): objects dict
+
+    Returns:
+        dict[str, EphemData]: sorted objects dict
+    """
     return { obj: edata for obj, edata in sorted(obj_data.items(), key=lambda item: item[1].sort_time) }
+
+
+
