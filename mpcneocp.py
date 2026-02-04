@@ -40,6 +40,7 @@ from astropy.table import QTable
 # Local modules
 from verbose import verbose, warning, error, message
 from neoconfig import config
+from neoclasses import EphemData, Ephem
 
 
 
@@ -161,13 +162,13 @@ def print_ephemerides(ephemerides: dict) -> None:
     """
     for id, qt in ephemerides.items():
         verbose("===================================================================================================================")
-        verbose(f"NEOCP {id} ephemerides")
+        verbose(f"NEOCP {id} ephemeris")
         verbose.print_lines(qt)
     verbose("===================================================================================================================")
 
 
 
-def convert_text_ephemerides(eph_dict: dict, min_time: Time, max_time: Time) -> dict:
+def convert_text_ephemerides(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, QTable]:
     """
     Convert ephemerides from plain text format to table for all objects
 
@@ -186,16 +187,47 @@ def convert_text_ephemerides(eph_dict: dict, min_time: Time, max_time: Time) -> 
         Ephemerides dictionary in table form for further processing
     """
     qtable_dict = {}
-    for id, eph in eph_dict.items():
-        qt = convert_text_ephemeris1(id, eph, min_time, max_time)
+    for obj, lines in eph_text.items():
+        qt = convert_text_ephemeris1(obj, lines, min_time, max_time)
         if len(qt["mag"]) == 0:
-            verbose(f"skipping NEOCP {id=} (empty)")
+            verbose(f"skipping NEOCP {obj=} (empty)")
             continue
-        qtable_dict[id] = qt
+        qtable_dict[obj] = qt
     return qtable_dict
 
 
-def convert_text_ephemeris1(id: str, eph: list, min_time: Time, max_time: Time) -> QTable:
+def convert_text_ephemerides2(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, EphemData]:
+    """
+    Convert ephemerides from plain text format to Ephem for all objects
+
+    Parameters
+    ----------
+    eph_text : dict
+        Ephemerides dictionary in plain text format
+    min_time : Time
+        Lower limit for ephemeris time
+    max_time : Time
+        Upper limit for ephemeris time
+
+    Returns
+    -------
+    dict
+        EphemData dictionary for further processing
+    """
+    obj_data = {}
+    for obj, lines in eph_text.items():
+        qt = convert_text_ephemeris1(obj, lines, min_time, max_time)
+        if len(qt["mag"]) == 0:
+            verbose(f"skipping NEOCP {obj=} (empty)")
+            continue
+        ##FIXME: add exposure data here?                        exp   mag   motion
+        data = EphemData(obj, None, Ephem.from_table(qt), None, None, None, None)
+        obj_data[obj] = data
+    return obj_data
+
+
+
+def convert_text_ephemeris1(id: str, eph: list[str], min_time: Time, max_time: Time) -> QTable:
     """
     Convert ephemeris in plain text format to table
 
@@ -265,7 +297,7 @@ def convert_text_ephemeris1(id: str, eph: list, min_time: Time, max_time: Time) 
 
 
 
-def parse_html_ephemerides(content: list) -> dict:
+def parse_html_ephemerides(content: list[str]) -> dict[str, list[str]]:
     """
     Parse HTML page with the result of the MPC NEOCP ephemerides query
 
@@ -277,10 +309,10 @@ def parse_html_ephemerides(content: list) -> dict:
     Returns
     -------
     dict
-        Ephemerides dictionary in plain text format
+        Dictionary with ephemerides in plain text format
     """
     neocp_id = None
-    neocp_eph = {}
+    neocp_text_eph = {}
 
     content_iter = iter(content)
     while (line := next(content_iter, None)) != None:
@@ -307,7 +339,7 @@ def parse_html_ephemerides(content: list) -> dict:
                 ic(neocp_id)
 
                 # Read lines until </pre>, ephemerides data starts with date
-                neocp_eph[neocp_id] = []
+                neocp_text_eph[neocp_id] = []
                 while (line := next(content_iter, None).strip()) != None:
                     m = re.match(r"</pre>", line)
                     if m:
@@ -323,12 +355,12 @@ def parse_html_ephemerides(content: list) -> dict:
                     if m:
                         line = line[0:100]
                         ic(line)
-                        neocp_eph[neocp_id].append(line)
+                        neocp_text_eph[neocp_id].append(line)
 
                 ##DEBUG##
                 # Early return, just the 1st entry in the list for debugging
                 # return neocp_eph
-    return neocp_eph
+    return neocp_text_eph
 
 
 
