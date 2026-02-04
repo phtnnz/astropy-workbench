@@ -46,7 +46,7 @@ from verbose    import verbose, warning, error, message
 from astroutils import get_location
 from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
-from neoutils   import process_obj_ephm_data, sort_obj_ephm_data, get_row_for_time
+from neoutils   import process_obj_ephm_data, sort_obj_ephm_data, get_row_for_time, motion_limit
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 from neoplot    import plot_objects2
 
@@ -69,7 +69,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
     objects  = []
 
     message("----------------------------------------------------------------------------------")
-    message("Object      Mag      Time start ephemeris/ end ephemeris                Max motion")
+    message("Object     Mag       Time start ephemeris/ end ephemeris                Max motion")
     message("                     Time before         / after meridian            Moon distance")
     message("                     Time start exposure / end exposure")
     message("                     # x Exp = total exposure time")
@@ -82,7 +82,6 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         etimes = edata.times
         start = etimes.start
         end = etimes.end
-        total_time = edata.exposure.total_time
         alt_start = etimes.alt_start
         alt_end = etimes.alt_end
         before = etimes.before
@@ -106,6 +105,13 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         if next_start_time > end:
             end = None
 
+        # check valid exposure data, if None object is too fast
+        if edata.exposure:
+            total_time = edata.exposure.total_time
+        else:
+            message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
+            continue
+       
         ic(next_start_time.iso)
         ic(obj, start, end, total_time, alt_start, alt_end, before, after)
 
