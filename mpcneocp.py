@@ -64,7 +64,7 @@ EXP_TIMES = config.exposure_times
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-def mpc_query_ephemerides(url: str, filename: str, loc: EarthLocation, code: str) -> None:
+def mpc_query_neocp_ephemerides(url: str, filename: str, loc: EarthLocation, code: str) -> None:
     """
     Retrieve NEOCP ephemerides from MPC
 
@@ -128,7 +128,7 @@ def mpc_query_ephemerides(url: str, filename: str, loc: EarthLocation, code: str
 
 
 
-def mpc_query_list(url: str, filename: str) -> None:
+def mpc_query_neocp_list(url: str, filename: str) -> None:
     """
     Retrieve NEOCP/PCCP txt list from MPC
 
@@ -167,7 +167,7 @@ def print_ephemerides(ephemerides: dict) -> None:
 
 
 
-def convert_eph_list_to_qtable(eph_dict: dict, min_time: Time, max_time: Time) -> dict:
+def convert_text_ephemerides(eph_dict: dict, min_time: Time, max_time: Time) -> dict:
     """
     Convert ephemerides from plain text format to table for all objects
 
@@ -187,7 +187,7 @@ def convert_eph_list_to_qtable(eph_dict: dict, min_time: Time, max_time: Time) -
     """
     qtable_dict = {}
     for id, eph in eph_dict.items():
-        qt = eph_to_qtable(id, eph, min_time, max_time)
+        qt = convert_text_ephemeris1(id, eph, min_time, max_time)
         if len(qt["mag"]) == 0:
             verbose(f"skipping NEOCP {id=} (empty)")
             continue
@@ -195,7 +195,7 @@ def convert_eph_list_to_qtable(eph_dict: dict, min_time: Time, max_time: Time) -
     return qtable_dict
 
 
-def eph_to_qtable(id: str, eph: list, min_time: Time, max_time: Time) -> QTable:
+def convert_text_ephemeris1(id: str, eph: list, min_time: Time, max_time: Time) -> QTable:
     """
     Convert ephemeris in plain text format to table
 
@@ -261,12 +261,11 @@ def eph_to_qtable(id: str, eph: list, min_time: Time, max_time: Time) -> QTable:
         # ic(alt, az, altaz.alt, altaz.az)                                 
 
     ic(qt)
-    # qt.write(sys.stdout, format="ascii")
     return qt
 
 
 
-def parse_html_eph(content: list) -> dict:
+def parse_html_ephemerides(content: list) -> dict:
     """
     Parse HTML page with the result of the MPC NEOCP ephemerides query
 

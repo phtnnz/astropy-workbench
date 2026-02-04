@@ -66,7 +66,7 @@ from verbose import verbose, warning, error, message
 from astroutils import mpc_station_location, location_to_string
 from neoconfig import config
 from neoplot import plot_objects
-from mpcneocp import mpc_query_ephemerides, mpc_query_list, parse_html_eph, parse_neocp_list, convert_eph_list_to_qtable, print_ephemerides
+from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides, parse_neocp_list, convert_text_ephemerides, print_ephemerides
 from neoclasses import Exposure
 
 
@@ -458,19 +458,19 @@ def main():
 
     if args.update_neocp:
         verbose(f"download ephemerides from {config.url_neocp_query}")
-        mpc_query_ephemerides(config.url_neocp_query, local_eph, Options.loc, Options.code)
+        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, Options.loc, Options.code)
         verbose(f"download NEOCP list from {config.url_neocp_list}")
-        mpc_query_list(config.url_neocp_list, local_neocp)
+        mpc_query_neocp_list(config.url_neocp_list, local_neocp)
         verbose(f"download PCCP list from {config.url_pccp_list}")
-        mpc_query_list(config.url_pccp_list, local_pccp)
+        mpc_query_neocp_list(config.url_pccp_list, local_pccp)
 
     try:
     # Parse ephemerides
         verbose(f"processing {local_eph}")
         with open(local_eph, "r") as file:
             content = file.readlines()
-            ephemerides_txt = parse_html_eph(content)
-            ephemerides = convert_eph_list_to_qtable(ephemerides_txt, min_time, max_time)
+            ephemerides_txt = parse_html_ephemerides(content)
+            ephemerides = convert_text_ephemerides(ephemerides_txt, min_time, max_time)
             times = get_times_from_eph(ephemerides)
 
         # Parse lists
