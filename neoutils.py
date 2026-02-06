@@ -170,11 +170,12 @@ def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
         col1 = column
         col2 = None
     for row in eph:
+        ##HACK: get a proper Row object
+        row = row._table[0]
         if col2:
             motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
         else:
-            ##HACK: must add [0] to get scalar!
-            motion = row[col1][0]
+            motion = row[col1]
         if motion > max_m:
             max_m = motion
 
@@ -240,9 +241,10 @@ def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tupl
     prev_az   = None
 
     for row in eph:
-        ##HACK: must add [0] to get scalar!
-        time = row[col_obstime][0]
-        az   = row[col_az][0]
+        ##HACK: get a proper Row object
+        row = row._table[0]
+        time = row[col_obstime]
+        az   = row[col_az]
         # ic(time, az)
         if not prev_az == None:
             if is_east(prev_az) and is_west(az):     # South flip
@@ -281,11 +283,12 @@ def opt_alt_times(eph: Ephem, alt: Angle, col_obstime: str="Obstime", col_alt: s
     time_alt1 = None
 
     for row in eph:
-        ##HACK: must add [0] to get scalar!
+        ##HACK: get a proper Row object
+        row = row._table[0]
         if time_alt0 == None and row[col_alt] >= alt:
-            time_alt0 = row[col_obstime][0]
+            time_alt0 = row[col_obstime]
         if time_alt0 != None and row[col_alt] >= alt:
-            time_alt1 = row[col_obstime][0]
+            time_alt1 = row[col_obstime]
         if time_alt1 != None and row[col_alt] < alt:
             break
     
@@ -314,10 +317,11 @@ def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> 
     max_alt = -90 * u.degree
     time_max = None
     for row in eph:
-        ##HACK: must add [0] to get scalar!
-        if row[col_alt][0] > max_alt:
-            max_alt = row[col_alt][0]
-            time_max = row[col_obstime][0]
+        ##HACK: get a proper Row object
+        row = row._table[0]
+        if row[col_alt] > max_alt:
+            max_alt = row[col_alt]
+            time_max = row[col_obstime]
     return time_max
 
 
@@ -342,11 +346,11 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
         None, if not found
     """
     for r1, r2 in pairwise(eph):
+        ##HACK: iteration over Ephem returns single row table, not Row!
+        ##      using the QTable object in Ephem
+        r1, r2 = r1._table[0], r2._table[0]
         if r1[col_obstime] <= t and t <= r2[col_obstime]:
-            ##return r1
-            ##HACK: iteration over Ephem returns single row table, not Row!
-            ##      using the QTable object in Ephem
-            return r1._table[0]
+            return r1
     
     # No matching interval found
     return None
