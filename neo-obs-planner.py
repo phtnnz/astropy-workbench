@@ -162,7 +162,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
             continue
 
         # Skip, if moon distance is too small
-        moon_dist = row["Moon_dist"][0]
+        moon_dist = row["Moon_dist"]
         min_moon_dist = config.min_moon_dist * u.degree
         if moon_dist < min_moon_dist:
             message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
@@ -174,8 +174,8 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         etimes.plan_start = exp_start
         etimes.plan_end = exp_end
 
-        ra, dec = row["RA"][0].to(u.hourangle), row["DEC"][0]
-        alt, az = row["Alt"][0], row["Az"][0]
+        ra, dec = row["RA"].to(u.hourangle), row["DEC"]
+        alt, az = row["Alt"], row["Az"]
         edata.ra, edata.dec = ra, dec
         objects.append(obj)
 
