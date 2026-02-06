@@ -250,6 +250,13 @@ def obj_data_add_neocp_list(obj_data: dict[str, EphemData], neocp_list: dict[str
     dict[str, EphemData]
         Object data dict
     """
+    for obj, edata in obj_data.items():
+        neocp = neocp_list.get(obj)
+        if neocp:
+            neocp.type = "PCCP" if is_pccp else "NEOCP"
+            edata.neocp = neocp
+        elif not is_pccp:
+            warning(f"no NEOCP / PCCP list data for {obj}")
     return obj_data
 
 
