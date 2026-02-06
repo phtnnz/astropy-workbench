@@ -189,7 +189,7 @@ def convert_text_ephemerides(eph_text: dict[str, list[str]], min_time: Time, max
     qtable_dict = {}
     for obj, lines in eph_text.items():
         qt = convert_text_ephemeris1(obj, lines, min_time, max_time)
-        if len(qt["mag"]) == 0:
+        if len(qt) == 0:
             verbose(f"skipping NEOCP {obj=} (empty)")
             continue
         qtable_dict[obj] = qt
@@ -217,7 +217,7 @@ def convert_text_ephemerides2(eph_text: dict[str, list[str]], min_time: Time, ma
     obj_data = {}
     for obj, lines in eph_text.items():
         qt = convert_text_ephemeris1(obj, lines, min_time, max_time)
-        if len(qt["mag"]) == 0:
+        if len(qt) == 0:
             verbose(f"skipping NEOCP {obj=} (empty)")
             continue
         ##FIXME: add exposure data here?                        exp   mag   motion
