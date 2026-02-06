@@ -46,7 +46,7 @@ from verbose    import verbose, warning, error, message
 from astroutils import get_location
 from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
-from neoutils   import process_all_obj_data, sort_obj_data, get_row_for_time, motion_limit
+from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 from neoplot    import plot_objects2
 
@@ -305,7 +305,7 @@ def main():
     else:
         obj_data = get_ephem_mpc(objects, local)
     # Process objects
-    obj_data = process_all_obj_data(obj_data)
+    obj_data = obj_data_add_times(obj_data)
     verbose(f"original object sequence: {", ".join(obj_data.keys())}")
 
     for obj, edata in obj_data.items():
