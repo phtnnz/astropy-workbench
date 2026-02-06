@@ -357,7 +357,7 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
 
 
 
-def process_ephm_data(edata: EphemData, col_obstime: str="Obstime") -> None:
+def process_ephem_data(edata: EphemData, col_obstime: str="Obstime") -> None:
     """Fill EphemTimes with times calculated from ephemeris
 
     Args:
@@ -381,7 +381,7 @@ def process_ephm_data(edata: EphemData, col_obstime: str="Obstime") -> None:
 
 
 
-def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
+def process_all_obj_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
     """Fill EphemTimes for all objects
 
     Args:
@@ -391,12 +391,12 @@ def process_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData
         dict[str, EphemData]: processed objects dict
     """
     for obj in obj_data.keys():
-        process_ephm_data(obj_data[obj])
+        process_ephem_data(obj_data[obj])
     return obj_data
 
 
 
-def sort_obj_ephm_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
+def sort_obj_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
     """Sort objects dict by sort_time attribute
 
     Args:
