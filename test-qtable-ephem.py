@@ -27,21 +27,24 @@ import sys
 import argparse
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-from astropy.coordinates import Angle
-from astropy.coordinates import errors
-from astropy.time  import Time, TimeDelta
-from astropy.table import QTable, Row
+from astropy.time  import Time
+from astropy.table import Table, QTable, Row
 import astropy.units as u
-import astropy.constants as const
-import numpy as np
 from sbpy.data import Ephem
 from icecream import ic
 
 
 
-def main():
+def get0(tlike: QTable|Row, col: str) -> any:
+    if isinstance(tlike, Table) or isinstance(tlike, Ephem):
+        return tlike[col][0]
+    if isinstance(tlike, Row):
+        return tlike[col]
+    raise ValueError(f"{type(tlike)}: not a Table or Row")
 
+
+
+def main():
     qt = QTable()
     qt["Obstime"]   = Time("2000-01-01 00:00")
     qt["RA"]        = 0 * u.hourangle
@@ -49,18 +52,22 @@ def main():
     qt.add_row([ Time("2026-01-01"), 10*u.hourangle,  12.34*u.deg ])
     qt.add_row([ Time("2026-01-02"), 12*u.hourangle, -56.78*u.deg ])
 
-    ic(qt)
-    ic(qt["RA"][0])
+    ic("QTable")
+    ic(qt, qt["RA"][0])
     for row in qt:
-        ic(row)
-        ic(row["RA"])
+        ic(row, row["RA"])
 
     eph = Ephem.from_table(qt)
-    ic(eph)
-    ic(eph["RA"][0])
+    ic("Ephem")
+    ic(eph, eph["RA"][0])
     for row in eph:
-        ic(row)
-        ic(row["RA"])
+        ic(row, row["RA"], get0(row, "RA"))
+        ##HACK: bind get0() method to row object, NOT RECOMMENDED
+        row.get0 = get0.__get__(row)
+        ic(row.get0("RA"))
+        ##HACK: get a proper Row object
+        row0 = row._table[0]
+        ic(row0)
 
 
 
