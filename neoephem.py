@@ -107,6 +107,9 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             mag = eph["Mag"][0]
             mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
             eph1 = eph[mask]
+            if len(eph1) == 0:
+                warning(f"skipping empty ephemeris for {obj}")
+                continue
             motion = max_motion(eph1, "Motion")
             exp = exposure_calc(motion, mag)
             data = EphemData(obj, None, eph1, None, exp, mag, motion)
@@ -132,24 +135,30 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
     obj_data = {}
 
     for obj in objects:
-        verbose(f"{obj} ephemeris from JPL")
-        eph = Ephem.from_horizons(obj, location=local.loc, epochs=local.epochs)
-        # Compute total motion from RA/DEC rates
-        eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
-        # Rename columns to common names
-        _rename_columns_jpl(eph)
-        ic(eph.field_names)
+        try:
+            verbose(f"{obj} ephemeris from JPL")
+            eph = Ephem.from_horizons(obj, location=local.loc, epochs=local.epochs)
+            # Compute total motion from RA/DEC rates
+            eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
+            # Rename columns to common names
+            _rename_columns_jpl(eph)
+            ic(eph.field_names)
 
-        mag = eph["Mag"][0]
-        mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
-        eph1 = eph[mask]
-        ##Quick hack: missing Moon_dist, Moon_alt in JPL ephemeris?
-        eph1["Moon_dist"] = 180 * u.degree
-        eph1["Moon_alt"]  = -90 * u.degree
-        motion = max_motion(eph1, "Motion")
-        exp = exposure_calc(motion, mag)
-        data = EphemData(obj, None, eph1, None, exp, mag, motion)
-        obj_data[obj] = data
+            mag = eph["Mag"][0]
+            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
+            eph1 = eph[mask]
+            if len(eph1) == 0:
+                warning(f"skipping empty ephemeris for {obj}")
+                continue
+            ##Quick hack: missing Moon_dist, Moon_alt in JPL ephemeris?
+            eph1["Moon_dist"] = 180 * u.degree
+            eph1["Moon_alt"]  = -90 * u.degree
+            motion = max_motion(eph1, "Motion")
+            exp = exposure_calc(motion, mag)
+            data = EphemData(obj, None, eph1, None, exp, mag, motion)
+            obj_data[obj] = data
+        except QueryError as e:
+            warning(f"MPC ephemeris for {obj} failed")
 
     return obj_data
 

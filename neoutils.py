@@ -358,6 +358,10 @@ def process_ephm_data(edata: EphemData, col_obstime: str="Obstime") -> None:
         col_obstime (str, optional): name of obstime column. Defaults to "Obstime".
     """
     eph = edata.ephem
+    # Ephemeris could be empty
+    if len(eph) == 0:
+        raise ValueError(f"ephemeris for object {edata.obj} is empty")
+
     edata.times = EphemTimes(eph[col_obstime][0], eph[col_obstime][-1],
                              None, None, None, None, None, None)
     etimes = edata.times
