@@ -485,16 +485,18 @@ def main():
         verbose(f"processing {local_neocp}")
         with open(local_neocp, "r") as file:
             content = file.readlines()
-            neocp_list = parse_neocp_list_OLD(content)
+            neocp_list_OLD = parse_neocp_list_OLD(content)
             ##NEW##
+            neocp_list = parse_neocp_list(content)
             obj_data = obj_data_add_neocp_list(obj_data, neocp_list)
 
         verbose(f"processing {local_pccp}")
         with open(local_pccp, "r") as file:
             content = file.readlines()
-            pccp_list = parse_neocp_list_OLD(content)
+            pccp_list_OLD = parse_neocp_list_OLD(content)
             ##NEW##
-            obj_data = obj_data_add_neocp_list(obj_data, neocp_list, is_pccp=True)
+            pccp_list = parse_neocp_list(content)
+            obj_data = obj_data_add_neocp_list(obj_data, pccp_list, is_pccp=True)
 
     except FileNotFoundError as e:
         error(e)
@@ -507,7 +509,7 @@ def main():
 
     verbose("processing objects:", " ".join(ephemerides.keys()))
     # print_ephemerides(ephemerides)
-    objects = process_objects(ephemerides, neocp_list, pccp_list, times)
+    objects = process_objects(ephemerides, neocp_list_OLD, pccp_list_OLD, times)
 
     # Plot objects and Moon
     if args.plot:
