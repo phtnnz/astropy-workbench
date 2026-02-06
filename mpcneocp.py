@@ -40,7 +40,8 @@ from astropy.table import QTable
 # Local modules
 from verbose import verbose, warning, error, message
 from neoconfig import config
-from neoclasses import EphemData, Ephem
+from neoclasses import EphemData, Ephem, NEOCPListData
+from neoutils import max_motion, exposure_calc
 
 
 
@@ -168,7 +169,7 @@ def print_ephemerides(ephemerides: dict) -> None:
 
 
 
-def convert_text_ephemerides(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, QTable]:
+def convert_text_ephemerides_OLD(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, QTable]:
     """
     Convert ephemerides from plain text format to table for all objects
 
@@ -196,7 +197,8 @@ def convert_text_ephemerides(eph_text: dict[str, list[str]], min_time: Time, max
     return qtable_dict
 
 
-def convert_text_ephemerides2(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, EphemData]:
+
+def obj_data_from_text_ephemerides(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, EphemData]:
     """
     Convert ephemerides from plain text format to Ephem for all objects
 
@@ -220,9 +222,34 @@ def convert_text_ephemerides2(eph_text: dict[str, list[str]], min_time: Time, ma
         if len(qt) == 0:
             verbose(f"skipping NEOCP {obj=} (empty)")
             continue
-        ##FIXME: add exposure data here?                        exp   mag   motion
-        data = EphemData(obj, None, Ephem.from_table(qt), None, None, None, None)
+        eph1 = Ephem.from_table(qt)
+        ##FIXME: get column names for caller?
+        mag = eph1["mag"][0]
+        motion = max_motion(eph1, "motion")
+        exp = exposure_calc(motion, mag)
+        data = EphemData(obj, None, eph1, None, exp, mag, motion)
         obj_data[obj] = data
+    return obj_data
+
+
+
+def obj_data_add_neocp_list(obj_data: dict[str, EphemData], neocp_list: dict[str, NEOCPListData], is_pccp: bool=False) -> dict[str, EphemData]:
+    """Add data from NEOCP / PCCP list to object data dict
+
+    Parameters
+    ----------
+    obj_data : dict[str, EphemData]
+        Object data dict
+    neocp_list : dict[str, NEOCPListData]
+        NEOCP / PCCP list data dict
+    is_pccp : bool, optional
+        True if PCCP, by default False
+
+    Returns
+    -------
+    dict[str, EphemData]
+        Object data dict
+    """
     return obj_data
 
 
@@ -364,7 +391,7 @@ def parse_html_ephemerides(content: list[str]) -> dict[str, list[str]]:
 
 
 
-def parse_neocp_list(content: list) -> dict:
+def parse_neocp_list_OLD(content: list) -> dict:
     """
     Parse plain text HTML page of NEOCP/PCCP list
 
@@ -401,5 +428,48 @@ def parse_neocp_list(content: list) -> dict:
         id = line[0:7]
         ic(id, vals)
         neocp_list[id] = vals
+
+    return neocp_list
+
+
+
+def parse_neocp_list(content: list[str]) -> dict[str, NEOCPListData]:
+    """
+    Parse plain text HTML page of NEOCP/PCCP list
+
+    Parameters
+    ----------
+    content : list[str]
+        Web page content
+
+    Returns
+    -------
+    dict[str, NEOCPListData]
+        Dict of relevant data from NEOCP list
+    """
+    neocp_list = {}
+
+    for line in content:
+        # Format example:
+        # ZTF105X  76 2025 09 10.2  22.6070  +0.8481 18.2 Updated Sept. 11.49 UT          26   1.25 24.5  0.038
+        # P12e56E 100 2025 08 30.4  23.2926 -12.0924 18.9 Updated Sept. 11.20 UT           6   0.09 23.0 12.007
+        # H452509  63 2016 06 04.3  11.5743  +5.6542 34.1 Updated Sept. 10.20 UT           5   0.09 25.6 3386.166
+        # ^0      ^8  ^12           ^26     ^34      ^43  ^48                     ???    ^79  ^84   ^90  ^95
+        # Temp.   Score             RA      DEC      MagV                         Note   Nobs       H    Not Seen/dys
+        # Desig.   	  Discovery                           Updated                             Arc
+
+        # Arc = time difference between 1st and last observation in days
+
+        line = line.rstrip()
+        ic(line)
+        obj = line[0:7]
+        data = NEOCPListData(type="NEOCP", 
+                             score=int(line[8:11]),              
+                             mag=float(line[43:47]) * u.mag,
+                             nobs=int(line[79:82]),
+                             arc=float(line[84:89]) * u.day,
+                             notseen=float(line[95:]) * u.day)
+        ic(obj, data)
+        neocp_list[obj] = data
 
     return neocp_list
