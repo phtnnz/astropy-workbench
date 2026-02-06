@@ -289,7 +289,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         # Table row best matching time_start_exp
         row = get_row_for_time(qt, time_start_exp)
         ic(row)
-        moon_dist = row["moon_dist"][0] ##!!!
+        moon_dist = row["moon_dist"]
         ic(moon_dist)
         # Skip, if moon distance is too small
         min_moon_dist = config.min_moon_dist * u.degree
@@ -302,8 +302,8 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         prev_time_end_exp = time_end_exp
         # Append to list of planned objects
         objects.append(id)
-        ra, dec = row["ra"][0], row["dec"][0] ##!!!
-        alt, az = row["alt"][0], row["az"][0] ##!!!
+        ra, dec = row["ra"], row["dec"]
+        alt, az = row["alt"], row["az"]
 
         message(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
         message(f"                                                    {time_start_exp}/{time_end_exp}")
