@@ -357,7 +357,7 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
 
 
 
-def process_ephem_data(edata: EphemData, col_obstime: str="Obstime") -> None:
+def ephem_data_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
     """Fill EphemTimes with times calculated from ephemeris
 
     Args:
@@ -372,16 +372,16 @@ def process_ephem_data(edata: EphemData, col_obstime: str="Obstime") -> None:
     edata.times = EphemTimes(eph[col_obstime][0], eph[col_obstime][-1],
                              None, None, None, None, None, None)
     etimes = edata.times
-    etimes.before, etimes.after = flip_times(eph)
-    etimes.alt_start, etimes.alt_end = opt_alt_times(eph, config.opt_alt * u.deg)
+    etimes.before, etimes.after = flip_times(eph, col_obstime, col_az)
+    etimes.alt_start, etimes.alt_end = opt_alt_times(eph, config.opt_alt * u.deg, col_obstime, col_alt)
 
-    edata.sort_time = max_alt_time(eph)
+    edata.sort_time = max_alt_time(eph, col_obstime, col_alt)
     if etimes.alt_start != None:
         edata.sort_time = etimes.alt_start
 
 
 
-def process_all_obj_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
+def obj_data_add_times(obj_data: dict[str, EphemData], col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> dict[str, EphemData]:
     """Fill EphemTimes for all objects
 
     Args:
@@ -391,7 +391,7 @@ def process_all_obj_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]
         dict[str, EphemData]: processed objects dict
     """
     for obj in obj_data.keys():
-        process_ephem_data(obj_data[obj])
+        ephem_data_add_times(obj_data[obj], col_obstime, col_alt, col_az)
     return obj_data
 
 
@@ -406,6 +406,3 @@ def sort_obj_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
         dict[str, EphemData]: sorted objects dict
     """
     return { obj: edata for obj, edata in sorted(obj_data.items(), key=lambda item: item[1].sort_time) }
-
-
-
