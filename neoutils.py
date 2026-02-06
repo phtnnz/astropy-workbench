@@ -343,9 +343,12 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
     """
     for r1, r2 in pairwise(eph):
         if r1[col_obstime] <= t and t <= r2[col_obstime]:
-            return r1
-            ##HACK: returns single row table, must add [0] to get scalar!
-    # Not matching interval found
+            ##return r1
+            ##HACK: iteration over Ephem returns single row table, not Row!
+            ##      using the QTable object in Ephem
+            return r1._table[0]
+    
+    # No matching interval found
     return None
 
 
