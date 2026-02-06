@@ -357,7 +357,7 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
 
 
 
-def ephem_data_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
+def ephem_data_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> None:
     """Fill EphemTimes with times calculated from ephemeris
 
     Args:
@@ -376,12 +376,18 @@ def ephem_data_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: 
     etimes.alt_start, etimes.alt_end = opt_alt_times(eph, config.opt_alt * u.deg, col_obstime, col_alt)
 
     edata.sort_time = max_alt_time(eph, col_obstime, col_alt)
-    if etimes.alt_start != None:
-        edata.sort_time = etimes.alt_start
+    if use_old_sort:
+        # Old sort order of neocp.py
+        if etimes.before:
+            edata.sort_time = etimes.before
+    else:
+        # New sort order of neo-obs-planner
+        if etimes.alt_start != None:
+            edata.sort_time = etimes.alt_start
 
 
 
-def obj_data_add_times(obj_data: dict[str, EphemData], col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> dict[str, EphemData]:
+def obj_data_add_times(obj_data: dict[str, EphemData], col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> dict[str, EphemData]:
     """Fill EphemTimes for all objects
 
     Args:
@@ -391,7 +397,7 @@ def obj_data_add_times(obj_data: dict[str, EphemData], col_obstime: str="Obstime
         dict[str, EphemData]: processed objects dict
     """
     for obj in obj_data.keys():
-        ephem_data_add_times(obj_data[obj], col_obstime, col_alt, col_az)
+        ephem_data_add_times(obj_data[obj], col_obstime, col_alt, col_az, use_old_sort)
     return obj_data
 
 
@@ -406,3 +412,20 @@ def sort_obj_data(obj_data: dict[str, EphemData]) -> dict[str, EphemData]:
         dict[str, EphemData]: sorted objects dict
     """
     return { obj: edata for obj, edata in sorted(obj_data.items(), key=lambda item: item[1].sort_time) }
+
+
+
+def verbose_obj_data(obj_data: dict[str, EphemData]) -> None:
+    """Verbose output of object data dict
+
+    Parameters
+    ----------
+    obj_data : dict[str, EphemData]
+        Object data dict
+    """
+    for obj in obj_data:
+        verbose("===================================================================================================================")
+        verbose(f"{obj} ephemeris")
+        verbose.print_lines(obj_data[obj].ephem)
+    verbose("===================================================================================================================")
+
