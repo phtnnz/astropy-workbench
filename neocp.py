@@ -66,8 +66,11 @@ from verbose import verbose, warning, error, message
 from astroutils import mpc_station_location, location_to_string
 from neoconfig import config
 from neoplot import plot_objects
-from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides, parse_neocp_list_OLD, convert_text_ephemerides_OLD, print_ephemerides
+from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides, print_ephemerides
+from mpcneocp import parse_neocp_list_OLD, convert_text_ephemerides_OLD
+from mpcneocp import parse_neocp_list, obj_data_from_text_ephemerides, obj_data_add_neocp_list
 from neoclasses import Exposure
+from neoutils import obj_data_add_times, sort_obj_data, verbose_obj_data
 
 
 
@@ -465,32 +468,45 @@ def main():
         mpc_query_neocp_list(config.url_pccp_list, local_pccp)
 
     try:
-    # Parse ephemerides
+        # Parse ephemerides
         verbose(f"processing {local_eph}")
         with open(local_eph, "r") as file:
             content = file.readlines()
             ephemerides_txt = parse_html_ephemerides(content)
             ephemerides = convert_text_ephemerides_OLD(ephemerides_txt, min_time, max_time)
             times = get_times_from_eph(ephemerides)
+            ##NEW##
+            obj_data = obj_data_from_text_ephemerides(ephemerides_txt, min_time, max_time)
+            # obj_data = obj_data_add_times(obj_data, "obstime", "alt", "az")
+            ##FIXME: use old sort order for testing
+            obj_data = obj_data_add_times(obj_data, "obstime", "alt", "az", use_old_sort=True)
 
         # Parse lists
         verbose(f"processing {local_neocp}")
         with open(local_neocp, "r") as file:
             content = file.readlines()
             neocp_list = parse_neocp_list_OLD(content)
+            ##NEW##
+            obj_data = obj_data_add_neocp_list(obj_data, neocp_list)
 
         verbose(f"processing {local_pccp}")
         with open(local_pccp, "r") as file:
             content = file.readlines()
             pccp_list = parse_neocp_list_OLD(content)
+            ##NEW##
+            obj_data = obj_data_add_neocp_list(obj_data, neocp_list, is_pccp=True)
 
     except FileNotFoundError as e:
         error(e)
 
     ephemerides = sort_by_flip_time(ephemerides)
+    ##NEW##
+    obj_data = sort_obj_data(obj_data)
+    verbose("planning objects:", " ".join(obj_data.keys()))
+    # verbose_obj_data(obj_data)    
 
     verbose("processing objects:", " ".join(ephemerides.keys()))
-    print_ephemerides(ephemerides)
+    # print_ephemerides(ephemerides)
     objects = process_objects(ephemerides, neocp_list, pccp_list, times)
 
     # Plot objects and Moon
