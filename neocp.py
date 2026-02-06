@@ -66,7 +66,7 @@ from verbose import verbose, warning, error, message
 from astroutils import mpc_station_location, location_to_string
 from neoconfig import config
 from neoplot import plot_objects
-from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides, parse_neocp_list, convert_text_ephemerides, print_ephemerides
+from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides, parse_neocp_list_OLD, convert_text_ephemerides_OLD, print_ephemerides
 from neoclasses import Exposure
 
 
@@ -470,19 +470,19 @@ def main():
         with open(local_eph, "r") as file:
             content = file.readlines()
             ephemerides_txt = parse_html_ephemerides(content)
-            ephemerides = convert_text_ephemerides(ephemerides_txt, min_time, max_time)
+            ephemerides = convert_text_ephemerides_OLD(ephemerides_txt, min_time, max_time)
             times = get_times_from_eph(ephemerides)
 
         # Parse lists
         verbose(f"processing {local_neocp}")
         with open(local_neocp, "r") as file:
             content = file.readlines()
-            neocp_list = parse_neocp_list(content)
+            neocp_list = parse_neocp_list_OLD(content)
 
         verbose(f"processing {local_pccp}")
         with open(local_pccp, "r") as file:
             content = file.readlines()
-            pccp_list = parse_neocp_list(content)
+            pccp_list = parse_neocp_list_OLD(content)
 
     except FileNotFoundError as e:
         error(e)
