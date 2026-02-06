@@ -53,13 +53,13 @@ def main():
     qt.add_row([ Time("2026-01-02"), 12*u.hourangle, -56.78*u.deg ])
 
     ic("QTable")
-    ic(qt, qt["RA"][0])
+    ic(qt, len(qt), qt["RA"][0])
     for row in qt:
         ic(row, row["RA"])
 
     eph = Ephem.from_table(qt)
     ic("Ephem")
-    ic(eph, eph["RA"][0])
+    ic(eph, len(eph), eph["RA"][0])
     for row in eph:
         ic(row, row["RA"], get0(row, "RA"))
         ##HACK: bind get0() method to row object, NOT RECOMMENDED
