@@ -48,7 +48,7 @@ from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
 from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
-from neoplot    import plot_objects2
+from neoplot    import plot_objects
 
 
 
@@ -325,7 +325,7 @@ def main():
     # Plot objects and Moon
     if args.plot:
         verbose("altitude and sky plot for objects")
-        plot_objects2(obj_data,
+        plot_objects(obj_data,
                       ##FIXME##
                       "tmp/neos-plot.png",
                       loc)
