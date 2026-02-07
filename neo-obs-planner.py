@@ -46,7 +46,7 @@ from verbose    import verbose, warning, error, message
 from astroutils import get_location
 from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
-from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time
+from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, obj_data_csv_output
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 from neoplot    import plot_objects
 
@@ -183,58 +183,6 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
 
 
 
-def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
-    csv_rows = list()
-
-    # Traverse objects, only those with valid plan_start time
-    for obj, edata in obj_data.items():
-        if edata.times.plan_start:
-            # CSV output:
-            #   start time, end time, 
-            #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
-            #   type, mag, nobs, arc, notseen, total
-            # RA output  = hourangle !!!
-            # DEC output = degree
-            csv_row = { "target": obj,
-                        "obstime": fmt_time(edata.times.plan_start, add_tz=True),
-                        "ra": float(edata.ra.value),
-                        "dec": float(edata.dec.value),
-                        "exposure": float(edata.exposure.single.value),
-                        "number": edata.exposure.number,
-                        "filter": "L",
-                        "start time": fmt_time(edata.times.plan_start),
-                        "end time": fmt_time(edata.times.plan_end),
-                        "type": "",
-                        "mag": float(edata.mag.value),
-                        "nobs": "",
-                        "arc": "",
-                        "notseen": "",
-                        "total": str(edata.exposure)
-                        }
-            ic(csv_row)
-            csv_rows.append(csv_row)
-
-    # Output to CSV file for nina-create-sequence2
-    verbose(f"planned objects for nina-create-sequence2: {output}")
-    # csv_row is the last object, if any were found
-    if csv_row:
-        ##FIXME: improve csvoutput module to cover this usage
-        fieldnames = csv_row.keys()
-        ic(fieldnames)
-        if output:
-            with open(output, "w", newline="") as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(csv_rows)
-        else:
-            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(csv_rows)
-    else:
-        warning("no objects, no CSV output")
-
-
-
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -312,7 +260,7 @@ def main():
     # Run obs planner
     obs_planner_1(obj_data, local)
     if args.csv:
-        obs_csv_output(obj_data, args.output)
+        obj_data_csv_output(obj_data, args.output)
 
     # Plot objects and Moon
     if args.plot:
