@@ -99,12 +99,12 @@ from neoutils import single_exp, motion_limit, exposure_calc
 
 from neoutils import max_motion as _max_motion
 from neoutils import flip_times as _flip_times
-from neoutils import max_alt_time as _max_alt_time
-from neoutils import get_row_for_time as _get_row_for_time
+from neoutils import max_alt_time
+from neoutils import get_row_for_time
 from neoutils import opt_alt_times as _opt_alt_times
 
 ## Wrapper for new functions ##
-def max_motion(qt: QTable) -> Quantity:
+def max_motion_OLD(qt: QTable) -> Quantity:
     ephem = Ephem.from_table(qt)
     return _max_motion(ephem, "motion")
 
@@ -112,15 +112,15 @@ def flip_times(qt: QTable) -> tuple[Time, Time]:
     ephem = Ephem.from_table(qt)
     return _flip_times(ephem, "obstime", "az")
 
-def max_alt_times(qt: QTable) -> tuple[Time, Time]:
+def max_alt_times_OLD(qt: QTable) -> tuple[Time, Time]:
     ephem = Ephem.from_table(qt)
-    time_max = _max_alt_time(ephem, "obstime", "alt")
+    time_max = max_alt_time(ephem, "obstime", "alt")
     # Return tuple for compatibility with flip_times()
     return time_max, time_max
 
-def get_row_for_time(qt: QTable, t: Time) -> Row:
+def get_row_for_time_OLD(qt: QTable, t: Time) -> Row:
     ephem = Ephem.from_table(qt)
-    return _get_row_for_time(ephem, t, "obstime")
+    return get_row_for_time(ephem, t, "obstime")
 
 def opt_alt_times(qt: QTable, alt: Angle) -> tuple[Time, Time]:
     ephem = Ephem.from_table(qt)
@@ -149,7 +149,7 @@ def get_times_from_eph(ephemerides: dict) -> dict:
         time_before, time_after = flip_times(qt)
         if not time_before:     # No meridian passing
                 ##CHECK: better solution than this hack?
-                time_before, time_after = max_alt_times(qt)
+                time_before, time_after = max_alt_times_OLD(qt)
         time_0 = qt["obstime"][0]
         time_1 = qt["obstime"][-1]
         time_alt0, time_alt1 = opt_alt_times(qt, config.opt_alt * u.degree)
@@ -216,7 +216,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
         time_before, time_after       = time["before"], time["after"]
         time_first, time_last         = time["first"], time["last"]
         time_alt_first, time_alt_last = time["alt_first"], time["alt_last"]
-        max_m = max_motion(qt)
+        max_m = max_motion_OLD(qt)
 
         message("-----------------------------------------------------------------------------------------------------------------------")
         message(f"{id}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
@@ -290,7 +290,7 @@ def process_objects(ephemerides: dict, neocp_list: dict, pccp_list: dict, times_
             continue
 
         # Table row best matching time_start_exp
-        row = get_row_for_time(qt, time_start_exp)
+        row = get_row_for_time_OLD(qt, time_start_exp)
         ic(row)
         moon_dist = row["moon_dist"]
         ic(moon_dist)
@@ -389,6 +389,9 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
     prev_time_end_exp = None
 
     for obj, edata in obj_data.items():
+        max_m = edata.motion
+        eph = edata.ephem
+        ic(obj, eph, max_m)
         # NEOCP/PCCP list data
         type    = edata.neocp.type
         score   = edata.neocp.score
@@ -396,12 +399,19 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
         nobs    = edata.neocp.nobs
         arc     = edata.neocp.arc
         notseen = edata.neocp.notseen
+        ic(obj, type, score, mag, nobs, arc, notseen)
         # Times
         time_before, time_after       = edata.times.before, edata.times.after
         time_first, time_last         = edata.times.start, edata.times.end
         time_alt_first, time_alt_last = edata.times.alt_start, edata.times.alt_end
-        max_m = edata.motion
-        eph = edata.ephem
+        # Previously handled by get_times_from_eph()
+        if not time_alt_first:
+            time_alt_first, time_alt_last = edata.times.start, edata.times.end
+        if not time_before:
+            ##FIXME: add max_alt_time to EphemTimes
+            time_before = max_alt_time(eph, "obstime", "alt")
+            time_after = time_before
+        ic(time_before, time_after, time_first, time_last, time_alt_first, time_alt_last)
 
         message("-----------------------------------------------------------------------------------------------------------------------")
         message(f"{obj}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
@@ -410,6 +420,11 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
         exposure = edata.exposure
         if not exposure:                             # Object too fast
             message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
+            continue
+
+        # Skip, if ephemeris is only 1 line
+        if len(eph) < 2:
+            message(f"SKIPPED: only {len(eph)} line(s) of ephemeris data")
             continue
 
         n_exp = exposure.number
@@ -475,7 +490,7 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
             continue
 
         # Table row best matching time_start_exp
-        row = get_row_for_time(eph, time_start_exp)
+        row = get_row_for_time(eph, time_start_exp, "obstime")
         ic(row)
         moon_dist = row["moon_dist"]
         ic(moon_dist)
@@ -576,7 +591,7 @@ def sort_by_flip_time(ephemerides: dict) -> dict:
     for id, qt in ephemerides.items():
         t, _ = flip_times(qt)
         if not t:
-            t, _ = max_alt_times(qt)
+            t, _ = max_alt_times_OLD(qt)
         time_dict[id] = t
     
     # Sort dict by time (item[0] = id, item[1] = time)
@@ -690,11 +705,12 @@ def main():
     ##NEW##
     obj_data = sort_obj_data(obj_data)
     verbose("planning objects:", " ".join(obj_data.keys()))
-    # verbose_obj_data(obj_data)    
+    verbose_obj_data(obj_data)    
+    objects = obs_planner_neocp(obj_data)
 
-    verbose("processing objects:", " ".join(ephemerides.keys()))
+    # verbose("processing objects:", " ".join(ephemerides.keys()))
     # print_ephemerides(ephemerides)
-    objects = process_objects(ephemerides, neocp_list_OLD, pccp_list_OLD, times)
+    # objects = process_objects(ephemerides, neocp_list_OLD, pccp_list_OLD, times)
 
     # Plot objects and Moon
     if args.plot:
