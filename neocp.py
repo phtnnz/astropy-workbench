@@ -80,6 +80,29 @@ TIMEOUT = config.requests_timeout
 # Exposure times / s
 EXP_TIMES = config.exposure_times
 
+##FIXME: move to neoutils
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+TIME_FORMAT_TZ = "%Y-%m-%d %H:%M:%S+0000"
+
+
+
+def f_time(time: Time|None, add_tz: bool=False) -> str:
+    """Format time
+
+    Parameters
+    ----------
+    time : Time | None
+        Time value
+    add_tz : bool, optional
+        Add timezone "+0000", by default False
+
+    Returns
+    -------
+    str
+        Formatted time
+    """
+    return time.strftime(TIME_FORMAT_TZ if add_tz else TIME_FORMAT) if time != None else "-" * 19
+
 
 
 # Command line options
@@ -101,7 +124,7 @@ from neoutils import max_alt_time
 from neoutils import get_row_for_time
 
 
-def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
+def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
     """
     New version of process_objects()
     """
@@ -112,8 +135,6 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
     message("                                                    # x Exp = total exposure time")
     message("                                                    RA, DEC, Alt, Az")
 
-    csv_row = None
-    csv_rows = []
     objects  = []
     prev_time_end_exp = None
 
@@ -238,38 +259,13 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
         objects.append(obj)
         ra, dec = row["ra"], row["dec"]
         alt, az = row["alt"], row["az"]
+        edata.ra, edata.dec = ra, dec
 
         message(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
         message(f"                                                    {time_start_exp}/{time_end_exp}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
         message(f"                                                    {total}")
         message(f"                                                    RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
-
-        # CSV output:
-        #   start time, end time, 
-        #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
-        #   type, mag, nobs, arc, notseen, total
-        csv_row = { "target": obj,
-                    # "observation date": time_start_exp.strftime("%Y-%m-%d"),
-                    # "time ut": time_start_exp.strftime("%H:%M"),
-                    # "+0000" to enforce UTC
-                    "obstime": time_start_exp.strftime("%Y-%m-%d %H:%M:%S+0000"),
-                    "ra": float(ra.value),
-                    "dec": float(dec.value),
-                    "exposure": float(exp.value),
-                    "number": n_exp,
-                    "filter": "L",
-                    "start time": str(time_start_exp),
-                    "end time": str(time_end_exp),
-                    "type": type,
-                    "mag": float(mag.value),
-                    "nobs": nobs,
-                    "arc": float(arc.value),
-                    "notseen": float(notseen.value),
-                    "total": total
-                    }
-        ic(csv_row)
-        csv_rows.append(csv_row)
 
         ##MJ: only 1st object for debugging
         # return
@@ -278,28 +274,57 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> list:
     message("-----------------------------------------------------------------------------------------------------------------------")
     message(f"{len(objects)} object(s) planned: {" ".join(objects)}")
 
+
+
+def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
+    csv_rows = list()
+
+    # Traverse objects, only those with valid plan_start time
+    for obj, edata in obj_data.items():
+        if edata.times.plan_start:
+            # CSV output:
+            #   start time, end time, 
+            #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
+            #   type, mag, nobs, arc, notseen, total
+            # RA output  = hourangle !!!
+            # DEC output = degree
+            csv_row = { "target": obj,
+                        "obstime": f_time(edata.times.plan_start, add_tz=True),
+                        "ra": float(edata.ra.value),
+                        "dec": float(edata.dec.value),
+                        "exposure": float(edata.exposure.single.value),
+                        "number": edata.exposure.number,
+                        "filter": "L",
+                        "start time": f_time(edata.times.plan_start),
+                        "end time": f_time(edata.times.plan_end),
+                        "type": edata.neocp.type if edata.neocp else "",
+                        "mag": float(edata.mag.value),
+                        "nobs": int(edata.neocp.nobs) if edata.neocp else "",
+                        "arc": float(edata.neocp.arc.value) if edata.neocp else "",
+                        "notseen": float(edata.neocp.notseen.value) if edata.neocp else "",
+                        "total": str(edata.exposure)
+                        }
+            ic(csv_row)
+            csv_rows.append(csv_row)
+
     # Output to CSV file for nina-create-sequence2
-    if Options.csv:
-        verbose(f"planned objects for nina-create-sequence2: {Options.output}")
-        # csv_row is the last object, if any were found
-        if csv_row:
-            ##FIXME: improve csvoutput module to cover this usage
-            fieldnames = csv_row.keys()
-            ic(fieldnames)
-            if Options.output:
-                with open(Options.output, "w", newline="") as csvfile:
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writeheader()
-                    writer.writerows(csv_rows)
-            else:
-                writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+    verbose(f"planned objects for nina-create-sequence2: {output}")
+    # csv_row is the last object, if any were found
+    if csv_row:
+        ##FIXME: improve csvoutput module to cover this usage
+        fieldnames = csv_row.keys()
+        ic(fieldnames)
+        if output:
+            with open(output, "w", newline="") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(csv_rows)
         else:
-            warning("no objects, no CSV output")
-
-    # Return planned objects
-    return objects
+            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+    else:
+        warning("no objects, no CSV output")
 
 
 
@@ -398,7 +423,11 @@ def main():
     obj_data = sort_obj_data(obj_data)
     verbose("planning objects:", " ".join(obj_data.keys()))
     verbose_obj_data(obj_data)    
-    objects = obs_planner_neocp(obj_data)
+    obs_planner_neocp(obj_data)
+
+    # Output CSV plan
+    if Options.csv:
+        obs_csv_output(obj_data, Options.output)
 
     # Plot objects and Moon
     if args.plot:
