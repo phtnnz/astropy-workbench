@@ -37,7 +37,7 @@
 # Version 0.8 / 2026-02-03
 #       Started code refactoring and adaption to new data structures
 # Version 0.9 / 2026-02-07
-#       Refactoring almost ready, removed old code
+#       Refactoring ready, removed old code
 
 VERSION = "0.9 / 2026-02-07"
 AUTHOR  = "Martin Junius"
