@@ -68,10 +68,11 @@ from verbose import verbose, warning, error, message
 from astroutils import mpc_station_location, location_to_string
 from neoconfig import config
 from neoplot import plot_objects
-from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides, print_ephemerides
+from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides
 from mpcneocp import parse_neocp_list, obj_data_from_text_ephemerides, obj_data_add_neocp_list
 from neoclasses import EphemData
 from neoutils import obj_data_add_times, sort_obj_data, verbose_obj_data
+from neoutils import motion_limit, max_alt_time, get_row_for_time
 
 
 
@@ -115,13 +116,6 @@ class Options:
     code: str = config.code     # -l --location
     loc: EarthLocation = mpc_station_location(code)
 
-
-
-##FIXME: replace wrappers with new code ##
-from neoutils import Ephem
-from neoutils import single_exp, motion_limit, exposure_calc
-from neoutils import max_alt_time
-from neoutils import get_row_for_time
 
 
 def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
@@ -368,7 +362,6 @@ def main():
     verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
     # Get next midnight
-    time = Time(Time.now(), location=Options.loc)
     observer = Observer(location=Options.loc, description=Options.code)
     midnight = observer.midnight(Time.now(), which="next")
     min_time = midnight - 12 * u.hour
