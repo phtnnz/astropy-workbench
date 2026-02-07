@@ -93,14 +93,14 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         # check overlap with previous object
         if next_start_time > start:
             start = next_start_time
-        if alt_start != None and next_start_time > alt_start:
+        if alt_start and next_start_time > alt_start:
             alt_start = next_start_time
-        if alt_end != None and next_start_time > alt_end:
+        if alt_end and next_start_time > alt_end:
             alt_start = None
             alt_end = None
-        if before != None and next_start_time > before:
+        if before and next_start_time > before:
             before = None
-        if after != None and next_start_time > after:
+        if after and next_start_time > after:
             after = next_start_time
         if next_start_time > end:
             end = None
@@ -116,39 +116,39 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         ic(obj, start, end, total_time, alt_start, alt_end, before, after)
 
         # try to fit in alt_start ... alt_end interval
-        if alt_start != None:
+        if alt_start:
             # before meridian
-            if before != None and alt_start + total_time <= before:
+            if before and alt_start + total_time <= before:
                 exp_start = alt_start
                 exp_end = alt_start + total_time
             # after meridian
-            elif after != None and end != None and after + total_time <= end:
+            elif after and end and after + total_time <= end:
                 exp_start = after
                 exp_end = after + total_time
             # no meridian passing
-            elif end != None and alt_start + total_time <= end:
+            elif end and alt_start + total_time <= end:
                 exp_start = alt_start
                 exp_end = alt_start + total_time
         
         # no slot found, try to fit in start ... end interval
-        if exp_start == None:
+        if not exp_start:
             # before meridian
-            if before != None and start + total_time <= before:
+            if before and start + total_time <= before:
                 exp_start = start
                 exp_end = start + total_time
             # after meridian
-            elif after != None and end != None and after + total_time <= end:
+            elif after and end and after + total_time <= end:
                 exp_start = after
                 exp_end = after + total_time
             # no meridian passing
-            elif end != None and start + total_time <= end:
+            elif end and start + total_time <= end:
                 exp_start = start
                 exp_end = start + total_time
 
         ic(exp_start, exp_end)
 
         # Skip, if failed to allocate total_time
-        if exp_start == None:
+        if not exp_start:
             message(f"SKIPPED: can't allocate exposure time {total_time:.2f} ({start} -- {end})")
             continue
 
@@ -195,7 +195,7 @@ def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
 
     # Traverse objects, only those with valid plan_start time
     for obj, edata in obj_data.items():
-        if edata.times.plan_start != None:
+        if edata.times.plan_start:
             # CSV output:
             #   start time, end time, 
             #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
