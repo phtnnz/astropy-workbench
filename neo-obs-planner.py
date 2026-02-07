@@ -63,7 +63,7 @@ def f_time(time: Time|None, add_tz: bool=False) -> str:
 
 
 
-def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> dict:
+def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> None:
     # Start planner at naut. dusk / start time from options
     next_start_time = local.naut_dusk
     objects  = []
@@ -239,7 +239,6 @@ def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
             writer.writerows(csv_rows)
     else:
         warning("no objects, no CSV output")
-
 
 
 
