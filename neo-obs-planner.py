@@ -46,20 +46,13 @@ from verbose    import verbose, warning, error, message
 from astroutils import get_location
 from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
-from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit
+from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 from neoplot    import plot_objects
 
 
 
 DEFAULT_LOCATION = config.code
-TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-TIME_FORMAT_TZ = "%Y-%m-%d %H:%M:%S+0000"
-
-
-
-def f_time(time: Time|None, add_tz: bool=False) -> str:
-    return time.strftime(TIME_FORMAT_TZ if add_tz else TIME_FORMAT) if time != None else "-" * 19
 
 
 
@@ -88,7 +81,7 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         after = etimes.after
 
         message("----------------------------------------------------------------------------------")
-        message(f"{obj:9s}  {edata.mag}  {f_time(start)} / {f_time(end)}  {edata.motion:5.1f}")
+        message(f"{obj:9s}  {edata.mag}  {fmt_time(start)} / {fmt_time(end)}  {edata.motion:5.1f}")
 
         # check overlap with previous object
         if next_start_time > start:
@@ -179,8 +172,8 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
         edata.ra, edata.dec = ra, dec
         objects.append(obj)
 
-        message(f"                     {f_time(before)} / {f_time(after)}             {moon_dist:3.0f}")
-        message(f"                     {f_time(exp_start)} / {f_time(exp_end)}")
+        message(f"                     {fmt_time(before)} / {fmt_time(after)}             {moon_dist:3.0f}")
+        message(f"                     {fmt_time(exp_start)} / {fmt_time(exp_end)}")
         message(f"                     {edata.exposure}")
         message(f"                     RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
@@ -203,14 +196,14 @@ def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
             # RA output  = hourangle !!!
             # DEC output = degree
             csv_row = { "target": obj,
-                        "obstime": f_time(edata.times.plan_start, add_tz=True),
+                        "obstime": fmt_time(edata.times.plan_start, add_tz=True),
                         "ra": float(edata.ra.value),
                         "dec": float(edata.dec.value),
                         "exposure": float(edata.exposure.single.value),
                         "number": edata.exposure.number,
                         "filter": "L",
-                        "start time": f_time(edata.times.plan_start),
-                        "end time": f_time(edata.times.plan_end),
+                        "start time": fmt_time(edata.times.plan_start),
+                        "end time": fmt_time(edata.times.plan_end),
                         "type": "",
                         "mag": float(edata.mag.value),
                         "nobs": "",

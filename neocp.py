@@ -72,7 +72,7 @@ from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_ht
 from mpcneocp import parse_neocp_list, obj_data_from_text_ephemerides, obj_data_add_neocp_list
 from neoclasses import EphemData
 from neoutils import obj_data_add_times, sort_obj_data, verbose_obj_data
-from neoutils import motion_limit, max_alt_time, get_row_for_time
+from neoutils import motion_limit, max_alt_time, get_row_for_time, fmt_time
 
 
 
@@ -80,29 +80,6 @@ from neoutils import motion_limit, max_alt_time, get_row_for_time
 TIMEOUT = config.requests_timeout
 # Exposure times / s
 EXP_TIMES = config.exposure_times
-
-##FIXME: move to neoutils
-TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-TIME_FORMAT_TZ = "%Y-%m-%d %H:%M:%S+0000"
-
-
-
-def f_time(time: Time|None, add_tz: bool=False) -> str:
-    """Format time
-
-    Parameters
-    ----------
-    time : Time | None
-        Time value
-    add_tz : bool, optional
-        Add timezone "+0000", by default False
-
-    Returns
-    -------
-    str
-        Formatted time
-    """
-    return time.strftime(TIME_FORMAT_TZ if add_tz else TIME_FORMAT) if time != None else "-" * 19
 
 
 
@@ -283,14 +260,14 @@ def obs_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
             # RA output  = hourangle !!!
             # DEC output = degree
             csv_row = { "target": obj,
-                        "obstime": f_time(edata.times.plan_start, add_tz=True),
+                        "obstime": fmt_time(edata.times.plan_start, add_tz=True),
                         "ra": float(edata.ra.value),
                         "dec": float(edata.dec.value),
                         "exposure": float(edata.exposure.single.value),
                         "number": edata.exposure.number,
                         "filter": "L",
-                        "start time": f_time(edata.times.plan_start),
-                        "end time": f_time(edata.times.plan_end),
+                        "start time": fmt_time(edata.times.plan_start),
+                        "end time": fmt_time(edata.times.plan_end),
                         "type": edata.neocp.type if edata.neocp else "",
                         "mag": float(edata.mag.value),
                         "nobs": int(edata.neocp.nobs) if edata.neocp else "",

@@ -429,3 +429,25 @@ def verbose_obj_data(obj_data: dict[str, EphemData]) -> None:
         verbose.print_lines(obj_data[obj].ephem)
     verbose("===================================================================================================================")
 
+
+
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+TIME_FORMAT_TZ = "%Y-%m-%d %H:%M:%S+0000"
+
+def fmt_time(time: Time|None, add_tz: bool=False) -> str:
+    """Format time
+
+    Parameters
+    ----------
+    time : Time | None
+        Time value
+    add_tz : bool, optional
+        Add timezone "+0000", by default False
+
+    Returns
+    -------
+    str
+        Formatted time
+    """
+    return time.strftime(TIME_FORMAT_TZ if add_tz else TIME_FORMAT) if time != None else "-" * 19
+
