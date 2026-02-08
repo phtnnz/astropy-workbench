@@ -17,8 +17,10 @@
 # ChangeLog
 # Version 0.0 / 2026-02-03
 #       NEOCP ephemeris and list queries moved from neocp.py
+# Version 0.1 / 2026-02-08
+#       Refactoring complete
 
-VERSION = "0.0 / 2026-02-03"
+VERSION = "0.1 / 2026-02-08"
 AUTHOR  = "Martin Junius"
 NAME    = "mpcneocp"
 
@@ -38,10 +40,10 @@ from astropy.time import Time
 from astropy.table import QTable
 
 # Local modules
-from verbose import verbose, warning, error, message
+from verbose import verbose, warning, error
 from neoconfig import config
 from neoclasses import EphemData, Ephem, NEOCPListData
-from neoutils import max_motion, exposure_calc
+from neoutils import get_mag0, max_motion, exposure_calc
 
 
 
@@ -152,52 +154,6 @@ def mpc_query_neocp_list(url: str, filename: str) -> None:
 
 
 
-def print_ephemerides(ephemerides: dict) -> None:
-    """
-    Print ephemerides for all objects
-
-    Parameters
-    ----------
-    ephemerides : dict
-        Ephemerides dictionary
-    """
-    for id, qt in ephemerides.items():
-        verbose("===================================================================================================================")
-        verbose(f"NEOCP {id} ephemeris")
-        verbose.print_lines(qt)
-    verbose("===================================================================================================================")
-
-
-
-def convert_text_ephemerides_OLD(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, QTable]:
-    """
-    Convert ephemerides from plain text format to table for all objects
-
-    Parameters
-    ----------
-    eph_dict : dict
-        Ephemerides dictionary in plain text format
-    min_time : Time
-        Lower limit for ephemeris time
-    max_time : Time
-        Upper limit for ephemeris time
-
-    Returns
-    -------
-    dict
-        Ephemerides dictionary in table form for further processing
-    """
-    qtable_dict = {}
-    for obj, lines in eph_text.items():
-        qt = convert_text_ephemeris1(obj, lines, min_time, max_time)
-        if len(qt) == 0:
-            verbose(f"skipping NEOCP {obj=} (empty)")
-            continue
-        qtable_dict[obj] = qt
-    return qtable_dict
-
-
-
 def obj_data_from_text_ephemerides(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, EphemData]:
     """
     Convert ephemerides from plain text format to Ephem for all objects
@@ -224,8 +180,8 @@ def obj_data_from_text_ephemerides(eph_text: dict[str, list[str]], min_time: Tim
             continue
         eph1 = Ephem.from_table(qt)
         ##FIXME: get column names for caller?
-        mag = eph1["mag"][0]
-        motion = max_motion(eph1, "motion")
+        mag = get_mag0(eph1)
+        motion = max_motion(eph1)
         exp = exposure_calc(motion, mag)
         data = EphemData(obj, None, eph1, None, exp, mag, motion)
         obj_data[obj] = data
@@ -286,16 +242,16 @@ def convert_text_ephemeris1(id: str, eph: list[str], min_time: Time, max_time: T
     qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
     # Initialize empty columns with proper Quantity type, same as .add_column()
     # A bit ugly, but I found no other to handle this
-    qt["obstime"]   = Time("2000-01-01 00:00")
-    qt["ra"]        = 0 * u.hourangle
-    qt["dec"]       = 0 * u.degree
-    qt["mag"]       = 0 * u.mag
-    qt["motion"]    = 0 * u.arcsec / u.min
-    qt["pa"]        = 0 * u.degree
-    qt["alt"]       = 0 * u.degree
-    qt["az"]        = 0 * u.degree
-    qt["moon_dist"] = 0 * u.degree
-    qt["moon_alt"]  = 0 * u.degree
+    qt["Obstime"]   = Time("2000-01-01 00:00")
+    qt["RA"]        = 0 * u.hourangle
+    qt["DEC"]       = 0 * u.degree
+    qt["Mag"]       = 0 * u.mag
+    qt["Motion"]    = 0 * u.arcsec / u.min
+    qt["PA"]        = 0 * u.degree
+    qt["Alt"]       = 0 * u.degree
+    qt["Az"]        = 0 * u.degree
+    qt["Moon_dist"] = 0 * u.degree
+    qt["Moon_alt"]  = 0 * u.degree
 
     for line in eph:
         # Date       UT      R.A. (J2000) Decl.  Elong.  V        Motion     Object     Sun         Moon        Uncertainty
@@ -395,48 +351,6 @@ def parse_html_ephemerides(content: list[str]) -> dict[str, list[str]]:
                 # Early return, just the 1st entry in the list for debugging
                 # return neocp_eph
     return neocp_text_eph
-
-
-
-def parse_neocp_list_OLD(content: list) -> dict:
-    """
-    Parse plain text HTML page of NEOCP/PCCP list
-
-    Parameters
-    ----------
-    content : list
-        Web page content
-
-    Returns
-    -------
-    dict
-        Dictionary of relevant data from NEOCP list
-    """
-    neocp_list = {}
-
-    for line in content:
-        # Format example:
-        # ZTF105X  76 2025 09 10.2  22.6070  +0.8481 18.2 Updated Sept. 11.49 UT          26   1.25 24.5  0.038
-        # P12e56E 100 2025 08 30.4  23.2926 -12.0924 18.9 Updated Sept. 11.20 UT           6   0.09 23.0 12.007
-        # H452509  63 2016 06 04.3  11.5743  +5.6542 34.1 Updated Sept. 10.20 UT           5   0.09 25.6 3386.166
-        # ^0      ^8  ^12           ^26     ^34      ^43  ^48                     ???    ^79  ^84   ^90  ^95
-        # Temp.   Score             RA      DEC      MagV                         Note   Nobs       H    Not Seen/dys
-        # Desig.   	  Discovery                           Updated                             Arc
-        line = line.rstrip()
-        ic(line)
-        vals = {}
-        vals["score"] = int(line[8:11])
-        vals["mag"]   = float(line[43:47]) * u.mag
-        vals["nobs"]  = int(line[79:82])
-        # Time difference between 1st and last observation in days
-        vals["arc"]   = float(line[84:89]) * u.day
-        vals["notseen"] = float(line[95:]) * u.day
-
-        id = line[0:7]
-        ic(id, vals)
-        neocp_list[id] = vals
-
-    return neocp_list
 
 
 
