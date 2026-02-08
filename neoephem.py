@@ -48,7 +48,7 @@ from astroplan import Observer
 from verbose import verbose, warning, error, message
 from astroutils import get_location
 from neoclasses import Exposure, EphemTimes, EphemData, LocalCircumstances
-from neoutils import exposure_calc, max_motion
+from neoutils import exposure_calc, max_motion, get_mag0
 from neoconfig import config
 
 DEFAULT_LOCATION = config.code
@@ -63,6 +63,7 @@ def _rename_columns_mpc(eph: Ephem) -> None:
     """
     eph._table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
                                "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
+                              # -->
                               ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
                                "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
 
@@ -76,6 +77,7 @@ def _rename_columns_jpl(eph: Ephem) -> None:
 
     mag_col = "Tmag" if "Tmag" in eph.field_names else "V"
     eph.table.rename_columns(("targetname", "epoch",   "AZ", "EL",  mag_col, "velocityPA"),
+                             # -->
                              ("Targetname", "Obstime", "Az", "Alt", "Mag",   "PA" ))
 
 
@@ -104,13 +106,13 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             _rename_columns_mpc(eph)
             ic(eph.field_names)
 
-            mag = eph["Mag"][0]
             mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
             eph1 = eph[mask]
             if len(eph1) == 0:
                 warning(f"skipping empty ephemeris for {obj}")
                 continue
-            motion = max_motion(eph1, "Motion")
+            mag = get_mag0(eph1)
+            motion = max_motion(eph1)
             exp = exposure_calc(motion, mag)
             data = EphemData(obj, None, eph1, None, exp, mag, motion)
             obj_data[obj] = data
@@ -144,7 +146,6 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             _rename_columns_jpl(eph)
             ic(eph.field_names)
 
-            mag = eph["Mag"][0]
             mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
             eph1 = eph[mask]
             if len(eph1) == 0:
@@ -153,7 +154,8 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             ##Quick hack: missing Moon_dist, Moon_alt in JPL ephemeris?
             eph1["Moon_dist"] = 180 * u.degree
             eph1["Moon_alt"]  = -90 * u.degree
-            motion = max_motion(eph1, "Motion")
+            mag = get_mag0(eph1)
+            motion = max_motion(eph1)
             exp = exposure_calc(motion, mag)
             data = EphemData(obj, None, eph1, None, exp, mag, motion)
             obj_data[obj] = data
