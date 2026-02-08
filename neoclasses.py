@@ -85,6 +85,7 @@ class EphemTimes:
     alt_end: Time               # end time of optimal altitude
     plan_start: Time            # planned start time
     plan_end: Time              # planned end time
+    max_alt: Time = None        # time of max altitude
 
 
 
