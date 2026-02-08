@@ -146,6 +146,25 @@ def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
 
 
 
+def get_mag0(eph: Ephem, column: str="Mag") -> Magnitude:
+    """Get magnitude from ephemeris (first row)
+
+    Parameters
+    ----------
+    eph : Ephem
+        ephemeris
+    column : str, optional
+        column name, by default "Mag"
+
+    Returns
+    -------
+    Magnitude
+        Magnitude quantity
+    """
+    return eph[column][0]
+
+
+
 def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
     """
     Get max value for motion column(s) from ephemeris table
