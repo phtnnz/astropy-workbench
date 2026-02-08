@@ -38,8 +38,10 @@
 #       Started code refactoring and adaption to new data structures
 # Version 0.9 / 2026-02-07
 #       Refactoring ready, removed old code
+# Version 0.10 / 2026-02-08
+#       Unified handling of ephemeris column names
 
-VERSION = "0.9 / 2026-02-07"
+VERSION = "0.10 / 2026-02-08"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -129,7 +131,7 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
             time_alt_first, time_alt_last = edata.times.start, edata.times.end
         if not time_before:
             ##FIXME: add max_alt_time to EphemTimes
-            time_before = max_alt_time(eph, "obstime", "alt")
+            time_before = max_alt_time(eph)
             time_after = time_before
         ic(time_before, time_after, time_first, time_last, time_alt_first, time_alt_last)
 
@@ -210,14 +212,14 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
             continue
 
         # Table row best matching time_start_exp
-        row = get_row_for_time(eph, time_start_exp, "obstime")
+        row = get_row_for_time(eph, time_start_exp)
         ic(row)
-        moon_dist = row["moon_dist"]
+        moon_dist = row["Moon_dist"]
         ic(moon_dist)
         # Skip, if moon distance is too small
         min_moon_dist = config.min_moon_dist * u.degree
         if moon_dist < min_moon_dist:
-            message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+            message(f"SKIPPED: Moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
             continue
 
         ##### Good to go! #####
@@ -227,8 +229,8 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
         edata.times.plan_end = time_end_exp
         # Append to list of planned objects
         objects.append(obj)
-        ra, dec = row["ra"], row["dec"]
-        alt, az = row["alt"], row["az"]
+        ra, dec = row["RA"], row["DEC"]
+        alt, az = row["Alt"], row["Az"]
         edata.ra, edata.dec = ra, dec
 
         message(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
@@ -317,9 +319,9 @@ def main():
             content = file.readlines()
             ephemerides_txt = parse_html_ephemerides(content)
             obj_data = obj_data_from_text_ephemerides(ephemerides_txt, min_time, max_time)
-            # obj_data = obj_data_add_times(obj_data, "obstime", "alt", "az")
+            # obj_data = obj_data_add_times(obj_data)
             ##FIXME: using old sort order for testing
-            obj_data = obj_data_add_times(obj_data, "obstime", "alt", "az", use_old_sort=True)
+            obj_data = obj_data_add_times(obj_data, use_old_sort=True)
 
         # Parse lists
         verbose(f"processing {local_neocp}")
@@ -351,8 +353,7 @@ def main():
         verbose("altitude and sky plot for objects")
         plot_objects(obj_data,
                      os.path.join(config.downloads, f"{prefix}-neocp-plot.png"),
-                     Options.loc,
-                     "obstime", "alt", "az")
+                     Options.loc)
 
 
 
