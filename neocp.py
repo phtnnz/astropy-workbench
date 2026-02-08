@@ -77,13 +77,6 @@ from neoutils import motion_limit, max_alt_time, get_row_for_time, obj_data_csv_
 
 
 
-# Requests timeout
-TIMEOUT = config.requests_timeout
-# Exposure times / s
-EXP_TIMES = config.exposure_times
-
-
-
 # Command line options
 class Options:
     """
@@ -130,9 +123,7 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
         if not time_alt_first:
             time_alt_first, time_alt_last = edata.times.start, edata.times.end
         if not time_before:
-            ##FIXME: add max_alt_time to EphemTimes
-            time_before = max_alt_time(eph)
-            time_after = time_before
+            time_before = time_after = edata.times.max_alt
         ic(time_before, time_after, time_first, time_last, time_alt_first, time_alt_last)
 
         message("-----------------------------------------------------------------------------------------------------------------------")
