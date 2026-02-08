@@ -378,11 +378,25 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
 
 
 def ephem_data_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> None:
-    """Fill EphemTimes with times calculated from ephemeris
+    """Add EphemTimes data to EphemData object
 
-    Args:
-        edata (EphemData): ephemeris data object
-        col_obstime (str, optional): name of obstime column. Defaults to "Obstime".
+    Parameters
+    ----------
+    edata : EphemData
+        EphemData object
+    col_obstime : str, optional
+        observation time column name, by default "Obstime"
+    col_alt : str, optional
+        Altitude column name, by default "Alt"
+    col_az : str, optional
+        Azimuth column name, by default "Az"
+    use_old_sort : bool, optional
+        Use old sort order (neocp.py), by default False
+
+    Raises
+    ------
+    ValueError
+        Empty ephemeris
     """
     eph = edata.ephem
     # Ephemeris could be empty
@@ -395,7 +409,8 @@ def ephem_data_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: 
     etimes.before, etimes.after = flip_times(eph, col_obstime, col_az)
     etimes.alt_start, etimes.alt_end = opt_alt_times(eph, config.opt_alt * u.deg, col_obstime, col_alt)
 
-    edata.sort_time = max_alt_time(eph, col_obstime, col_alt)
+    etimes.max_alt = max_alt_time(eph, col_obstime, col_alt)
+    edata.sort_time = etimes.max_alt
     if use_old_sort:
         # Old sort order of neocp.py
         if etimes.before:
