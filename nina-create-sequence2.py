@@ -49,6 +49,8 @@
 #       Added -l --list-targets option, just output the list of targets
 # Version 1.6 / 2025-09-27
 #       Added "autofocus_first_target_only" setting to config
+# Version 1.7 / 2026-02-09
+#       Output type and coordinates for -l --list-targets option
 
 
 # See here https://www.newtonsoft.com/json/help/html/SerializingJSON.htm for the JSON serializing used in N.I.N.A
@@ -69,7 +71,7 @@
 # 0=target, 1=date, 2=seq, 3=number
 # "subdir" is optional, or can be blank ""
 
-VERSION = "1.6 / 2025-09-27"
+VERSION = "1.7 / 2026-02-09"
 AUTHOR  = "Martin Junius"
 NAME    = "nina-create-sequence2"
 
@@ -78,7 +80,7 @@ import os
 import argparse
 import json
 import csv
-from datetime import datetime, timezone, timedelta, date
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 import copy
 
@@ -100,15 +102,7 @@ DEFAULT_FILTER_NAMES = [ "L", "R", "G", "B", "Ha", "OIII", "SII"]
 
 CONFIG = "nina-create-sequence.json"
 
-class SequenceConfig(JSONConfig):
-    """ JSON Config for creating NINA sequences """
-
-    def __init__(self, file=None):
-        super().__init__(file)
-
-  
-
-config = SequenceConfig(CONFIG)
+config = JSONConfig(CONFIG)
 
 
 
@@ -516,6 +510,9 @@ class NINASequence(NINABase):
                         if filter.startswith(fn):
                             filter = fn
                             break
+                
+                # Type: NEOCP / PCCP / NEO / COMET
+                obj_type = row.get("type") or "-"
 
                 # Format target name for templates:
                 # 0=target, 1=date, 2=seq, 3=number
@@ -532,7 +529,7 @@ class NINASequence(NINABase):
 
                 # Just output the target list
                 if Options.list_targets:
-                    print(target)
+                    print(target, obj_type, coord.to_string("mpc1"), sep="\t")
                     continue
 
                 message("------------------------------------------------------------------")
