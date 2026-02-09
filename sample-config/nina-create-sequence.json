@@ -5,7 +5,7 @@
     "remote2-neo": {
         "##1":       "NEO Observations, Remote3",
         "timezone":  "Africa/Windhoek",
-        "template":  "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Base Remote3 NAUTICAL.json",
+        "template":  "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Base Remote2 NAUTICAL.json",
         "target":    "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Target NEO (Discord).template.json",
         "container": "",
         "##2":       "0=target, 1=date, 2=seq, 3=number",
@@ -29,7 +29,7 @@
     "remote2-vs": {
         "##1":       "Variable star observations, Remote2",
         "timezone":  "Africa/Windhoek",
-        "template":  "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Base Remote3 NAUTICAL.json",
+        "template":  "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Base Remote2 NAUTICAL.json",
         "target":    "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Target VS.template.json",
         "container": "Loop Objects NAUTICAL (Discord)",
         "##2":       "0=target, 1=date, 2=seq, 3=number",
