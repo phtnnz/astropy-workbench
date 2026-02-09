@@ -1,8 +1,8 @@
 # Astropy-Workbench
 
-Python scripts using astropy and astroquery
+Python scripts using Astropy and friends
 
-Copyright 2024 Martin Junius
+Copyright 2024-2026 Martin Junius
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,22 @@ This is just my personal playground for working with astropy and friends,
 not necessarily usable for anyone else.
 
 
+## Installation
+
+Clone the repository, create an virtual environment, and activate it (Windows command line):
+```
+> git clone https://github.com/phtnnz/astropy-workbench.git
+> cd astropy-workbench
+> python -m venv venv
+> .\venv\Scripts\activate.bat
+```
+
+Install the required packages (at lot!):
+```
+> pip install -r requirements.txt
+```
+
+
 ## VizieR
 
 ### astroquery.vizier Package
@@ -30,9 +46,7 @@ VizieR Query Tool
 
 This package is for querying the VizieR service, primarily hosted at: https://vizier.cds.unistra.fr
 
-Note: If the access to catalogues with VizieR was helpful for your research work, the following acknowledgment would be appreciated:
-
-This research has made use of the VizieR catalogue access tool, CDS,
+This work makes use of the VizieR catalogue access tool, CDS,
 Strasbourg, France.  The original description of the VizieR service was
 published in A&AS 143, 23
 
