@@ -513,6 +513,8 @@ class NINASequence(NINABase):
                 
                 # Type: NEOCP / PCCP / NEO / COMET
                 obj_type = row.get("type") or "-"
+                # Mag
+                mag = float(row.get("mag") or 0)
 
                 # Format target name for templates:
                 # 0=target, 1=date, 2=seq, 3=number
@@ -529,7 +531,7 @@ class NINASequence(NINABase):
 
                 # Just output the target list
                 if Options.list_targets:
-                    print(target, obj_type, coord.to_string("mpc1"), sep="\t")
+                    print(f"{target}  {obj_type:5s}  {coord.to_string("mpc1")}  {mag:4.1f}")
                     continue
 
                 message("------------------------------------------------------------------")
