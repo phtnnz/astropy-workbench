@@ -531,7 +531,7 @@ class NINASequence(NINABase):
 
                 # Just output the target list
                 if Options.list_targets:
-                    print(f"{target}  {obj_type:5s}  {coord.to_string("mpc1")}  {mag:4.1f}")
+                    print(f"{target}  {obj_type:5s}  {coord.to_string("mpc1")} {mag:4.1f}")
                     continue
 
                 message("------------------------------------------------------------------")
