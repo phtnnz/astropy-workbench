@@ -25,6 +25,7 @@ DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
+import re
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -166,15 +167,26 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
 
 
 
-def get_local_circumstances(loc: EarthLocation) -> LocalCircumstances:
+def get_local_circumstances(location: str) -> LocalCircumstances:
     """Get local circumentances: location, observer, dusk, dawn, epochs parameter
 
     Args:
-        loc (EarthLocation): observer location
+        location (str): observer location
 
     Returns:
         LocalCircumstances: local circumstances data
     """
+    loc = get_location(location)
+    ic(loc, loc.to_geodetic())
+    # MPC station code
+    m = re.search(r'^([0-9A-Z]{3})$', location)
+    if m:
+        code = m.group(1)
+    else:
+        code = None
+    ic(code)
+ 
+    # Astroplan
     observer = Observer(location=loc, description=loc.info.name)
     ic(observer)
 
@@ -202,7 +214,7 @@ def get_local_circumstances(loc: EarthLocation) -> LocalCircumstances:
              }
     ic(epochs)
 
-    return LocalCircumstances(loc, observer, twilight_evening, twilight_morning, epochs)
+    return LocalCircumstances(loc, observer, twilight_evening, twilight_morning, epochs, code)
 
 
 
@@ -229,9 +241,7 @@ def main():
         verbose.enable()
 
     # Observer location and local circumstances
-    loc = get_location(args.location if args.location else DEFAULT_LOCATION)
-    ic(loc, loc.to_geodetic())
-    local = get_local_circumstances(loc)
+    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
 
     # Objects
     objects = []
