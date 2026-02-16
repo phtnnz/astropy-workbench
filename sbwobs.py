@@ -48,7 +48,7 @@ ic.disable()
 # from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 # from astropy.coordinates import Angle
 # from astropy.coordinates import errors
-from astropy.time        import Time, TimeDelta
+from astropy.time import Time
 import astropy.units as u
 # import astropy.constants as const
 # import numpy as np
@@ -57,6 +57,7 @@ import astropy.units as u
 from verbose import verbose, warning, error, message
 from astroutils import location_to_string, get_location
 from neoconfig import config
+from neoutils import fmt_time
 
 DEFAULT_LOCATION = "M49"
 
@@ -69,36 +70,46 @@ class Options:
 
 
 
-def jpl_query_sbwobs(url: str, filename: str=None) -> None:
-    """
-    Retrieve What's Observable from JPL
+def jpl_query_sbwobs(url: str, start: Time=None, end: Time=None) -> str:
+    """Retrieve What's Observable from JPL via API, see
+    https://ssd.jpl.nasa.gov/tools/sbwobs.html#/
+    https://ssd-api.jpl.nasa.gov/doc/sbwobs.html
 
     Parameters
     ----------
     url : str
         JPL API URL
-    filename : str
-        Local file name in cache
+    start : Time, optional
+        Observation time start (obs-time), by default None = now
+    end : Time, optional
+        Observation end time (end-time), by default None
+
+    Returns
+    -------
+    str
+        Query result, to be parsed as JSON
     """
-    ic(url, filename)
+    ic(url, start, end)
 
     timeout = config.requests_timeout
-    ##FIXME: get from command line, twilight times from astroplan start/end -> obs-time/obs-end
-    time_obs = Time.now().strftime("%Y-%m-%d")
 
     data = { 
-        "mpc-code":     config.mpc_code,    # MPC observatory code
-        "obs-time":     time_obs,           # Date/time of the observation
-        "elev-min":     config.elev_min,    # Minimum altitude
-        "vmag-max":     config.vmag_max,    # Max V mag = minimum brightness
-        "output-sort":  config.output_sort, # Sort records
+        "mpc-code":     config.mpc_code,        # MPC observatory code
+        "obs-time":     fmt_time(Time.now()),   # Date/time of the observation
+        "elev-min":     config.elev_min,        # Minimum altitude
+        "vmag-max":     config.vmag_max,        # Max V mag = minimum brightness
+        "output-sort":  config.output_sort,     # Sort records
 
-        "sb-ns":        config.sb_ns,       # Numbered (n) ./. unnumbered (u)
-        "sb-kind":      Options.sb_kind,    # Asteroids (a) ./. comets (c)
-        # "sb-group":     config.sb_group     # NEOs (neo) ./. PHA (pha)
+        "sb-ns":        config.sb_ns,           # Numbered (n) ./. unnumbered (u)
+        "sb-kind":      Options.sb_kind,        # Asteroids (a) ./. comets (c)
+        # "sb-group":     config.sb_group       # NEOs (neo) ./. PHA (pha)
     }
     if Options.sb_group:
         data["sb-group"] = Options.sb_group
+    if start:
+        data["obs-time"] = fmt_time(start)
+    if end:
+        data["end-time"] = fmt_time(end)
 
     ic(url, data)
     verbose(f"query {url}")
@@ -107,14 +118,11 @@ def jpl_query_sbwobs(url: str, filename: str=None) -> None:
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    if filename:
-        with open(filename, mode="w", encoding=response.encoding) as file:
-            file.write(response.text)
     return response.text
 
 
 
-def jpl_parse_sbwobs(text: str, filename: str = None) -> dict:
+def jpl_parse_sbwobs(text: str) -> dict:
     """
     Parse JSON retrieve from JPL What's Observable
 
@@ -122,19 +130,13 @@ def jpl_parse_sbwobs(text: str, filename: str = None) -> dict:
     ----------
     text : str
         String to load JSON from
-    filename : str
-        File name to load JSON from
 
     Returns
     -------
     dict
         Parsed dictionary, key is object designation
     """
-    if text:
-        obj = json.loads(text)
-    else:
-        with open(filename) as file:
-            obj = json.load(file)
+    obj = json.loads(text)
     
     ic(obj.keys())
     # Top-level keys: 'signature', 'obs_constraints', 'sb_constraints', 'location', 
@@ -451,8 +453,8 @@ def main():
         Options.sb_group = None
 
     # get sbwobs objects from JPL
-    query = jpl_query_sbwobs(config.sbwobs_url, None)
-    objs1 = jpl_parse_sbwobs(query, None)
+    query = jpl_query_sbwobs(config.sbwobs_url)
+    objs1 = jpl_parse_sbwobs(query)
     keys1 = objs1.keys()
     verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
 
