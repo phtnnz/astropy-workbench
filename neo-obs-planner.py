@@ -200,6 +200,8 @@ def main():
 
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
+    arg.add_argument("--neocp", action="store_true", help="observable NEOCP objects")
+    arg.add_argument("--wobs", action="store_true", help="observable NEOs")
     arg.add_argument("object", nargs="*", help="object name")
 
     args = arg.parse_args()
@@ -211,10 +213,9 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
+
     # Observer location and local circumstances
-    loc = get_location(args.location if args.location else DEFAULT_LOCATION)
-    ic(loc, loc.to_geodetic())
-    local = get_local_circumstances(loc)
+    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
 
     # Objects
     objects = []
@@ -268,7 +269,7 @@ def main():
         plot_objects(obj_data,
                       ##FIXME##
                       "tmp/neos-plot.png",
-                      loc)
+                      local.loc)
 
 
 
