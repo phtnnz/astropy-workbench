@@ -112,6 +112,7 @@ class LocalCircumstances:
     naut_dusk: Time             # nautical dusk
     naut_dawn: Time             # nautical dawn
     epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
+    code: str = None            # MPC station code
 
     def __str__(self):
-        return f"location {location_to_string(self.loc)}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
+        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
