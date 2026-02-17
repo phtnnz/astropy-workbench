@@ -109,7 +109,7 @@ def jpl_query_sbwobs(url: str, start: Time=None, end: Time=None) -> str:
     if start:
         data["obs-time"] = fmt_time(start)
     if end:
-        data["end-time"] = fmt_time(end)
+        data["obs-end"] = fmt_time(end)
 
     ic(url, data)
     verbose(f"query {url}")
