@@ -63,13 +63,6 @@ DEFAULT_LOCATION = "M49"
 
 
 
-# Command line options
-class Options:
-    sb_kind     = config.sb_kind    # -a --asteroids / -c --comets
-    sb_group    = config.sb_group   # -n --neo / -p --pha
-
-
-
 def jpl_query_sbwobs(url: str, start: Time=None, end: Time=None) -> str:
     """Retrieve What's Observable from JPL via API, see
     https://ssd.jpl.nasa.gov/tools/sbwobs.html#/
@@ -101,11 +94,11 @@ def jpl_query_sbwobs(url: str, start: Time=None, end: Time=None) -> str:
         "output-sort":  config.output_sort,     # Sort records
 
         "sb-ns":        config.sb_ns,           # Numbered (n) ./. unnumbered (u)
-        "sb-kind":      Options.sb_kind,        # Asteroids (a) ./. comets (c)
-        # "sb-group":     config.sb_group       # NEOs (neo) ./. PHA (pha)
+        "sb-kind":      config.sb_kind,         # Asteroids (a) ./. comets (c)
+        # "sb-group":     sb_group              # NEOs (neo) ./. PHA (pha)
     }
-    if Options.sb_group:
-        data["sb-group"] = Options.sb_group
+    if config.sb_group:
+        data["sb-group"] = config.sb_group
     if start:
         data["obs-time"] = fmt_time(start)
     if end:
@@ -443,14 +436,14 @@ def main():
         config.mag_limit = float(args.mag_limit)
         config.vmag_max  = float(args.mag_limit)
     if args.asteroids:
-        Options.sb_kind = "a"
+        config.sb_kind = "a"
     if args.neo:
-        Options.sb_group = "neo"
+        config.sb_group = "neo"
     if args.pha:
-        Options.sb_group = "pha"
+        config.sb_group = "pha"
     if args.comets:
-        Options.sb_kind = "c"
-        Options.sb_group = None
+        config.sb_kind = "c"
+        config.sb_group = None
 
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url)
