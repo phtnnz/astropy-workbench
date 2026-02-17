@@ -26,8 +26,10 @@
 # Version 0.3 / 2026-01-03
 #       New option -M --mag-limit to override values in config, filter out last obs
 #       older than 14 days or uncertainty < 3
+# Version 0.4 / 2026-02-17
+#       New option -l --location, some refactoring
 
-VERSION     = "0.3 / 2026-01-03"
+VERSION     = "0.4 / 2026-02-17"
 AUTHOR      = "Martin Junius"
 NAME        = "sbwobs"
 DESCRIPTION = "Retrieve observable NEOs/comets from JPL/MPC"
@@ -37,7 +39,6 @@ import argparse
 import requests
 import json
 import re
-from typing import Tuple, Any
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -50,20 +51,17 @@ ic.disable()
 # from astropy.coordinates import errors
 from astropy.time import Time
 import astropy.units as u
-# import astropy.constants as const
-# import numpy as np
 
 # Local modules
 from verbose import verbose, warning, error, message
-from astroutils import location_to_string, get_location
 from neoconfig import config
 from neoutils import fmt_time
+from neoephem import get_local_circumstances
+from neoclasses import LocalCircumstances
 
-DEFAULT_LOCATION = "M49"
 
 
-
-def jpl_query_sbwobs(url: str, start: Time=None, end: Time=None) -> str:
+def jpl_query_sbwobs(url: str, local: LocalCircumstances) -> str:
     """Retrieve What's Observable from JPL via API, see
     https://ssd.jpl.nasa.gov/tools/sbwobs.html#/
     https://ssd-api.jpl.nasa.gov/doc/sbwobs.html
@@ -82,12 +80,15 @@ def jpl_query_sbwobs(url: str, start: Time=None, end: Time=None) -> str:
     str
         Query result, to be parsed as JSON
     """
-    ic(url, start, end)
+    ic(url, local)
 
     timeout = config.requests_timeout
+    start = local.naut_dusk
+    end   = local.naut_dawn
+    ##FIXME: use lon/lat/alt if MPC code is None
 
     data = { 
-        "mpc-code":     config.mpc_code,        # MPC observatory code
+        "mpc-code":     local.code,             # MPC observatory code
         "obs-time":     fmt_time(Time.now()),   # Date/time of the observation
         "elev-min":     config.elev_min,        # Minimum altitude
         "vmag-max":     config.vmag_max,        # Max V mag = minimum brightness
@@ -421,6 +422,7 @@ def main():
     arg.add_argument("--comets", action="store_true", help=f"get comets (overrides asteroid options)")
     arg.add_argument("-o", "--output", help="write object list to OUTPUT")
     arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
+    arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {config.mpc_code}")
 
     args = arg.parse_args()
 
@@ -445,8 +447,11 @@ def main():
         config.sb_kind = "c"
         config.sb_group = None
 
+    # Observer location and local circumstances
+    local = get_local_circumstances(args.location if args.location else config.mpc_code)
+
     # get sbwobs objects from JPL
-    query = jpl_query_sbwobs(config.sbwobs_url)
+    query = jpl_query_sbwobs(config.sbwobs_url, local)
     objs1 = jpl_parse_sbwobs(query)
     keys1 = objs1.keys()
     verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
