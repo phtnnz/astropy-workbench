@@ -1,9 +1,7 @@
-*.code-workspace
-__pycache__/
+.*
+_*
 tmp/
 venv/
-.config/
 references/
 downloads/
 neocp-data/
-.vscode/
