@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2023-2026 Martin Junius
+# Copyright 2023-2025 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,8 +30,6 @@
 #       Added message(), just like print(), but can be disabled
 # Version 1.4 / 2025-12-17
 #       Added .print_lines(), splits multi-line string representations
-# Version 2.0 / 2026-02-20
-#       Added context manager and logfile output
 #
 #       Usage:  from verbose import message, verbose, warning, error
 #               message(print-like-args)
@@ -44,49 +42,45 @@
 #               .enabled
 #               .set_prog(name)         global for all objects
 #               .set_errno(errno)       relevant only for error()
-#
-#               with verbose.logfile(LOGFILE):
-#                   ...
-
-VERSION = "2.0 / 2026-02-20"
-AUTHOR  = "Martin Junius"
-NAME    = "verbose"
 
 import argparse
 import sys
-from typing import TextIO
-from contextlib import contextmanager
+
+VERSION = "1.4 / 2025-12-17"
+AUTHOR  = "Martin Junius"
+NAME    = "verbose"
 
 
 
 class Verbose:
-    """Class for verbose-stype log output objects"""
-    progname: str = ""          # global program name
-    log_file: TextIO = None     # log file
-    errno: int = 1              # exit code, 1 for generic errors
+    """
+    Class for verbose-style objects
+    """
+    progname = None             # global program name
+    errno    = 1                # exit code, 1 for generic errors
 
     def __init__(self, flag: bool=False, prefix: str=None, abort: bool=False):
-        """Constructor
+        """
+        Create verbose-style object
 
-        Parameters
-        ----------
-        flag : bool, optional
-            Output enabled, by default False
-        prefix : str, optional
-            Output prefix, by default None
-        abort : bool, optional
-            Error abort after output, by default False
+        :param flag: enable output flag, defaults to False
+        :type flag: bool, optional
+        :param prefix: output prefix (in addition to program name), defaults to None
+        :type prefix: str, optional
+        :param abort: abort after output flag, defaults to False
+        :type abort: bool, optional
         """
         self.enabled = flag
         self.prefix = prefix
         self.abort = abort
 
-
     def __call__(self, *args, **kwargs):
-        """Make Verbose objects callable like print()
+        """
+        Make verbose-style object callable, all parameters passed to print()
         """
         if not self.enabled:
             return
+
         preargs = ()
         if Verbose.progname:
             preargs = (f"{Verbose.progname}:", )
@@ -95,14 +89,14 @@ class Verbose:
         if preargs:
             args = preargs + args
         print(*args, **kwargs)
-        if Verbose.log_file:
-            print(*args, file=Verbose.log_file, **kwargs)
+
         if self.abort:
             self._exit()
 
 
     def print_lines(self, *args, **kwargs) -> None:
-        """Multi-line output using default string representation
+        """
+        Print multi-line string representation of object(s)
         """
         for arg in args:
             for line in str(arg).splitlines():
@@ -110,46 +104,41 @@ class Verbose:
 
 
     def enable(self, flag: bool=True):
-        """Enable output
+        """
+        Enable (default) or disable (flag=False) output
 
-        Parameters
-        ----------
-        flag : bool, optional
-            Enable flag, by default True
+        :param flag: enable output flag, defaults to True
+        :type flag: bool, optional
         """
         self.enabled = flag
 
-
     def disable(self):
-        """Disable output
+        """
+        Disable output
         """
         self.enabled = False
 
+    def set_prog(self, name: str):
+        """
+        Set program name prefix
 
-    def set_prog(self, name: str=""):
-        """Set program name for output
-
-        Parameters
-        ----------
-        name : str, optional
-            Program name, by default ""
+        :param name: program name
+        :type name: str
         """
         Verbose.progname = name
 
-
     def set_errno(self, errno: int):
-        """Set errno for error exit
+        """
+        Set global errno for abort exit()
 
-        Parameters
-        ----------
-        errno : int
-            System error number
+        :param errno: error code
+        :type errno: int
         """
         Verbose.errno = errno
 
-
     def _exit(self):
-        """Internal: exit script
+        """
+        Internal, exit program
         """
         if verbose.enabled:
             if Verbose.progname:
@@ -158,25 +147,6 @@ class Verbose:
         sys.exit(Verbose.errno)
 
 
-    @contextmanager
-    def logfile(self, filename: str):
-        """Context manager for addtional log file output
-
-        Parameters
-        ----------
-        filename : str
-            Log file name
-        """
-        try:
-            Verbose.log_file = open(filename, mode="w")
-            yield None
-        finally:
-            Verbose.log_file.close()
-            Verbose.log_file = None
-
-
-"""Global callable objects
-"""
 message = Verbose(True)
 verbose = Verbose()
 warning = Verbose(True, "WARNING")
@@ -184,7 +154,7 @@ error   = Verbose(True, "ERROR", True)
 
 
 
-# Test
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -211,14 +181,6 @@ def main():
     warning.set_prog(NAME+"3")
     warning("Another change to progname occurred")
     verbose.print_lines("abc", "def", "line1\nline2\nline3")
-
-    test_log = "_verbose_test.log"
-    verbose.set_prog(NAME)
-    with verbose.logfile(test_log):
-        verbose(f"writing to log file {test_log}")
-        verbose("yet another line in log file")
-        warning("Warning in log file")
-        verbose("end of log file")
     error.set_errno(99)
     error("Error test", "for Verbose module")
 
