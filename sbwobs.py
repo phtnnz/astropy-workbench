@@ -428,6 +428,47 @@ def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
 
 
 
+def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str]:
+    # get sbwobs objects from JPL
+    query = jpl_query_sbwobs(config.sbwobs_url, local)
+    objs1 = jpl_parse_sbwobs(query)
+    keys1 = objs1.keys()
+    verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
+
+    if comet:
+        # Comets
+        keys_selected = sorted(keys1)
+        verbose("---------------------------------------")
+        verbose("Designation Rise   Trans  Set     Vmag")
+        verbose("---------------------------------------")
+        for key in keys_selected:
+            verbose(to_string1(objs1.get(key)))
+        verbose("---------------------------------------")
+    else:
+        # Asteroids
+        query = mpc_query_customize(config.customize_url, None, "DLU")   # "DLN" | "DLU"
+        objs2 = mpc_parse_customize(query, None, "DLU")
+        keys2 = objs2.keys()
+        verbose(f"DLU objects ({len(keys2)}): {", ".join(sorted(keys2))}")
+
+        # Filter DLU for "Last OBS"
+        keys2_filtered = [ k for k in keys2 if object_filter(k, objs1.get(k), objs2.get(k)) ]
+
+        # Intersection 1 & 2: observable objects also in DLU list
+        keys_selected = sorted(keys1 & keys2_filtered)
+        verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
+
+        verbose("-----------------------------------------------------")
+        verbose("Designation Rise   Trans  Set     Vmag  U  Last Obs")
+        verbose("-----------------------------------------------------")
+        for key in keys_selected:
+            verbose(to_string(objs1.get(key), objs2.get(key)))
+        verbose("-----------------------------------------------------")
+
+        return keys_selected
+
+
+
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -469,42 +510,7 @@ def main():
     # Observer location and local circumstances
     local = get_local_circumstances(args.location if args.location else config.mpc_code)
 
-    # get sbwobs objects from JPL
-    query = jpl_query_sbwobs(config.sbwobs_url, local)
-    objs1 = jpl_parse_sbwobs(query)
-    keys1 = objs1.keys()
-    verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
-
-    if args.comets:
-        # Comets
-        keys_selected = sorted(keys1)
-        verbose("---------------------------------------")
-        verbose("Designation Rise   Trans  Set     Vmag")
-        verbose("---------------------------------------")
-        for key in keys_selected:
-            verbose(to_string1(objs1.get(key)))
-        verbose("---------------------------------------")
-
-    else:
-        # Asteroids
-        query = mpc_query_customize(config.customize_url, None, "DLU")   # "DLN" | "DLU"
-        objs2 = mpc_parse_customize(query, None, "DLU")
-        keys2 = objs2.keys()
-        verbose(f"DLU objects ({len(keys2)}): {", ".join(sorted(keys2))}")
-
-        # Filter DLU for "Last OBS"
-        keys2_filtered = [ k for k in keys2 if object_filter(k, objs1.get(k), objs2.get(k)) ]
-
-        # Intersection 1 & 2: observable objects also in DLU list
-        keys_selected = sorted(keys1 & keys2_filtered)
-        verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
-
-        verbose("-----------------------------------------------------")
-        verbose("Designation Rise   Trans  Set     Vmag  U  Last Obs")
-        verbose("-----------------------------------------------------")
-        for key in keys_selected:
-            verbose(to_string(objs1.get(key), objs2.get(key)))
-        verbose("-----------------------------------------------------")
+    keys_selected = sbwobs_get_objects(local, args.comets)
 
     # DLN is a subset of DLU, tested on 2025-11-18, not used
     # mpc_query_customize(config.customize_url, "tmp/dln.html", "DLN")   # "DLN" | "DLU"
