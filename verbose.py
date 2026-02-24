@@ -61,9 +61,9 @@ from contextlib import contextmanager
 
 class Verbose:
     """Class for verbose-stype log output objects"""
-    progname: str = ""          # global program name
-    log_file: TextIO = None     # log file
-    errno: int = 1              # exit code, 1 for generic errors
+    _progname: str = ""          # global program name
+    _log_file: TextIO = None     # log file
+    _errno: int = 1              # exit code, 1 for generic errors
 
     def __init__(self, flag: bool=False, prefix: str=None, abort: bool=False):
         """Constructor
@@ -88,15 +88,15 @@ class Verbose:
         if not self.enabled:
             return
         preargs = ()
-        if Verbose.progname:
-            preargs = (f"{Verbose.progname}:", )
+        if Verbose._progname:
+            preargs = (f"{Verbose._progname}:", )
         if self.prefix:
             preargs = preargs + (f"{self.prefix}:", )
         if preargs:
             args = preargs + args
         print(*args, **kwargs)
-        if Verbose.log_file:
-            print(*args, file=Verbose.log_file, **kwargs)
+        if Verbose._log_file:
+            print(*args, file=Verbose._log_file, **kwargs)
         if self.abort:
             self._exit()
 
@@ -134,7 +134,7 @@ class Verbose:
         name : str, optional
             Program name, by default ""
         """
-        Verbose.progname = name
+        Verbose._progname = name
 
 
     def set_errno(self, errno: int):
@@ -145,17 +145,17 @@ class Verbose:
         errno : int
             System error number
         """
-        Verbose.errno = errno
+        Verbose._errno = errno
 
 
     def _exit(self):
         """Internal: exit script
         """
         if verbose.enabled:
-            if Verbose.progname:
-                print(Verbose.progname + ": ", end="")
-            print(f"exiting ({Verbose.errno})")
-        sys.exit(Verbose.errno)
+            if Verbose._progname:
+                print(Verbose._progname + ": ", end="")
+            print(f"exiting ({Verbose._errno})")
+        sys.exit(Verbose._errno)
 
 
     @contextmanager
@@ -168,11 +168,11 @@ class Verbose:
             Log file name
         """
         try:
-            Verbose.log_file = open(filename, mode="w")
+            Verbose._log_file = open(filename, mode="w")
             yield None
         finally:
-            Verbose.log_file.close()
-            Verbose.log_file = None
+            Verbose._log_file.close()
+            Verbose._log_file = None
 
 
 """Global callable objects
