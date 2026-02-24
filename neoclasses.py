@@ -114,5 +114,27 @@ class LocalCircumstances:
     epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
     code: str = None            # MPC station code
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
+
+
+@dataclass
+class JPLWObs:
+    """Data from JPL WObs servive"""
+    designation: str            # 'Designation'             object name
+    full_name: str              # 'Full name'               full name
+    rise_time: str              # 'Rise time'               HH:MM rise time > min-elev
+    transit_time: str           # 'Transit time'            HH:MM transit time
+    set_time: str               # 'Set time'                HH:MM set time < min elev
+    max_time_obs: str           # 'Max. time observable'    HH:MM observable time    
+    ra: Angle                   # 'R.A.'                    RA (deviates from ephemeris!)
+    dec: Angle                  # 'Dec.'                    DEC (")
+    vmag: Magnitude             # 'Vmag'                    V magnitude
+    helio_range: Quantity       # 'Helio. range (au)'
+    topo_range: Quantity        # 'Topo.range (au)'
+    obj_obs_sun: Angle          # 'Object-Observer-Sun (deg)'
+    obj_obs_moon: Angle         # 'Object-Observer-Moon (deg)'
+    galatic_lat: Angle          # 'Galactic latitude (deg)'
+
+    def __str__(self) -> str:
+        return f"{self.designation:11s} {self.rise:time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag}"
