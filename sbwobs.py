@@ -58,7 +58,7 @@ from verbose import verbose, warning, error, message
 from neoconfig import config
 from neoutils import fmt_time
 from neoephem import get_local_circumstances
-from neoclasses import LocalCircumstances, JPLWObs, MPCDLx
+from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData
 
 
 
@@ -159,7 +159,7 @@ def jpl_parse_sbwobs(text: str) -> dict:
         obj1 = { field: d[idx] for idx, field in enumerate(fields) }
         designation = obj1.get("Designation")
         ic(designation, obj1)
-        wobs = JPLWObs(
+        wobs = JPLWObsData(
             obj1.get('Designation'),
             obj1.get('Full name'),
             obj1.get('Rise time'),
@@ -304,7 +304,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
 ##Common
     ra, dec, mag1, elongation, motion = currently.split("/")
     # ic(ra, dec, mag1, elongation, motion)
-    dlx  = MPCDLx(
+    dlx  = MPCDLxData(
         designation,
         type,
         float(ra) * u.hourangle,

@@ -88,38 +88,8 @@ class EphemTimes:
     max_alt: Time = None        # time of max altitude
 
 
-
 @dataclass
-class EphemData:
-    """All object data incl. ephemeris"""
-    obj: str                    # object name
-    sort_time: Time             # time for sorting objects
-    ephem: Ephem                # ephemeris of object
-    times: EphemTimes           # ephemeris/planned times
-    exposure: Exposure          # exposure data object
-    mag: Magnitude              # magnitude of object
-    motion: Quantity            # max. motion of object
-    ra: Angle = None            # planned RA
-    dec: Angle = None           # planned DEC
-    neocp: NEOCPListData = None # data from NEOCP list
-
-
-@dataclass
-class LocalCircumstances:
-    """Observer location and time data"""
-    loc: EarthLocation          # location
-    observer: Observer          # astroplan observer
-    naut_dusk: Time             # nautical dusk
-    naut_dawn: Time             # nautical dawn
-    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
-    code: str = None            # MPC station code
-
-    def __str__(self) -> str:
-        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
-
-
-@dataclass
-class JPLWObs:
+class JPLWObsData:
     """Data from JPL WObs servive"""
     designation: str            # 'Designation'             object name
     full_name: str              # 'Full name'               full name
@@ -141,7 +111,7 @@ class JPLWObs:
 
 
 @dataclass
-class MPCDLx:
+class MPCDLxData:
     """Data from MPC DLU / DLN lists"""
     designation: str
     type: str
@@ -157,3 +127,36 @@ class MPCDLx:
     filter: str
     uncertainty: int
     arc: Quantity
+
+
+@dataclass
+class EphemData:
+    """All object data incl. ephemeris"""
+    obj: str                    # object name
+    sort_time: Time             # time for sorting objects
+    ephem: Ephem                # ephemeris of object
+    times: EphemTimes           # ephemeris/planned times
+    exposure: Exposure          # exposure data object
+    mag: Magnitude              # magnitude of object
+    motion: Quantity            # max. motion of object
+    ra: Angle = None            # planned RA
+    dec: Angle = None           # planned DEC
+    neocp: NEOCPListData = None # data from NEOCP list
+    wobs: JPLWObsData = None    # data from JPL SBWOBS service
+    dlx: MPCDLxData = None      # data from MPC DLU/DLN lists
+
+
+@dataclass
+class LocalCircumstances:
+    """Observer location and time data"""
+    loc: EarthLocation          # location
+    observer: Observer          # astroplan observer
+    naut_dusk: Time             # nautical dusk
+    naut_dawn: Time             # nautical dawn
+    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
+    code: str = None            # MPC station code
+
+    def __str__(self) -> str:
+        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
+
+
