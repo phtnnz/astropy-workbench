@@ -58,7 +58,7 @@ from verbose import verbose, warning, error, message
 from neoconfig import config
 from neoutils import fmt_time
 from neoephem import get_local_circumstances
-from neoclasses import LocalCircumstances, JPLWObs
+from neoclasses import LocalCircumstances, JPLWObs, MPCDLx
 
 
 
@@ -182,7 +182,7 @@ def jpl_parse_sbwobs(text: str) -> dict:
 
 
 def to_string(obj1: dict, obj2: dict) -> str:
-    return f"{obj1.designation:11s} {obj1.rise_time:6s} {obj1.transit_time:6s} {obj1.set_time:6s}  {float(obj1.vmag):4.1f}  {obj2.get("Uncertainty")}  {obj2.get("Last OBS")}"
+    return f"{obj1.designation:11s} {obj1.rise_time:6s} {obj1.transit_time:6s} {obj1.set_time:6s}  {float(obj1.vmag):4.1f}  {obj2.uncertainty}  {str(obj2.last_obs):10.10s}"
 
 def to_string1(obj1: dict) -> str:
     return str(obj1)
@@ -304,23 +304,24 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
 ##Common
     ra, dec, mag1, elongation, motion = currently.split("/")
     # ic(ra, dec, mag1, elongation, motion)
-    object  = { "Designation":   designation,
-                "Type":          type,
-                "RA":            float(ra),
-                "DEC":           float(dec),
-                "VMag":          float(mag1) if mag1.strip() else "",
-                "Elongation":    float(elongation),
-                "Motion":        float(motion),
-                "Marker":        marker,
-                "Last OBS":      last_obs,
-                "MPC Code":      code,
-                "Last mag":      float(mag) if mag else "",
-                "Filter":        filter,
-                "Uncertainty":   uncertainty,
-                "Arc":           float(arc)
-                }
-    ic(object)
-    return object
+    dlx  = MPCDLx(
+        designation,
+        type,
+        float(ra) * u.hourangle,
+        float(dec) * u.deg,
+        float(mag1) if mag1.strip() else 0,
+        float(elongation) * u.deg,
+        float(motion) * u.arcsec / u.min,
+        marker,
+        Time(last_obs),
+        code,
+        float(mag) if mag else 0,
+        filter,
+        int(uncertainty),
+        float(arc) * u.day
+    )
+    ic(dlx)
+    return dlx
 
 
 
@@ -350,7 +351,7 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
 
         object1 = parse_txt_line(txt_line, list_type)
         if object1:
-            objects[ object1.get("Designation") ] = object1
+            objects[object1.designation] = object1
 
     return objects
 
@@ -405,9 +406,9 @@ def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
         # not yet checking anything here
         pass
     if obj2:
-        last_obs = obj2.get("Last OBS")
+        last_obs = obj2.last_obs
         if last_obs:
-            t_obs = Time(last_obs)
+            t_obs = last_obs
             t_now = Time.now()
             ic(t_obs, t_now)
             ##FIXME: add config option
@@ -415,7 +416,7 @@ def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
                 verbose(f"{key}: last obs {last_obs} too old, not included")
                 return False
 
-        uncertainty = obj2.get("Uncertainty")
+        uncertainty = obj2.uncertainty
         if uncertainty:
             ##FIXME: add config option
             if int(uncertainty) < 3:
