@@ -19,8 +19,10 @@
 #       Dataclasses from neoephem, neoutils
 # Version 0.2 / 2026-02-04
 #       Added NEOCPListData
+# Version 0.3 / 2026-02-24
+#       Added JPLWObsData, MPCDLxData
 
-VERSION     = "0.2 / 2026-02-04"
+VERSION     = "0.3 / 2026-02-24"
 AUTHOR      = "Martin Junius"
 NAME        = "neoclasses"
 DESCRIPTION = "Dataclasses for ephemeris/planning"
@@ -158,5 +160,3 @@ class LocalCircumstances:
 
     def __str__(self) -> str:
         return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
-
-
