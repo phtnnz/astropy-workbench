@@ -138,3 +138,22 @@ class JPLWObs:
 
     def __str__(self) -> str:
         return f"{self.designation:11s} {self.rise:time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag}"
+
+
+@dataclass
+class MPCDLx:
+    """Data from MPC DLU / DLN lists"""
+    designation: str
+    type: str
+    ra: Angle
+    dec: Angle
+    vmag: Magnitude
+    elongation: Angle
+    motion: Quantity
+    marker: str
+    last_obs: Time
+    code: str
+    last_mag: Magnitude
+    filter: str
+    uncertainty: int
+    arc: Quantity
