@@ -40,8 +40,10 @@
 #       Refactoring ready, removed old code
 # Version 0.10 / 2026-02-08
 #       Unified handling of ephemeris column names
+# Version 0.11 / 2026-02-24
+#       Added log file output
 
-VERSION = "0.10 / 2026-02-08"
+VERSION = "0.11 / 2026-02-24"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -73,7 +75,7 @@ from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_ht
 from mpcneocp import parse_neocp_list, obj_data_from_text_ephemerides, obj_data_add_neocp_list
 from neoclasses import EphemData
 from neoutils import obj_data_add_times, sort_obj_data, verbose_obj_data
-from neoutils import motion_limit, max_alt_time, get_row_for_time, obj_data_csv_output
+from neoutils import motion_limit, get_row_for_time, obj_data_csv_output, fmt_time
 
 
 
@@ -93,10 +95,10 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
     """
     New version of process_objects()
     """
-    message("-----------------------------------------------------------------------------------------------------------------------")
-    message("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris   / end ephemeris                  Max motion")
-    message("                                                    Time before            / after meridian              Moon distance")
-    message("                                                    Time start exposure    / end exposure")
+    message("-----------------------------------------------------------------------------------------------------------------")
+    message("             Score      MagV #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                Max motion")
+    message("                                                    Time before         / after meridian            Moon distance")
+    message("                                                    Time start exposure / end exposure")
     message("                                                    # x Exp = total exposure time")
     message("                                                    RA, DEC, Alt, Az")
 
@@ -126,8 +128,8 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
             time_before = time_after = edata.times.max_alt
         ic(time_before, time_after, time_first, time_last, time_alt_first, time_alt_last)
 
-        message("-----------------------------------------------------------------------------------------------------------------------")
-        message(f"{obj}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {time_first}/{time_last}  {max_m:5.1f}")
+        message("-----------------------------------------------------------------------------------------------------------------")
+        message(f"{obj}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {fmt_time(time_first)} / {fmt_time(time_last)}  {max_m:5.1f}")
 
         # Get exposure data
         exposure = edata.exposure
@@ -224,8 +226,8 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
         alt, az = row["Alt"], row["Az"]
         edata.ra, edata.dec = ra, dec
 
-        message(f"                                                    {time_before}/{time_after}             {moon_dist:3.0f}")
-        message(f"                                                    {time_start_exp}/{time_end_exp}")
+        message(f"                                                    {fmt_time(time_before)} / {fmt_time(time_after)}             {moon_dist:3.0f}")
+        message(f"                                                    {fmt_time(time_start_exp)} / {fmt_time(time_end_exp)}")
         total = f"{n_exp} x {exp:2.0f} = {total_exp:3.1f} ({perc_of_required:.0f}%) / total {total_time:3.1f}"
         message(f"                                                    {total}")
         message(f"                                                    RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
@@ -234,13 +236,14 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
         # return
 
     # Return list of planned objects
-    message("-----------------------------------------------------------------------------------------------------------------------")
+    message("-----------------------------------------------------------------------------------------------------------------")
     message(f"{len(objects)} object(s) planned: {" ".join(objects)}")
 
 
 
 def main():
-    prefix = Time.now().strftime("%Y%m%d")
+    now = Time.now()
+    prefix = now.strftime("%Y%m%d")
 
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -332,19 +335,23 @@ def main():
 
     obj_data = sort_obj_data(obj_data)
     verbose("planning objects:", " ".join(obj_data.keys()))
-    verbose_obj_data(obj_data)    
-    obs_planner_neocp(obj_data)
+    verbose_obj_data(obj_data)
 
-    # Output CSV plan
-    if Options.csv:
-        obj_data_csv_output(obj_data, Options.output)
+    log_file = os.path.join(config.downloads, f"{prefix}-obs-planner-neocp.log")
+    with verbose.logfile(log_file):
+        # NEOCP planner
+        verbose(f"obs-planner-neocp {fmt_time(now)} {now.scale.upper()}")
+        obs_planner_neocp(obj_data)
 
-    # Plot objects and Moon
-    if args.plot:
-        verbose("altitude and sky plot for objects")
-        plot_objects(obj_data,
-                     os.path.join(config.downloads, f"{prefix}-neocp-plot.png"),
-                     Options.loc)
+        # Output CSV plan
+        if Options.csv:
+            obj_data_csv_output(obj_data, Options.output)
+
+        # Plot objects and Moon
+        if args.plot:
+            plot_file = os.path.join(config.downloads, f"{prefix}-neocp-plot.png")
+            verbose(f"altitude and sky plot for objects: {plot_file}")
+            plot_objects(obj_data, plot_file, Options.loc)
 
 
 
