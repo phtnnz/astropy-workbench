@@ -51,6 +51,7 @@ ic.disable()
 from astropy.coordinates import Angle
 from astropy.time import Time
 import astropy.units as u
+from astropy.units import Quantity, Magnitude
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -175,16 +176,16 @@ def jpl_parse_sbwobs(text: str) -> dict:
             float(obj1.get('Galactic latitude (deg)')) * u.deg
         )
         ic(wobs)
-        objects[designation] = obj1
+        objects[designation] = wobs
     return objects
 
 
 
 def to_string(obj1: dict, obj2: dict) -> str:
-    return f"{obj1.get("Designation"):11s} {obj1.get("Rise time"):6s} {obj1.get("Transit time"):6s} {obj1.get("Set time"):6s}  {float(obj1.get("Vmag")):4.1f}  {obj2.get("Uncertainty")}  {obj2.get("Last OBS")}"
+    return f"{obj1.designation:11s} {obj1.rise_time:6s} {obj1.transit_time:6s} {obj1.set_time:6s}  {float(obj1.vmag):4.1f}  {obj2.get("Uncertainty")}  {obj2.get("Last OBS")}"
 
 def to_string1(obj1: dict) -> str:
-    return f"{obj1.get("Designation"):11s} {obj1.get("Rise time"):6s} {obj1.get("Transit time"):6s} {obj1.get("Set time"):6s}  {obj1.get("Vmag")}"
+    return str(obj1)
 
 
 
