@@ -105,3 +105,30 @@ Moon 91%, moon distance 56 deg, altitude 48 deg
 30 x 60 s = 30 min  
 Tycho: limiting mag 18.0, stack 20.3  
 Object found, LogSNR 1.02-1.17, measured mag 18.5-18.8, ephem mag 18.9
+
+## 2026-02-24
+
+Moon dist 64 deg, alt 29 deg  
+120 x 10 s = 20.0 min (86%) / total 29.2 min  
+Lim mag 16.9, stack 18.7  
+Object LogSNR 0.64-0.77, measured mag 19.4-19.8, ephem mag 19.8
+
+Moon dist 65 deg, alt 28 deg  
+120 x  5 s = 10.0 min (90%) / total 19.2 min  
+Lim mag 16.4, stack 17.9  
+Object LogSNR 0.83-0.93, measured mag 18.2-18.5, ephem mag 19.0
+
+Moon dist 79, alt 26  
+120 x 10 s = 20.0 min (79%) / total 29.2 min  
+Lim mag 17.0, stack 18.8  
+Object LogSNR 0.66-0.85, measured mag 19.1-19.6, ephem mag 20.0
+
+Moon dist 92, alt 48  
+30 x 60 s = 30.0 min (125%) / total 36.9 min  
+Lim mag 19.1, stack 21.1  
+Object LogSNR 1.09-1.15, measured mag 19.4, ephem mag 19.9
+
+Moon dist 106, alt 49  
+48 x 20 s = 16.0 min (100%) / total 23.4 min  
+Lim mag 18.4, stack 19.6  
+Object LogSNR 0.92-0.96, measured mag 19.2, ephem mag 19.3
