@@ -49,7 +49,7 @@ from neoclasses import EphemData, LocalCircumstances
 from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, obj_data_csv_output
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
 from neoplot    import plot_objects
-
+from sbwobs     import sbwobs_get_objects
 
 
 DEFAULT_LOCATION = config.code
@@ -200,8 +200,15 @@ def main():
 
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
+
+    arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
     arg.add_argument("--neocp", action="store_true", help="observable NEOCP objects")
-    arg.add_argument("--wobs", action="store_true", help="observable NEOs")
+    arg.add_argument("--sbwobs", action="store_true", help="observable objects from JPL WOBS service")
+    arg.add_argument("--asteroids", action="store_true", help=f"get asteroids default={config.sb_kind}")
+    arg.add_argument("--neo", action="store_true", help=f"get NEOs default={config.sb_group}")
+    arg.add_argument("--pha", action="store_true", help=f"get PHAs")
+    arg.add_argument("--comets", action="store_true", help=f"get comets (overrides asteroid options)")
+ 
     arg.add_argument("object", nargs="*", help="object name")
 
     args = arg.parse_args()
@@ -213,12 +220,29 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
+    # override defaults from config
+    if args.mag_limit:
+        config.mag_limit = float(args.mag_limit)
+        config.vmag_max  = float(args.mag_limit)
+    if args.asteroids:
+        config.sb_kind = "a"
+    if args.neo:
+        config.sb_group = "neo"
+    if args.pha:
+        config.sb_group = "pha"
+    if args.comets:
+        config.sb_kind = "c"
+        config.sb_group = None
 
     # Observer location and local circumstances
     local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
 
     # Objects
     objects = []
+
+    if args.sbwobs:
+        objects.extend(sbwobs_get_objects(local, args.comets))
+
     if args.file:
         with open(args.file, "r") as file:
             for line in file:
