@@ -47,8 +47,8 @@ ic.disable()
 
 # AstroPy
 # from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-# from astropy.coordinates import Angle
 # from astropy.coordinates import errors
+from astropy.coordinates import Angle
 from astropy.time import Time
 import astropy.units as u
 
@@ -57,7 +57,7 @@ from verbose import verbose, warning, error, message
 from neoconfig import config
 from neoutils import fmt_time
 from neoephem import get_local_circumstances
-from neoclasses import LocalCircumstances
+from neoclasses import LocalCircumstances, JPLWObs
 
 
 
@@ -155,10 +155,27 @@ def jpl_parse_sbwobs(text: str) -> dict:
     objects = {}
     for d in data:
         # Convert to dictionary
-        object1 = { field: d[idx] for idx, field in enumerate(fields) }
-        designation = object1.get("Designation")
-        ic(designation, object1)
-        objects[designation] = object1
+        obj1 = { field: d[idx] for idx, field in enumerate(fields) }
+        designation = obj1.get("Designation")
+        ic(designation, obj1)
+        wobs = JPLWObs(
+            obj1.get('Designation'),
+            obj1.get('Full name'),
+            obj1.get('Rise time'),
+            obj1.get('Transit time'),
+            obj1.get('Set time'),
+            obj1.get('Max. time observable'),
+            Angle(obj1.get('R.A.'), unit=u.hourangle),
+            Angle(obj1.get('Dec.').replace("\'", " ").replace("\"", " "), unit=u.deg),
+            u.Magnitude(obj1.get('Vmag')),
+            float(obj1.get('Helio. range (au)')) * u.au,
+            float(obj1.get('Topo.range (au)')) * u.au,
+            float(obj1.get('Object-Observer-Sun (deg)')) * u.deg,
+            float(obj1.get('Object-Observer-Moon (deg)')) * u.deg,
+            float(obj1.get('Galactic latitude (deg)')) * u.deg
+        )
+        ic(wobs)
+        objects[designation] = obj1
     return objects
 
 
