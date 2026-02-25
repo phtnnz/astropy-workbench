@@ -132,3 +132,9 @@ Moon dist 106, alt 49
 48 x 20 s = 16.0 min (100%) / total 23.4 min  
 Lim mag 18.4, stack 19.6  
 Object LogSNR 0.92-0.96, measured mag 19.2, ephem mag 19.3
+
+Moon dist 99, alt 46  
+84 x 15 s = 21.0 min (100%) / total 29.3 min  
+Lim mag 18.0, stack 19.3  
+Object LogSNR 0.84-0.94, measured mag 19.2-19.6, ephem mag 19.9
+
