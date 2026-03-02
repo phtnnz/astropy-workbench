@@ -21,15 +21,16 @@
 #       -C --csv / -o --output for CSV output, first working NEO obs planning
 # Version 0.2 / 2026-01-06
 #       Somewhat usable now, moved CSV output to separate function
+# Version 0.3 / 2026-03-02
+#       Output to neo_obs_data_dir, added log file
 
-VERSION     = "0.2 / 2026-01-06"
+VERSION     = "0.3 / 2026-03-02"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEO observation planner"
 
 import sys
 import argparse
-import csv
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -43,14 +44,13 @@ from astroquery.mpc import MPC
 
 # Local modules
 from verbose    import verbose, warning, error, message
-from astroutils import get_location
 from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
 from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, obj_data_csv_output
 from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances, get_dec_limits
 from neoplot    import plot_objects
 from sbwobs     import sbwobs_get_objects
-
+import neofiles
 
 DEFAULT_LOCATION = config.code
 
@@ -287,18 +287,22 @@ def main():
     obj_data = sort_obj_data(obj_data)
     verbose(f"sorted object sequence: {", ".join(obj_data.keys())}")
 
-    # Run obs planner
-    obs_planner_1(obj_data, local)
-    if args.csv:
-        obj_data_csv_output(obj_data, args.output)
+    log_file = neofiles.path("obs-planner-1.log")
+    with verbose.logfile(log_file):
+        # NEOCP planner
+        verbose(f"obs-planner-neocp {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
 
-    # Plot objects and Moon
-    if args.plot:
-        verbose("altitude and sky plot for objects")
-        plot_objects(obj_data,
-                      ##FIXME##
-                      "tmp/neos-plot.png",
-                      local.loc)
+        # Run obs planner
+        obs_planner_1(obj_data, local)
+        if args.csv:
+            ##FIXME: output file name depending on mode
+            obj_data_csv_output(obj_data, args.output or neofiles.path("neo-obs-plan.csv"))
+
+        # Plot objects and Moon
+        if args.plot:
+            plot_file = neofiles.path("neo-obs-plot.png")
+            verbose(f"altitude and sky plot for objects: {plot_file}")
+            plot_objects(obj_data, plot_file, local.loc)
 
 
 
