@@ -33,21 +33,11 @@ DESCRIPTION = "NEO file handling"
 import os
 
 # The following libs must be installed with pip
-from icecream import ic
-# Disable debugging
-ic.disable()
 
 # AstroPy & friends
-import astropy.units as u
-from astropy.coordinates import Angle
-from astropy.units import Quantity, Magnitude
 from astropy.time import Time
-from astropy.table import QTable, Row
-import numpy as np
-from sbpy.data import Ephem
 
 # Local modules
-from verbose import verbose, warning, error, message
 from neoconfig import config
 
 
