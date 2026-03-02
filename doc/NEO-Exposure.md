@@ -150,3 +150,8 @@ Moon dist 68, alt 51
 Lim mag 16.6, stack 18.7  
 No measurements for object
 
+Moon dist 60, alt 48  
+30 x 60 s = 30.0 min (214%) / total 36.9 min  
+Lim mag 17.4, stack 19.6  
+Object LogSNR 0.87-1.01, measured mag 18.6-18.8, ephem mag 19.3
+
