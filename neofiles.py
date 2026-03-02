@@ -39,12 +39,18 @@ from astropy.time import Time
 
 # Local modules
 from neoconfig import config
+from verbose import warning
 
 
 
 now = Time.now()
 prefix = now.strftime("%Y%m%d")
-neo_data_dir = config.neo_obs_data_dir or config.downloads
+neo_obs_data_dir = config.neo_obs_data_dir
+
+# If subdir doesn't exist, create it, NINA will create it only with the 1st frame
+if not os.path.isdir(neo_obs_data_dir):
+    warning(f"directory {neo_obs_data_dir} doesn't exist, creating it")
+    os.makedirs(neo_obs_data_dir)
 
 
 
@@ -55,4 +61,4 @@ def set_prefix(new_prefix: str) -> None:
 
 
 def path(filename: str) -> str:
-    return os.path.join(neo_data_dir, f"{prefix}-{filename}")
+    return os.path.join(neo_obs_data_dir, f"{prefix}-{filename}")
