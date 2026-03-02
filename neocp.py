@@ -76,6 +76,7 @@ from mpcneocp import parse_neocp_list, obj_data_from_text_ephemerides, obj_data_
 from neoclasses import EphemData
 from neoutils import obj_data_add_times, sort_obj_data, verbose_obj_data
 from neoutils import motion_limit, get_row_for_time, obj_data_csv_output, fmt_time
+import neofiles
 
 
 
@@ -242,9 +243,6 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
 
 
 def main():
-    now = Time.now()
-    prefix = now.strftime("%Y%m%d")
-
     arg = argparse.ArgumentParser(
         prog        = NAME,
         description = "Parse NEOCP ephemerides",
@@ -257,7 +255,7 @@ def main():
     arg.add_argument("-o", "--output", help="write CSV to OUTPUT file")
     arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
     arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
-    arg.add_argument("-p", "--prefix", help=f"prefix for cached MPD data, default {prefix}")
+    arg.add_argument("-p", "--prefix", help=f"prefix for cached MPD data, default {neofiles.prefix}")
 
     args = arg.parse_args()
 
@@ -270,7 +268,7 @@ def main():
         verbose.enable()
 
     Options.csv    = args.csv
-    Options.output = args.output or os.path.join(config.downloads, f"{prefix}-neocp-plan.csv")
+    Options.output = args.output or neofiles.path("neocp-plan.csv")
     
     if args.mag_limit:
         config.mag_limit = float(args.mag_limit)
@@ -289,14 +287,14 @@ def main():
     ic(midnight, min_time, max_time)
 
     if args.prefix:
-        prefix = args.prefix
         if args.update_neocp:
             error("don't use --prefix with --update-neocp")
+        neofiles.set_prefix(args.prefix)
 
-    local_eph   = os.path.join(config.downloads, f"{prefix}-{config.local_eph}")
-    local_neocp = os.path.join(config.downloads, f"{prefix}-{config.local_neocp}")
-    local_pccp  = os.path.join(config.downloads, f"{prefix}-{config.local_pccp}")
-    ic(prefix, local_eph, local_neocp, local_pccp)
+    local_eph   = neofiles.path(config.local_eph)
+    local_neocp = neofiles.path(config.local_neocp)
+    local_pccp  = neofiles.path(config.local_pccp)
+    ic(neofiles.prefix, local_eph, local_neocp, local_pccp)
 
     if args.update_neocp:
         verbose(f"download ephemerides from {config.url_neocp_query}")
@@ -337,10 +335,10 @@ def main():
     verbose("planning objects:", " ".join(obj_data.keys()))
     verbose_obj_data(obj_data)
 
-    log_file = os.path.join(config.downloads, f"{prefix}-obs-planner-neocp.log")
+    log_file = neofiles.path("obs-planner-neocp.log")
     with verbose.logfile(log_file):
         # NEOCP planner
-        verbose(f"obs-planner-neocp {fmt_time(now)} {now.scale.upper()}")
+        verbose(f"obs-planner-neocp {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
         obs_planner_neocp(obj_data)
 
         # Output CSV plan
@@ -349,7 +347,7 @@ def main():
 
         # Plot objects and Moon
         if args.plot:
-            plot_file = os.path.join(config.downloads, f"{prefix}-neocp-plot.png")
+            plot_file = neofiles.path("neocp-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
             plot_objects(obj_data, plot_file, Options.loc)
 
