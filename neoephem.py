@@ -33,8 +33,8 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation
-from astropy.time        import Time
+from astropy.coordinates import Angle
+from astropy.time import Time
 import astropy.units as u
 import numpy as np
 
@@ -215,6 +215,33 @@ def get_local_circumstances(location: str) -> LocalCircumstances:
     ic(epochs)
 
     return LocalCircumstances(loc, observer, twilight_evening, twilight_morning, epochs, code)
+
+
+
+def get_dec_limits(local: LocalCircumstances, min_alt: Angle) -> tuple[Angle, Angle]:
+    """Compute min/max DEC from min altitude and latitude
+
+    Parameters
+    ----------
+    local : LocalCircumstances
+        Observer location related data
+    min_alt : Angle
+        Minimum altitude
+
+    Returns
+    -------
+    tuple[Angle, Angle]
+        Minimum DEC, maximum DEC
+    """
+    lat = local.loc.lat
+    min_dec = -90*u.deg + min_alt + lat
+    max_dec = +90*u.deg - min_alt + lat
+    if min_dec < -90*u.deg:
+        min_dec = -90*u.deg 
+    if max_dec > +90*u.deg:
+        max_dec = +90*u.deg 
+    ic(lat, min_alt, min_dec, max_dec)
+    return min_dec, max_dec
 
 
 
