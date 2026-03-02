@@ -47,7 +47,7 @@ from astroutils import get_location
 from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
 from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, obj_data_csv_output
-from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances
+from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances, get_dec_limits
 from neoplot    import plot_objects
 from sbwobs     import sbwobs_get_objects
 
@@ -236,6 +236,11 @@ def main():
 
     # Observer location and local circumstances
     local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
+
+    # Override some config DEC limits
+    min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
+    config.min_dec = int(min_dec.degree)
+    config.max_dec = int(max_dec.degree)
 
     # Objects
     objects = []
