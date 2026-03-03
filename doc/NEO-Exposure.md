@@ -155,3 +155,9 @@ Moon dist 60, alt 48
 Lim mag 17.4, stack 19.6  
 Object LogSNR 0.87-1.01, measured mag 18.6-18.8, ephem mag 19.3
 
+## 2026-03-02
+
+Moon dist 60, object alt 48  
+30 x  5 s = 2.5 min (167%) / total 9.4 min  
+Lim mag 15.9, stack 17.5  
+Object LogSNR 0.94-1.09, measured mag 16.7-17.3, ephem mag 16.8
