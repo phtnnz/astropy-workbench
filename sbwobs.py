@@ -46,8 +46,6 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-# from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-# from astropy.coordinates import errors
 from astropy.coordinates import Angle
 from astropy.time import Time
 import astropy.units as u
@@ -159,6 +157,10 @@ def jpl_parse_sbwobs(text: str) -> dict:
         obj1 = { field: d[idx] for idx, field in enumerate(fields) }
         designation = obj1.get("Designation")
         ic(designation, obj1)
+        vmag = obj1.get("Vmag")
+        if vmag[-1].isupper():
+            vmag = vmag[:-1]
+        print("vmag =", vmag)
         wobs = JPLWObsData(
             obj1.get('Designation'),
             obj1.get('Full name'),
@@ -168,12 +170,14 @@ def jpl_parse_sbwobs(text: str) -> dict:
             obj1.get('Max. time observable'),
             Angle(obj1.get('R.A.'), unit=u.hourangle),
             Angle(obj1.get('Dec.').replace("\'", " ").replace("\"", " "), unit=u.deg),
-            u.Magnitude(obj1.get('Vmag')),
+            Magnitude(vmag),
             float(obj1.get('Helio. range (au)')) * u.au,
             float(obj1.get('Topo.range (au)')) * u.au,
             float(obj1.get('Object-Observer-Sun (deg)')) * u.deg,
             float(obj1.get('Object-Observer-Moon (deg)')) * u.deg,
-            float(obj1.get('Galactic latitude (deg)')) * u.deg
+            float(obj1.get('Galactic latitude (deg)')) * u.deg,
+            # Type from config
+            config.sb_group if config.sb_group else "comet" if config.sb_kind == "c" else "-"
         )
         ic(wobs)
         objects[designation] = wobs
@@ -181,10 +185,10 @@ def jpl_parse_sbwobs(text: str) -> dict:
 
 
 
-def to_string(obj1: dict, obj2: dict) -> str:
-    return f"{obj1.designation:11s} {obj1.rise_time:6s} {obj1.transit_time:6s} {obj1.set_time:6s}  {float(obj1.vmag):4.1f}  {obj2.uncertainty}  {str(obj2.last_obs):10.10s}"
+def to_string(obj1: JPLWObsData, obj2: MPCDLxData) -> str:
+    return f"{obj1.type.upper():5s}  {obj1.designation:11s} {obj1.rise_time:6s} {obj1.transit_time:6s} {obj1.set_time:6s}  {float(obj1.vmag.value):4.1f}  {obj2.uncertainty}  {str(obj2.last_obs):10.10s}"
 
-def to_string1(obj1: dict) -> str:
+def to_string1(obj1: JPLWObsData) -> str:
     return str(obj1)
 
 
@@ -438,12 +442,12 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
     if comet:
         # Comets
         keys_selected = sorted(keys1)
-        verbose("---------------------------------------")
-        verbose("Designation Rise   Trans  Set     Vmag")
-        verbose("---------------------------------------")
+        verbose("---------------------------------------------")
+        verbose("Type   Designation Rise   Trans  Set     Vmag")
+        verbose("---------------------------------------------")
         for key in keys_selected:
             verbose(to_string1(objs1.get(key)))
-        verbose("---------------------------------------")
+        verbose("---------------------------------------------")
     else:
         # Asteroids
         query = mpc_query_customize(config.customize_url, None, "DLU")   # "DLN" | "DLU"
@@ -458,12 +462,12 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
         keys_selected = sorted(keys1 & keys2_filtered)
         verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
 
-        verbose("-----------------------------------------------------")
-        verbose("Designation Rise   Trans  Set     Vmag  U  Last Obs")
-        verbose("-----------------------------------------------------")
+        verbose("------------------------------------------------------------")
+        verbose("Type   Designation Rise   Trans  Set     Vmag  U  Last Obs")
+        verbose("------------------------------------------------------------")
         for key in keys_selected:
             verbose(to_string(objs1.get(key), objs2.get(key)))
-        verbose("-----------------------------------------------------")
+        verbose("------------------------------------------------------------")
 
         return keys_selected
 

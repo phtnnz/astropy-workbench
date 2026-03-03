@@ -107,9 +107,12 @@ class JPLWObsData:
     obj_obs_sun: Angle          # 'Object-Observer-Sun (deg)'
     obj_obs_moon: Angle         # 'Object-Observer-Moon (deg)'
     galatic_lat: Angle          # 'Galactic latitude (deg)'
+    # Extra
+    type: str                   #  Object type: neo, pha, comet
 
     def __str__(self) -> str:
-        return f"{self.designation:11s} {self.rise:time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag}"
+        return f"{self.type.upper()}  {self.designation:11s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
+
 
 
 @dataclass
