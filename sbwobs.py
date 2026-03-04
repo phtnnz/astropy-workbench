@@ -160,7 +160,6 @@ def jpl_parse_sbwobs(text: str) -> dict:
         vmag = obj1.get("Vmag")
         if vmag[-1].isupper():
             vmag = vmag[:-1]
-        print("vmag =", vmag)
         wobs = JPLWObsData(
             obj1.get('Designation'),
             obj1.get('Full name'),
