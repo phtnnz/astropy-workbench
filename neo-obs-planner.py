@@ -297,7 +297,7 @@ def main():
     log_file = neofiles.path("obs-planner-1.log")
     with verbose.logfile(log_file):
         # NEOCP planner
-        verbose(f"obs-planner-neocp {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
+        verbose(f"obs-planner-1 {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
 
         # Run obs planner
         obs_planner_1(obj_data, local)
