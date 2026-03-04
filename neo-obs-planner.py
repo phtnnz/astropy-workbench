@@ -247,6 +247,11 @@ def main():
 
     if args.sbwobs:
         objects.extend(sbwobs_get_objects(local, args.comets))
+        ##FIXME: sbwobs_get_objects should return EphemData objects with type set to "NEO", "PHA" or "COMET", 
+        ## so we don't have to set it here
+        type = (config.sb_group if config.sb_group else "comet" if config.sb_kind == "c" else "-").upper()
+    else:
+        type = "-"
 
     if args.file:
         with open(args.file, "r") as file:
@@ -270,10 +275,12 @@ def main():
     verbose.print_lines(local)
 
     # Get ephemerides
+    ##FIXME: get_ephem_*() should use obj_data dict with pre-populated EphemData objects
     if args.jpl:
-        obj_data = get_ephem_jpl(objects, local)
+        obj_data = get_ephem_jpl(objects, local, type)
     else:
-        obj_data = get_ephem_mpc(objects, local)
+        obj_data = get_ephem_mpc(objects, local, type)
+
     # Process objects
     obj_data = obj_data_add_times(obj_data)
     verbose(f"original object sequence: {", ".join(obj_data.keys())}")

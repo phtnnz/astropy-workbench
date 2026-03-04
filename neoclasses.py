@@ -137,6 +137,7 @@ class MPCDLxData:
 @dataclass
 class EphemData:
     """All object data incl. ephemeris"""
+    type: str                   # object type: NEO, PHA, COMET, NEOCP, PCCP
     obj: str                    # object name
     sort_time: Time             # time for sorting objects
     ephem: Ephem                # ephemeris of object

@@ -111,7 +111,7 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
         eph = edata.ephem
         ic(obj, eph, max_m)
         # NEOCP/PCCP list data
-        type    = edata.neocp.type
+        type    = edata.type
         score   = edata.neocp.score
         mag     = edata.neocp.mag
         nobs    = edata.neocp.nobs

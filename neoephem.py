@@ -83,7 +83,8 @@ def _rename_columns_jpl(eph: Ephem) -> None:
 
 
 
-def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemData]:
+def get_ephem_mpc(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
+    ##FIXME: pass obj_data dict
     """Get ephemerides for object list from MPC
 
     Args:
@@ -115,7 +116,7 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             mag = get_mag0(eph1)
             motion = max_motion(eph1)
             exp = exposure_calc(motion, mag)
-            data = EphemData(obj, None, eph1, None, exp, mag, motion)
+            data = EphemData(type, obj, None, eph1, None, exp, mag, motion)
             obj_data[obj] = data
         except QueryError as e:
             warning(f"MPC ephemeris for {obj} failed")
@@ -124,7 +125,8 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
 
 
 
-def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemData]:
+def get_ephem_jpl(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
+    ##FIXME: pass obj_data dict
     """Get ephemerides for object list from JPL
 
     Args:
@@ -158,7 +160,7 @@ def get_ephem_jpl(objects: list, local: LocalCircumstances) -> dict[str, EphemDa
             mag = get_mag0(eph1)
             motion = max_motion(eph1)
             exp = exposure_calc(motion, mag)
-            data = EphemData(obj, None, eph1, None, exp, mag, motion)
+            data = EphemData(type, obj, None, eph1, None, exp, mag, motion)
             obj_data[obj] = data
         except QueryError as e:
             warning(f"MPC ephemeris for {obj} failed")

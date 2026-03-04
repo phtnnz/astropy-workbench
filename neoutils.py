@@ -519,7 +519,7 @@ def obj_data_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
                         "filter": "L",
                         "start time": fmt_time(edata.times.plan_start),
                         "end time": fmt_time(edata.times.plan_end),
-                        "type": edata.neocp.type if edata.neocp else "",
+                        "type": edata.type if edata.type else "-",
                         "mag": float(edata.mag.value),
                         "nobs": int(edata.neocp.nobs) if edata.neocp else "",
                         "arc": float(edata.neocp.arc.value) if edata.neocp else "",

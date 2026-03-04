@@ -183,7 +183,7 @@ def obj_data_from_text_ephemerides(eph_text: dict[str, list[str]], min_time: Tim
         mag = get_mag0(eph1)
         motion = max_motion(eph1)
         exp = exposure_calc(motion, mag)
-        data = EphemData(obj, None, eph1, None, exp, mag, motion)
+        data = EphemData("-", obj, None, eph1, None, exp, mag, motion)
         obj_data[obj] = data
     return obj_data
 
@@ -211,6 +211,7 @@ def obj_data_add_neocp_list(obj_data: dict[str, EphemData], neocp_list: dict[str
         if neocp:
             neocp.type = "PCCP" if is_pccp else "NEOCP"
             edata.neocp = neocp
+            edata.type = neocp.type
         elif not is_pccp:
             warning(f"no NEOCP / PCCP list data for {obj}")
     return obj_data
