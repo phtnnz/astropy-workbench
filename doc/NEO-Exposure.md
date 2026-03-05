@@ -4,11 +4,20 @@ Location: M49, Hakos, Namibia - Bortle 1 skies
 
 Telescope: 12" f/4 Newton
 
-Camera: QHY 268 M, L filter
+Camera: QHY 268 M, binning 2x2, L filter
 
 Calculation / planning by neocp.py script
 
 Configured base exposure: 240 s for mag 18 object
+
+Tycho "limiting magnitude" is from Image Evaluation Report, it seems that SNR 10 is the threshold.
+
+| Single/s |   N | Moon dist/deg | Limiting mag | Limiting mag stack |
+| -----:   | --: | ------------: | -----------: | -----------------: |
+| 2 | 60 | 55 | 15.4 | 16.9 |
+| 2 | 60 | 78 | 15.7 | 17.1 |
+| 2 | 60 | 63 | 16.3 | 17.3 |
+
 
 
 ## 2025-10-31
@@ -161,3 +170,11 @@ Moon dist 60, object alt 48
 30 x  5 s = 2.5 min (167%) / total 9.4 min  
 Lim mag 15.9, stack 17.5  
 Object LogSNR 0.94-1.09, measured mag 16.7-17.3, ephem mag 16.8
+
+## 2026-03-05
+
+Moon dist 73, object alt 30  
+73 x 10 s = 12.2 min (100%) / total 20.2 min  
+Lim mag 17.5, stack 19.1  
+Object not found, ephem mag 19.2
+
