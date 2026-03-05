@@ -326,7 +326,7 @@ def parse_html_ephemerides(content: list[str]) -> dict[str, list[str]]:
             m = re.match(r"(?:</p>)?<p><b>(.+)</b>", line)
             if m:
                 ic(line)
-                neocp_id = m.group(1)
+                neocp_id = m.group(1).strip()
                 ic(neocp_id)
 
                 # Read lines until </pre>, ephemerides data starts with date
@@ -384,7 +384,7 @@ def parse_neocp_list(content: list[str]) -> dict[str, NEOCPListData]:
 
         line = line.rstrip()
         ic(line)
-        obj = line[0:7]
+        obj = line[0:7].strip()
         data = NEOCPListData(type="NEOCP", 
                              score=int(line[8:11]),              
                              mag=float(line[43:47]) * u.mag,
