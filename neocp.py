@@ -42,8 +42,10 @@
 #       Unified handling of ephemeris column names
 # Version 0.11 / 2026-02-24
 #       Added log file output
+# Version 0.12 / 2026-03-05
+#       Added -f --force option to include objects in observation plan even if they fail checks
 
-VERSION = "0.11 / 2026-02-24"
+VERSION = "0.12 / 2026-03-05"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -130,7 +132,7 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
         ic(time_before, time_after, time_first, time_last, time_alt_first, time_alt_last)
 
         message("-----------------------------------------------------------------------------------------------------------------")
-        message(f"{obj}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {fmt_time(time_first)} / {fmt_time(time_last)}  {max_m:5.1f}")
+        message(f"{obj:7s}  {type:5s} {score:3d}  {mag}  {nobs:3d}  {arc:5.2f}  {notseen:4.1f}  {fmt_time(time_first)} / {fmt_time(time_last)}  {max_m:5.1f}")
 
         # Get exposure data
         exposure = edata.exposure
@@ -177,43 +179,46 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
         # ok if end <= last
         ic(time_start_exp, time_end_exp)
 
-        ##### Skip object for various reasons ... #####
-        # Skip, if below threshold for # obs
-        if nobs < config.min_n_obs:
-            message(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
-            continue
-
-        # Skip, if not seen for more than threshold days
-        max_notseen = config.max_notseen * u.day
-        if notseen > max_notseen:
-            message(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
-            continue
-
-        # Skip, if percentage of total exposure time is less than threshold
-        if perc_of_required < config.min_perc_required:
-            message(f"SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {config.min_perc_required}%)")
-            continue
-
-        # Skip, if arc is less than threshold
-        min_arc = config.min_arc * u.day
-        if arc < min_arc:
-            message(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
-            continue
-
-        # Skip, if failed to allocate total_time
-        if time_end_exp > time_last:
-            message(f"SKIPPED: can't allocate exposure time {total_time:.2f} ({time_first} -- {time_last})")
-            continue
-
         # Table row best matching time_start_exp
         row = get_row_for_time(eph, time_start_exp)
         ic(row)
         moon_dist = row["Moon_dist"]
         ic(moon_dist)
-        # Skip, if moon distance is too small
-        min_moon_dist = config.min_moon_dist * u.degree
-        if moon_dist < min_moon_dist:
-            message(f"SKIPPED: Moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+
+        if not edata.force:
+            ##### Skip object for various reasons ... #####
+            # Skip, if below threshold for # obs
+            if nobs < config.min_n_obs:
+                message(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
+                continue
+
+            # Skip, if not seen for more than threshold days
+            max_notseen = config.max_notseen * u.day
+            if notseen > max_notseen:
+                message(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
+                continue
+
+            # Skip, if percentage of total exposure time is less than threshold
+            if perc_of_required < config.min_perc_required:
+                message(f"SKIPPED: only {perc_of_required:.0f}% of required total exposure time (< {config.min_perc_required}%)")
+                continue
+
+            # Skip, if arc is less than threshold
+            min_arc = config.min_arc * u.day
+            if arc < min_arc:
+                message(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
+                continue
+
+            # Skip, if moon distance is too small
+            min_moon_dist = config.min_moon_dist * u.degree
+            if moon_dist < min_moon_dist:
+                message(f"SKIPPED: Moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+                continue
+        # /if
+
+        # Skip, if failed to allocate total_time
+        if time_end_exp > time_last:
+            message(f"SKIPPED: can't allocate exposure time {total_time:.2f} ({time_first} -- {time_last})")
             continue
 
         ##### Good to go! #####
@@ -256,6 +261,7 @@ def main():
     arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
     arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
     arg.add_argument("-p", "--prefix", help=f"prefix for cached MPD data, default {neofiles.prefix}")
+    arg.add_argument("-f", "--force", help=f"skip checks for FORCE objects, include in observation plan")
 
     args = arg.parse_args()
 
@@ -290,6 +296,10 @@ def main():
         if args.update_neocp:
             error("don't use --prefix with --update-neocp")
         neofiles.set_prefix(args.prefix)
+
+    forced_objs = []
+    if args.force:
+        forced_objs = args.force.split(",")
 
     local_eph   = neofiles.path(config.local_eph)
     local_neocp = neofiles.path(config.local_neocp)
@@ -333,6 +343,10 @@ def main():
 
     obj_data = sort_obj_data(obj_data)
     verbose("planning objects:", " ".join(obj_data.keys()))
+    verbose("forced objects:", " ".join(forced_objs))
+    for obj in forced_objs:
+        if obj in obj_data:
+            obj_data[obj].force = True
     verbose_obj_data(obj_data)
 
     log_file = neofiles.path("obs-planner-neocp.log")
