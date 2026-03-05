@@ -134,6 +134,7 @@ class MPCDLxData:
     arc: Quantity
 
 
+
 @dataclass
 class EphemData:
     """All object data incl. ephemeris"""
@@ -150,6 +151,8 @@ class EphemData:
     neocp: NEOCPListData = None # data from NEOCP list
     wobs: JPLWObsData = None    # data from JPL SBWOBS service
     dlx: MPCDLxData = None      # data from MPC DLU/DLN lists
+    force: bool = False         # force observation of this object (e.g. from --force option)
+
 
 
 @dataclass
