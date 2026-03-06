@@ -85,6 +85,7 @@ def query_vizier(cat: str, cols: list=None):
 
     # Query VizieR
     vizier = Vizier(catalog=cat,
+                    ##FIXME: add option
                     columns=["**"],                     # "*" = default columns, "**" = all columns
                     row_limit = Options.row_limit
                    )
@@ -96,6 +97,8 @@ def query_vizier(cat: str, cols: list=None):
     result = vizier.query_object(Options.object)
     ic(result)
     for name in result.keys():
+        ic(name)
+        ##FIXME: filter catalog names, e.g. only I/355/gaiadr3 of catalog I/355
         table = result[name]
         if not cols:
             table_cols = out_cols = table.keys()
@@ -112,6 +115,7 @@ def query_vizier(cat: str, cols: list=None):
                 if not any(isinstance(field, str) and re.search(Options.match, field) for field in row):
                     continue
             # Special handling for coordinates
+            ##FIXME: RA may degrees or hourangle!
             coord = SkyCoord(row["RAJ2000"], row["DEJ2000"], unit=(u.hour, u.degree))
             ra = float(coord.ra.degree)
             dec = float(coord.dec.degree)
