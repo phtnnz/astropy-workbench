@@ -243,7 +243,7 @@ def get_dec_limits(local: LocalCircumstances, min_alt: Angle) -> tuple[Angle, An
     if max_dec > +90*u.deg:
         max_dec = +90*u.deg 
     ic(lat, min_alt, min_dec, max_dec)
-    return min_dec, max_dec
+    return Angle(min_dec), Angle(max_dec)
 
 
 
