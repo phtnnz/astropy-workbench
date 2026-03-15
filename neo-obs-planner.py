@@ -23,8 +23,10 @@
 #       Somewhat usable now, moved CSV output to separate function
 # Version 0.3 / 2026-03-02
 #       Output to neo_obs_data_dir, added log file
+# Version 0.4 / 2026-03-15
+#       Added -m --min-alt option
 
-VERSION     = "0.3 / 2026-03-02"
+VERSION     = "0.4 / 2026-03-15"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEO observation planner"
@@ -201,7 +203,8 @@ def main():
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
 
-    arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
+    arg.add_argument("-M", "--mag-limit", type=float, help="override mag_limit from config")
+    arg.add_argument("-m", "--min-alt", type=float, help="override min_alt/elev_min from config")
     arg.add_argument("--neocp", action="store_true", help="observable NEOCP objects")
     arg.add_argument("--sbwobs", action="store_true", help="observable objects from JPL WOBS service")
     arg.add_argument("--asteroids", action="store_true", help=f"get asteroids default={config.sb_kind}")
@@ -216,14 +219,18 @@ def main():
     if args.debug:
         ic.enable()
         ic(sys.version_info, sys.path, args)
+        ic(args)
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
 
     # override defaults from config
     if args.mag_limit:
-        config.mag_limit = float(args.mag_limit)
-        config.vmag_max  = float(args.mag_limit)
+        config.mag_limit = args.mag_limit
+        config.vmag_max = args.mag_limit
+    if args.min_alt:
+        config.min_alt = args.min_alt
+        config.elev_min = args.min_alt
     if args.asteroids:
         config.sb_kind = "a"
     if args.neo:
@@ -237,7 +244,7 @@ def main():
     # Observer location and local circumstances
     local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
 
-    # Override some config DEC limits
+    # Override config DEC limits
     min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
