@@ -229,7 +229,7 @@ def main():
 
             mag = eph["Mag"][0]
             ##FIXME: get min altitude from config
-            mask = (eph["Alt"] > 25 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
+            mask = (eph["Alt"] > 5 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
             eph1 = eph[mask]
             message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", "Motion", "PA", "Az", "Alt"])
 
@@ -245,7 +245,7 @@ def main():
 
                 mag = eph["Mag"][0]
                 ##FIXME: get min altitude from config
-                mask = (eph["Alt"] > 25 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
+                mask = (eph["Alt"] > 5 * u.deg) & (eph["Obstime"] > twilight_evening) & (eph["Obstime"] < twilight_morning)
                 eph1 = eph[mask]
                 message.print_lines(eph1["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                          "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
