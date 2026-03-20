@@ -97,6 +97,10 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
+    # Set min altitude for ephemeris to 0 deg
+    config.min_alt = 0
+    config.elev_min = 0
+
     # Observer location and local circumstances
     local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
 
@@ -115,13 +119,12 @@ def main():
                         "step":   5 * u.min,
                         "stop":   time + 1 * u.hour
                         }
-        ic(local.epochs)
+        ##FIXME: better solution?
+        local.naut_dusk = time
+        local.naut_dawn = time + 1 * u.hour
+    ic(local.epochs)
     verbose.print_lines(local)
     verbose("listing ephemeris for altitude>0 and after nautical dusk/before nautical dawn only!")
-
-    # Set min altitude for ephemeris to 0 deg
-    config.min_alt = 0
-    config.elev_min = 0
 
     # Objects
     objects = []
