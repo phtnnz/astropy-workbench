@@ -17,6 +17,8 @@ Tycho "limiting magnitude" is from Image Evaluation Report, it seems that SNR 10
 | 2 | 60 | 55 | 15.4 | 16.9 |
 | 2 | 60 | 78 | 15.7 | 17.1 |
 | 2 | 60 | 63 | 16.3 | 17.3 |
+| 5 | 109 | 118 | 16.7 | 17.7 |
+| 5 | 101 | 109 | 16.9 | 18.0 |
 
 
 
@@ -177,4 +179,16 @@ Moon dist 73, object alt 30
 73 x 10 s = 12.2 min (100%) / total 20.2 min  
 Lim mag 17.5, stack 19.1  
 Object not found, ephem mag 19.2
+
+## 2026-03-22
+
+Moon dist 118, object alt 52  
+109 x  5 s = 10.0 min (69%) / total 19.2 min  
+Lim mag 16.7, stack 17.7  
+Object LogSNR 0.63-0.72, measured mag 18.3-19.3  
+
+Moon dist 109, object alt 44  
+101 x  5 s = 8.4 min (100%) / total 17.1 min  
+Lim mag 16.9, stack 18.0  
+Object LogSNR 0.77-0.89, measured mag 18.2-18.8
 
