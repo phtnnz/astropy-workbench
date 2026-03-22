@@ -219,7 +219,6 @@ def main():
     if args.debug:
         ic.enable()
         ic(sys.version_info, sys.path, args)
-        ic(args)
     if args.verbose:
         verbose.set_prog(NAME)
         verbose.enable()
@@ -228,7 +227,7 @@ def main():
     if args.mag_limit:
         config.mag_limit = args.mag_limit
         config.vmag_max = args.mag_limit
-    if args.min_alt:
+    if args.min_alt != None:
         config.min_alt = args.min_alt
         config.elev_min = args.min_alt
     if args.asteroids:
