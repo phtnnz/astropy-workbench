@@ -12,32 +12,19 @@ Configured base exposure: 240 s for mag 18 object
 
 Tycho "limiting magnitude" is from Image Evaluation Report, it seems that SNR 10 is the threshold.
 
-| Single/s |   N | Moon alt/deg | Moon dist/deg | Limiting mag | Limiting mag stack | LogSNR | Object mag |
-| -----:   | --: | ------------: |------------: | -----------: | -----------------: | -----: | ---------: |
-| 2 | 60 | | 55 | 15.4 | 16.9 | | |
-| 2 | 60 | | 78 | 15.7 | 17.1 |
-| 2 | 60 | | 63 | 16.3 | 17.3 |
+| Single/s |   N | Moon alt/deg | Moon dist/deg | Limiting mag | Limiting mag stack | LogSNR | Object mag | Object alt |
+| -----:   | --: | ------------: |------------: | -----------: | -----------------: | -----: | ---------: | ---------: |
+| 2 | 60 | | 55 | 15.4 | 16.9 | 0.8 | 17.5 |
+| 2 | 60 | | 78 | 15.7 | 17.1 | 
+| 2 | 60 | | 63 | 16.3 | 17.3 | 1.03 | 16.9 |
+|   |
 | 5 | 109 | | 118 | 16.7 | 17.7 |
 | 5 | 101 | | 109 | 16.9 | 18.0 |
 |   |
-| 15 | 49 | 16 | 96  | 17.9 | 19.2 | 0.90 | 19.2 |
-| 30 | 30 | 10 | 111 | 18.8 | 20.1 | 1.21 | 18.5 |
+| 15 | 49 | 16 | 96  | 17.9 | 19.2 | 0.90 | 19.2 | 48 |
+| 30 | 30 | 10 | 111 | 18.8 | 20.1 | 1.21 | 18.5 | 54 |
 
 
-
-## 2025-10-31
-
-Moonlight, moon distance 55 degrees  
-60 x 2 s = 120 s = 45 % of calculated exposure time  
-Tycho: limiting mag 15.4, stack limiting mag 16.9  
-Object found, LogSNR 0.72-0.87, measured mag 17.5, predicted mag 18.1
-
-## 2025-11-01
-
-Moonlight, moon distance 78 deg  
-60 x 2 s = 120 s = 41 %  
-Tycho: limiting mag 15.7, stack limiting mag 17.1, predicted mag 18.2  
-Object not in FOV
 
 ## 2025-11-09
 
@@ -45,11 +32,6 @@ Rising moon, moon distance 63 deg
 60 x 5 s = 300 s = 55 %  
 Tycho: limiting mag 17.3, stack limiting mag 18.3  
 Object found, LogSNR 0.91-1.01, measured mag 18.2-18.6, predicted mag 18.9
-
-Rising moon, moon distance 56 deg  
-60 x 2 s = 120 s = 60 %  
-Tycho: limiting mag 16.3, stack limiting mag 17.3  
-Object found, LogSNR 1.01-1.05, measured mag 16.9-17.0
 
 ## 2025-12-14
 
