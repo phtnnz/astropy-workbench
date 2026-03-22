@@ -12,13 +12,16 @@ Configured base exposure: 240 s for mag 18 object
 
 Tycho "limiting magnitude" is from Image Evaluation Report, it seems that SNR 10 is the threshold.
 
-| Single/s |   N | Moon dist/deg | Limiting mag | Limiting mag stack |
-| -----:   | --: | ------------: | -----------: | -----------------: |
-| 2 | 60 | 55 | 15.4 | 16.9 |
-| 2 | 60 | 78 | 15.7 | 17.1 |
-| 2 | 60 | 63 | 16.3 | 17.3 |
-| 5 | 109 | 118 | 16.7 | 17.7 |
-| 5 | 101 | 109 | 16.9 | 18.0 |
+| Single/s |   N | Moon alt/deg | Moon dist/deg | Limiting mag | Limiting mag stack | LogSNR | Object mag |
+| -----:   | --: | ------------: |------------: | -----------: | -----------------: | -----: | ---------: |
+| 2 | 60 | | 55 | 15.4 | 16.9 | | |
+| 2 | 60 | | 78 | 15.7 | 17.1 |
+| 2 | 60 | | 63 | 16.3 | 17.3 |
+| 5 | 109 | | 118 | 16.7 | 17.7 |
+| 5 | 101 | | 109 | 16.9 | 18.0 |
+|   |
+| 15 | 49 | 16 | 96  | 17.9 | 19.2 | 0.90 | 19.2 |
+| 30 | 30 | 10 | 111 | 18.8 | 20.1 | 1.21 | 18.5 |
 
 
 
