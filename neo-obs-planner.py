@@ -207,10 +207,10 @@ def main():
     arg.add_argument("-m", "--min-alt", type=float, help="override min_alt/elev_min from config")
     arg.add_argument("--neocp", action="store_true", help="observable NEOCP objects")
     arg.add_argument("--sbwobs", action="store_true", help="observable objects from JPL WOBS service")
-    arg.add_argument("--asteroids", action="store_true", help=f"get asteroids default={config.sb_kind}")
-    arg.add_argument("--neo", action="store_true", help=f"get NEOs default={config.sb_group}")
-    arg.add_argument("--pha", action="store_true", help=f"get PHAs")
-    arg.add_argument("--comets", action="store_true", help=f"get comets (overrides asteroid options)")
+    arg.add_argument("--asteroids", action="store_true", help=f"sbwobs: get asteroids default={config.sb_kind}")
+    arg.add_argument("--neo", action="store_true", help=f"sbwobs: get NEOs default={config.sb_group}")
+    arg.add_argument("--pha", action="store_true", help=f"sbwobs: get PHAs")
+    arg.add_argument("--comets", action="store_true", help=f"sbwobs: get comets (overrides asteroids options)")
  
     arg.add_argument("object", nargs="*", help="object name")
 
