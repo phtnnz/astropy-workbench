@@ -4,7 +4,9 @@ Location: M49, Hakos, Namibia - Bortle 1 skies
 
 Telescope: 12" f/4 Newton
 
-Camera: QHY 268 M, binning 2x2, L filter
+Camera: QHY 268 M, binning 2x2, L filter  
+High Gain Mode (1), gain 56, offset 10, cooling -5 °C  
+System gain 0.33, read-out noise 3.10 e-, dark current 1.65 e-/pixel/second
 
 Calculation / planning by neocp.py script
 
@@ -17,163 +19,31 @@ Tycho "limiting magnitude" is from Image Evaluation Report, it seems that SNR 10
 | 2 | 60 | | 55 | 15.4 | 16.9 | 0.8 | 17.5 |
 | 2 | 60 | | 78 | 15.7 | 17.1 | 
 | 2 | 60 | | 63 | 16.3 | 17.3 | 1.03 | 16.9 |
-|   |
-| 5 | 109 | | 118 | 16.7 | 17.7 |
-| 5 | 101 | | 109 | 16.9 | 18.0 |
-|   |
+| 5 | 109 | | 118 | 16.7 | 17.7 | 0.68 | 18.8 | 52 |
+| 5 | 101 | | 109 | 16.9 | 18.0 | 0.83 | 18.6 | 44 |
+| 5 | 60  | | 63  | 17.3 | 18.3 | 0.96 | 18.4 |
 | 15 | 49 | 16 | 96  | 17.9 | 19.2 | 0.90 | 19.2 | 48 |
 | 30 | 30 | 10 | 111 | 18.8 | 20.1 | 1.21 | 18.5 | 54 |
-
-
-
-## 2025-11-09
-
-Rising moon, moon distance 63 deg  
-60 x 5 s = 300 s = 55 %  
-Tycho: limiting mag 17.3, stack limiting mag 18.3  
-Object found, LogSNR 0.91-1.01, measured mag 18.2-18.6, predicted mag 18.9
-
-## 2025-12-14
-
-Moon below horizon, moon distance 163 deg  
-60 x 15 s = 15 min = 54 %  
-Tycho: limiting mag 17.4, stack limiting mag 18.4  
-Object found, LogSNR 0.58-0.99, measured mag 18.9-19.4, ephem mag 20.1
-
-Moon below horizon, moon distance 134 deg  
-60 x 5 s = 5 min = 86 %  
-Tycho: limiting mag 17.0, stack limiting mag 18.0  
-Object found, LogSNR 1.06-1.10, measured mag 17.7-17.8, ephem mag 18.4
-
-Moon below horizon, moon distance 115 deg  
-28 x 60 s = 28 min = 100 %  
-Tycho: limiting mag 19.7, stack limiting mag 21.1  
-Object found, LogSNR 0.92-1.06, measured mag 19.6-20.2, ephem mag 20.1
-
-Moon just above horizon, moon distance 94 deg  
-60 x 10 s = 10 min = 52 %  
-Tycho: limiting mag 18.0, stack limiting mag 18.9
-
-Moon below horizon, moon distance 103 deg  
-60 x 10 s = 10 min = 48 %  
-Tycho: limiting mag 18.0, stack limiting mag 19.0  
-Object found, LogSNR 0.40-0.74, measured mag 19.8-20.7, ephem mag 19.8
-
-## 2025-12-17
-
-Moon below horizon, moon distance 142 deg, altitude 67 deg  
-60 x 5 s = 5 min = 38 %  
-Tycho: limiting mag 17.7, stack 18.5  
-Object found, LogSNR 0.73-0.83, measured mag 19.1-19.4, ephem mag 19.3
-
-Moon below horizon, moon distance 141 deg, altitude 61 deg  
-51 x 30 s = 25.5 min = 100 %  
-Tycho: limiting mag 19.7, stack 20.6  
-Object found, LogSNR 0.80-1.02, measured mag 19.9-20.6, ephem mag 20.0
-
-Moon below horizon, moon distance 163 deg, altitude 28 deg  
-60 x 15 s = 15 min = 49 %  
-Tycho: limiting mag 17.8, stack 19.2  
-Object not found, ephem mag 20.2
-
-Moon below horizon, moon distance 149 deg, altitude 49 deg  
-60 x 5 s = 5 min = 31 %  
-Tycho: limiting mag 17.3, stack 18.3  
-Object found, LogSNR 0.55-0.76, measured mag 19.1-19.8, ephem mag 19.5
-
-## 2026-01-03
-
-Moon 99%, moon distance 82 deg, altitude 24 deg  
-15 x 60 s = 15 min  
-Tycho: limiting mag 17.7, stack 19.6  
-Object found, LogSNR 0.87-0.93, measured mag 18.4-18.6, ephem mag 18.9
-
-## 2026-01-04
-
-Moon 96%, moon distance 69 deg, altitude 34 deg  
-30 x 60 s = 30 min  
-Tycho: limiting mag 18.4, stack 20.7  
-Object found, LogSNR 1.10-1.13, measured mag 18.6-18.8, ephem mag 18.9
-
-## 2026-01-05
-
-Moon 91%, moon distance 56 deg, altitude 48 deg  
-30 x 60 s = 30 min  
-Tycho: limiting mag 18.0, stack 20.3  
-Object found, LogSNR 1.02-1.17, measured mag 18.5-18.8, ephem mag 18.9
-
-## 2026-02-24
-
-Moon dist 64 deg, alt 29 deg  
-120 x 10 s = 20.0 min (86%) / total 29.2 min  
-Lim mag 16.9, stack 18.7  
-Object LogSNR 0.64-0.77, measured mag 19.4-19.8, ephem mag 19.8
-
-Moon dist 65 deg, alt 28 deg  
-120 x  5 s = 10.0 min (90%) / total 19.2 min  
-Lim mag 16.4, stack 17.9  
-Object LogSNR 0.83-0.93, measured mag 18.2-18.5, ephem mag 19.0
-
-Moon dist 79, alt 26  
-120 x 10 s = 20.0 min (79%) / total 29.2 min  
-Lim mag 17.0, stack 18.8  
-Object LogSNR 0.66-0.85, measured mag 19.1-19.6, ephem mag 20.0
-
-Moon dist 92, alt 48  
-30 x 60 s = 30.0 min (125%) / total 36.9 min  
-Lim mag 19.1, stack 21.1  
-Object LogSNR 1.09-1.15, measured mag 19.4, ephem mag 19.9
-
-Moon dist 106, alt 49  
-48 x 20 s = 16.0 min (100%) / total 23.4 min  
-Lim mag 18.4, stack 19.6  
-Object LogSNR 0.92-0.96, measured mag 19.2, ephem mag 19.3
-
-Moon dist 99, alt 46  
-84 x 15 s = 21.0 min (100%) / total 29.3 min  
-Lim mag 18.0, stack 19.3  
-Object LogSNR 0.84-0.94, measured mag 19.2-19.6, ephem mag 19.9
-
-## 2026-02-28
-
-Moon dist 68, alt 79  
-105 x 10 s = 17.5 min (100%) / total 26.3 min  
-Lim mag 16.9, stack 18.9  
-Object LogSNR 0.80 (problems!), measured mag 20.6 (problems!), ephem mag 19.6
-
-Moon dist 68, alt 51  
-105 x 10 s = 17.5 min (100%) / total 26.3 min  
-Lim mag 16.6, stack 18.7  
-No measurements for object
-
-Moon dist 60, alt 48  
-30 x 60 s = 30.0 min (214%) / total 36.9 min  
-Lim mag 17.4, stack 19.6  
-Object LogSNR 0.87-1.01, measured mag 18.6-18.8, ephem mag 19.3
-
-## 2026-03-02
-
-Moon dist 60, object alt 48  
-30 x  5 s = 2.5 min (167%) / total 9.4 min  
-Lim mag 15.9, stack 17.5  
-Object LogSNR 0.94-1.09, measured mag 16.7-17.3, ephem mag 16.8
-
-## 2026-03-05
-
-Moon dist 73, object alt 30  
-73 x 10 s = 12.2 min (100%) / total 20.2 min  
-Lim mag 17.5, stack 19.1  
-Object not found, ephem mag 19.2
-
-## 2026-03-22
-
-Moon dist 118, object alt 52  
-109 x  5 s = 10.0 min (69%) / total 19.2 min  
-Lim mag 16.7, stack 17.7  
-Object LogSNR 0.63-0.72, measured mag 18.3-19.3  
-
-Moon dist 109, object alt 44  
-101 x  5 s = 8.4 min (100%) / total 17.1 min  
-Lim mag 16.9, stack 18.0  
-Object LogSNR 0.77-0.89, measured mag 18.2-18.8
-
+| 15 | 60 | <0 | 163 | 17.4 | 18.4 | 0.78 | 19.2 |
+| 5  | 60 | <0 | 134 | 17.0 | 18.0 | 1.08 | 17.7 |
+| 60 | 28 | <0 | 115 | 19.7 | 21.1 | 0.99 | 19.9 |
+| 10 | 60 |    | 94  | 18.0 | 18.9 |
+| 10 | 60 | <0 | 103 | 18.0 | 19.0 | 0.57 | 20.3 |
+| 5  | 60 | <0 | 142 | 17.7 | 18.5 | 0.78 | 19.2 | 67 |
+| 30 | 51 | <0 | 141 | 19.7 | 20.6 | 0.91 | 20.2 | 61 |
+| 15 | 60 | <0 | 163 | 17.8 | 19.2 |      |      | 28 |
+| 5  | 60 | <0 | 149 | 17.3 | 18.3 | 0.65 | 19.4 | 49 |
+| 60 | 15 | 99% | 82 | 17.7 | 19.6 | 0.90 | 18.5 | 24 |
+| 60 | 30 | 96% | 69 | 18.4 | 20.7 | 1.11 | 18.7 | 34 |
+| 60 | 30 | 91% | 56 | 18.0 | 20.3 | 1.09 | 18.6 | 48 |
+| 10 | 120 |    | 64 | 16.9 | 18.7 | 0.70 | 19.6 | 29 |
+| 5  | 120 |    | 65 | 16.4 | 17.9 | 0.88 | 18.3 | 28 |
+| 10 | 120 |    | 79 | 17.0 | 18.8 | 0.75 | 19.3 | 26 |
+| 60 | 30  |    | 92 | 19.1 | 21.1 | 1.12 | 19.4 | 48 |
+| 20 | 48  |    | 106 | 18.4 | 19.6 | 0.94 | 19.2 | 49 |
+| 15 | 84  |    | 99  | 18.0 | 19.3 | 0.89 | 19.4 | 46 |
+| 10 | 105 |    | 68  | 16.9 | 18.9 |      |      | 79 |
+| 10 | 105 |    | 68  | 16.6 | 18.7 |      |      | 51 |
+| 60 | 30  |    | 60  | 17.4 | 19.6 | 0.94 | 18.7 | 48 |
+| 5  | 30  |    | 60  | 15.9 | 17.5 | 1.01 | 17.0 | 48 |
+| 10 | 73  |    | 73  | 17.5 | 19.1 |      |      | 30 |
