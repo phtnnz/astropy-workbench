@@ -2,35 +2,36 @@
 
 ## NEOCP
 
-Update lists and ephemeris for upcoming night:
+Update lists and ephemeris for upcoming night, plot and output CSV plan:
 ```
-neocp -v -U
-```
-
-Plot and output CSV plan:
-```
-neocp -v -P -C
+neocp -v -C -P -U
 ```
 
-Output in ./neocp-data/
+Use option ```-M``` to limit magnitude around full moon phase
+```
+.\neocp.py -v -C -P -M 19.5 -U
+```
+
+Output saved to ./neo-obs-data/
 
 
 ## NEOs
 
-Find observable "unusual" NEOs:
+Find observable "unusual" NEOs and plan observations with altitude/sky plot and output to CSV plan:
 ```
-sbwobs.py -v -o .\tmp\20260203-neos.list
-```
-
-Plan observations:
-```
-neo-obs-planner.py -v -f .\tmp\20260203-neos.list
+neo-obs-planner.py -v -sbwobs -P -C
 ```
 
-... with altitude/sky plot and output to CSV plan:
+Use option ```-M``` to limit magnitude around full moon phase
 ```
-neo-obs-planner.py -v -f .\tmp\20260203-neos.list -P -C -o .\tmp\20260203-neos.csv
+neo-obs-planner.py -v --sbwobs -M 19.5 -P -C
 ```
+
+
+## Joining NEOCP and NEO observations
+
+Not yet implemented! Manually combine YYYYMMDD-neocp-plan.csv and YYYYMMDD-neo-obs-plan.csv.
+
 
 ## N.I.N.A.
 
