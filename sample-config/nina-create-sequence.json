@@ -1,12 +1,11 @@
 {
     "##1": "Template setting for nina-create-sequence2",
-    "##2": "REPLACE ... with proper user / path",
 
     "remote2-neo": {
         "##1":       "NEO Observations, Remote3",
         "timezone":  "Africa/Windhoek",
         "template":  "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Base Remote2 NAUTICAL.json",
-        "target":    "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Target NEO (Discord).template.json",
+        "target":    "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Target NEO.template.json",
         "container": "",
         "##2":       "0=target, 1=date, 2=seq, 3=number",
         "format":    "{1} {2:03d} {0} (n{3:03d})",
@@ -18,7 +17,7 @@
         "##1":       "NEO Observations, Remote3",
         "timezone":  "Africa/Windhoek",
         "template":  "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Base Remote3 NAUTICAL.json",
-        "target":    "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Target NEO (Discord).template.json",
+        "target":    "D:/Users/.../Documents/N.I.N.A/Templates/NINA-Templates-IAS-Common/Target NEO.template.json",
         "container": "",
         "##2":       "0=target, 1=date, 2=seq, 3=number",
         "format":    "{1} {2:03d} {0} (n{3:03d})",
