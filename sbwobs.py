@@ -272,7 +272,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
         filter      = txt_line[84:85].strip()
         uncertainty = txt_line[87:88]
         arc         = txt_line[90:93].strip()
-        # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
+        ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
 
 ##DLN
 #  Designation                         Currently              Last obs.  Code   Mag.   U  Arc      Currently + 7d           Currently + 30d          Currently + 60 d
@@ -299,7 +299,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
         filter      = txt_line[84:85].strip()
         uncertainty = txt_line[87:88]
         arc         = txt_line[90:93].strip()
-        # ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
+        ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
 
     else:
         error(f"unknown list type {list_type}")
@@ -320,7 +320,8 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
         code,
         float(mag) if mag else 0,
         filter,
-        int(uncertainty),
+        # Uncertainty may be empty ' '
+        int(uncertainty) if uncertainty.isdigit() else 0,
         float(arc) * u.day
     )
     ic(dlx)
