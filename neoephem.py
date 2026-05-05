@@ -83,7 +83,8 @@ def _rename_columns_jpl(eph: Ephem) -> None:
 
 
 
-def get_ephem_mpc(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
+## Used only by sbephem command line ##
+def get_ephem_mpc_for_objects(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
     ##FIXME: pass obj_data dict
     """Get ephemerides for object list from MPC
 
@@ -125,8 +126,53 @@ def get_ephem_mpc(objects: list, local: LocalCircumstances, type: str) -> dict[s
 
 
 
+def obj_edata_add_exposure(obj_edata: dict[str, EphemData], local: LocalCircumstances) -> dict[str, EphemData]:
+    for obj in obj_edata.keys():
+        edata = obj_edata.get(obj)
+        edata.exposure = exposure_calc(edata.motion, edata.mag)
+
+    return obj_edata
+
+
+
+def obj_edata_add_ephem_mpc(obj_edata: dict[str, EphemData], local: LocalCircumstances) -> dict[str, EphemData]:
+    min_alt = config.min_alt
+
+    for obj in obj_edata.keys():
+        edata = obj_edata.get(obj)
+        try:
+            verbose(f"{obj} ephemeris from MPC")
+            # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
+            eph = Ephem.from_mpc(obj, location=local.loc, epochs=local.epochs, 
+                                    ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
+                                    dec_format={'sep': ':', 'precision': 1} )
+            # Rename columns to common names
+            _rename_columns_mpc(eph)
+            ic(eph.field_names)
+
+            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
+            eph1 = eph[mask]
+            if len(eph1) == 0:
+                warning(f"skipping empty ephemeris for {obj}")
+                continue
+            mag = get_mag0(eph1)
+            motion = max_motion(eph1)
+
+            # Copy to EphemData
+            edata.type = edata.wobs.type.upper()
+            edata.obj = obj
+            edata.ephem = eph1
+            edata.mag = mag
+            edata.motion = motion
+        except QueryError as e:
+            warning(f"MPC ephemeris for {obj} failed")
+
+    return obj_edata
+
+
+
+## Not used anymore ##
 def get_ephem_jpl(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
-    ##FIXME: pass obj_data dict
     """Get ephemerides for object list from JPL
 
     Args:
@@ -293,7 +339,7 @@ def main():
     if args.jpl:
         obj_data = get_ephem_jpl(objects, local)
     else:
-        obj_data = get_ephem_mpc(objects, local)
+        obj_data = get_ephem_mpc_for_objects(objects, local)
 
     ic(obj_data)
     for obj, data in obj_data.items():
