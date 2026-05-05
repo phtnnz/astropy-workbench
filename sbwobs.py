@@ -425,14 +425,14 @@ def object_filter(key: str, edata: EphemData) -> bool:
 
 
 
-def sbwobs_get_obj_edata(local: LocalCircumstances, comet: bool=False) -> dict[str, EphemData]:
+def sbwobs_get_obj_edata(local: LocalCircumstances) -> dict[str, EphemData]:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
     obj_edata1 = jpl_parse_sbwobs(query)
     keys1 = obj_edata1.keys()
     verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
 
-    if comet:
+    if config.sb_kind == "c":
         # Comets
         keys_selected = sorted(keys1)
         obj_edata = obj_edata1
@@ -484,9 +484,9 @@ def sbwobs_get_obj_edata(local: LocalCircumstances, comet: bool=False) -> dict[s
 
 
 
-def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str]:
+def sbwobs_get_objects(local: LocalCircumstances) -> list[str]:
     # wrapper for sbwobs_get_obj_edata()
-    return sbwobs_get_obj_edata(local, comet).keys()
+        return sbwobs_get_obj_edata(local).keys()
 
 
 
@@ -531,7 +531,7 @@ def main():
     # Observer location and local circumstances
     local = get_local_circumstances(args.location if args.location else config.mpc_code)
 
-    keys_selected = sbwobs_get_objects(local, args.comets)
+    keys_selected = sbwobs_get_objects(local)
 
     if args.output:
         with open(args.output, "w") as file:
