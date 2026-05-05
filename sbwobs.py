@@ -330,7 +330,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
 
 
 
-def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
+def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict[str, EphemData]:
     if not content:
         with open(filename) as file:
             content = file.read()
@@ -353,10 +353,11 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict:
         ic(m)
         txt_line = m.group(1)
         # print(txt_line)
-
-        object1 = parse_txt_line(txt_line, list_type)
-        if object1:
-            objects[object1.designation] = object1
+        dlx: MPCDLxData = parse_txt_line(txt_line, list_type)
+        if dlx:
+            edata = EphemData("", dlx.designation, None, None, None, None, dlx.vmag, None, dlx=dlx)
+            ic(edata)
+            objects[dlx.designation] = edata
 
     return objects
 
@@ -458,7 +459,7 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
 
         # Filter DLU for "Last OBS"
         # None: data from WOBS not yet used in object_filter()
-        keys2_filtered = [ k for k in keys2 if object_filter(k, None, objs2.get(k)) ]
+        keys2_filtered = [ k for k in keys2 if object_filter(k, None, objs2.get(k).dlx) ]
 
         # Intersection 1 & 2: observable objects also in DLU list
         keys_selected = sorted(keys1 & keys2_filtered)
@@ -468,7 +469,7 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
         verbose("Type   Designation Rise   Trans  Set     Vmag  U  Last Obs")
         verbose("------------------------------------------------------------")
         for key in keys_selected:
-            verbose(to_string(obj_edata1.get(key).wobs, objs2.get(key)))
+            verbose(to_string(obj_edata1.get(key).wobs, objs2.get(key).dlx))
         verbose("------------------------------------------------------------")
 
         return keys_selected
