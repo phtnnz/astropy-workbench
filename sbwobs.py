@@ -185,11 +185,13 @@ def jpl_parse_sbwobs(text: str) -> dict[str, EphemData]:
 
 
 
-def to_string(obj1: JPLWObsData, obj2: MPCDLxData) -> str:
-    return f"{obj1.type.upper():5s}  {obj1.designation:11s} {obj1.rise_time:6s} {obj1.transit_time:6s} {obj1.set_time:6s}  {float(obj1.vmag.value):4.1f}  {obj2.uncertainty}  {str(obj2.last_obs):10.10s}"
-
-def to_string1(obj1: JPLWObsData) -> str:
-    return str(obj1)
+def to_string(edata: EphemData) -> str:
+    wobs = edata.wobs
+    dlx = edata.dlx
+    if dlx:
+        return f"{wobs.type.upper():5s}  {wobs.designation:11s} {wobs.rise_time:6s} {wobs.transit_time:6s} {wobs.set_time:6s}  {float(wobs.vmag.value):4.1f}  {dlx.uncertainty}  {str(dlx.last_obs):10.10s}"
+    else:
+        return str(wobs)
 
 
 
@@ -248,9 +250,9 @@ def parse_date(date: str) -> str:
 
 
 
-def parse_txt_line(txt_line: str, list_type: str) -> dict:
+def parse_txt_line(txt_line: str, list_type: str) -> MPCDLxData:
     ic(txt_line)
-##DLU
+##DLU format examples
 #         2025 WA             Amo   1.3/+16/18.3/147/07.42  *2025 Nov. 16  C23  17.8 c  7    1  2.50 0.60   5
 #         2025 VD6            Amo   3.1/+30/20.3/168/04.63  *2025 Nov. 16  958  19.7 G  8    3  1.69 0.40  18
 #         ^9                  ^29  ^34                  57^ ^^60           ^74  ^79     ^87^90  ^95
@@ -275,7 +277,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> dict:
         arc         = txt_line[90:93].strip()
         ic(designation, type, currently, last_obs, code, mag, uncertainty, arc)
 
-##DLN
+##DLN format examples
 #  Designation                         Currently              Last obs.  Code   Mag.   U  Arc      Currently + 7d           Currently + 30d          Currently + 60 d
 #                                   R.A./Dec/  V /El./Motn                                       R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn   R.A./Dec/  V /El./Motn
 # Sample:
@@ -363,6 +365,7 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict[str
 
 
 
+## Currently not used ##
 def mpc_query_lastobs(url: str, filename: str = None) -> None:
     ic(url, filename)
 
@@ -382,7 +385,8 @@ def mpc_query_lastobs(url: str, filename: str = None) -> None:
 
 
 
-def mpc_parse_lastobs(content: str, filename: str = None) -> dict:
+## Currently not used ##
+def mpc_parse_lastobs(content: str, filename: str = None) -> dict[str, MPCDLxData]:
     if not content:
         with open(filename) as file:
             content = file.read()
@@ -405,14 +409,16 @@ def mpc_parse_lastobs(content: str, filename: str = None) -> dict:
 
 
 
-def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
-    ic(key, obj1, obj2)
+def object_filter(key: str, edata: EphemData) -> bool:
+    wobs = edata.wobs
+    dlx = edata.dlx
+    ic(key, wobs, dlx)
 
-    if obj1:
+    if wobs:
         # not yet checking anything here
         pass
-    if obj2:
-        last_obs = obj2.last_obs
+    if dlx:
+        last_obs = dlx.last_obs
         if last_obs:
             t_obs = last_obs
             t_now = Time.now()
@@ -422,7 +428,7 @@ def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
                 verbose(f"{key}: last obs {last_obs} too old, not included")
                 return False
 
-        uncertainty = obj2.uncertainty
+        uncertainty = dlx.uncertainty
         if uncertainty:
             ##FIXME: add config option
             if int(uncertainty) < 3:
@@ -434,7 +440,7 @@ def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
 
 
 
-def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str]:
+def sbwobs_get_obj_edata(local: LocalCircumstances, comet: bool=False) -> dict[str, EphemData]:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
     obj_edata1 = jpl_parse_sbwobs(query)
@@ -444,35 +450,50 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
     if comet:
         # Comets
         keys_selected = sorted(keys1)
+        obj_edata = obj_edata1
+
         verbose("---------------------------------------------")
         verbose("Type   Designation Rise   Trans  Set     Vmag")
         verbose("---------------------------------------------")
         for key in keys_selected:
-            verbose(to_string1(obj_edata1.get(key).wobs))
+            verbose(to_string(obj_edata1.get(key)))
         verbose("---------------------------------------------")
     else:
         # Asteroids
         query = mpc_query_customize(config.customize_url, None, "DLU")   # "DLN" | "DLU"
-        objs2 = mpc_parse_customize(query, None, "DLU")
-        keys2 = objs2.keys()
+        obj_edata2 = mpc_parse_customize(query, None, "DLU")
+        keys2 = obj_edata2.keys()
         verbose(f"DLU objects ({len(keys2)}): {", ".join(sorted(keys2))}")
 
         # Filter DLU for "Last OBS"
         # None: data from WOBS not yet used in object_filter()
-        keys2_filtered = [ k for k in keys2 if object_filter(k, None, objs2.get(k).dlx) ]
+        keys2_filtered = [ k for k in keys2 if object_filter(k, obj_edata2.get(k)) ]
 
         # Intersection 1 & 2: observable objects also in DLU list
         keys_selected = sorted(keys1 & keys2_filtered)
         verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
+        # Build new dict
+        obj_edata = dict()
+        for k in keys_selected:
+            edata = obj_edata1.get(k)
+            # Copy MPCDLxData from DLU data
+            edata.dlx = obj_edata2.get(k).dlx
+            obj_edata[k] = edata
 
         verbose("------------------------------------------------------------")
         verbose("Type   Designation Rise   Trans  Set     Vmag  U  Last Obs")
         verbose("------------------------------------------------------------")
         for key in keys_selected:
-            verbose(to_string(obj_edata1.get(key).wobs, objs2.get(key).dlx))
+            verbose(to_string(obj_edata.get(key)))
         verbose("------------------------------------------------------------")
 
-        return keys_selected
+    return obj_edata
+
+
+
+def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str]:
+    # wrapper for sbwobs_get_obj_edata()
+    return sbwobs_get_obj_edata(local, comet).keys()
 
 
 
