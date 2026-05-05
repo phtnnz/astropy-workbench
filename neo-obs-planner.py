@@ -49,9 +49,9 @@ from verbose    import verbose, warning, error, message
 from neoconfig  import config
 from neoclasses import EphemData, LocalCircumstances
 from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, obj_data_csv_output
-from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances, get_dec_limits
+from neoephem   import get_local_circumstances, get_dec_limits, obj_edata_add_ephem_mpc, obj_edata_add_exposure
 from neoplot    import plot_objects
-from sbwobs     import sbwobs_get_objects
+from sbwobs     import sbwobs_get_obj_edata
 import neofiles
 
 DEFAULT_LOCATION = config.code
@@ -200,7 +200,6 @@ def main():
     arg.add_argument("-C", "--csv", action="store_true", help="use CSV output format")
     arg.add_argument("-P", "--plot", action="store_true", help="create altitude and sky plot with objects")
 
-    arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
 
     arg.add_argument("-M", "--mag-limit", type=float, help="override mag_limit from config")
@@ -248,26 +247,29 @@ def main():
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 
-    # Objects
-    objects = []
 
     if args.sbwobs:
-        objects.extend(sbwobs_get_objects(local, args.comets))
-        ##FIXME: sbwobs_get_objects should return EphemData objects with type set to "NEO", "PHA" or "COMET", 
-        ## so we don't have to set it here
-        type = (config.sb_group if config.sb_group else "comet" if config.sb_kind == "c" else "-").upper()
+        # Objects from SBWOBS
+        obj_edata = sbwobs_get_obj_edata(local)
     else:
         type = "-"
+        # Objects from file / command line
+        objects = list()
+        if args.file:
+            with open(args.file, "r") as file:
+                for line in file:
+                    objects.append(line.strip())
+        if args.object:
+            objects.extend(args.object)
+        ic(objects)
+        if not objects:
+            error("no objects from file or command line")
+        
+        obj_edata = dict()
+        for obj in objects:
+            obj_edata[obj] = EphemData(type, obj, None, None, None, None, None, None)
 
-    if args.file:
-        with open(args.file, "r") as file:
-            for line in file:
-                objects.append(line.strip())
-    if args.object:
-        objects.extend(args.object)
-    ic(objects)
-    if not objects:
-        error("no objects from file or command line")
+    # ic(obj_edata)
 
     # Clear astroquery cache
     if args.clear:
@@ -280,25 +282,24 @@ def main():
         local.naut_dawn = Time(args.end)
     verbose.print_lines(local)
 
-    # Get ephemerides
-    ##FIXME: get_ephem_*() should use obj_data dict with pre-populated EphemData objects
-    if args.jpl:
-        obj_data = get_ephem_jpl(objects, local, type)
-    else:
-        obj_data = get_ephem_mpc(objects, local, type)
+    # Get ephemerides from MPC (JPL doesn't provide moon phase/distance)
+    obj_edata_add_ephem_mpc(obj_edata, local)
+    # Get exposure data from mag and motion
+    obj_edata_add_exposure(obj_edata, local)
+    ic(obj_edata)
 
     # Process objects
-    obj_data = obj_data_add_times(obj_data)
-    verbose(f"original object sequence: {", ".join(obj_data.keys())}")
+    obj_edata = obj_data_add_times(obj_edata)
+    verbose(f"original object sequence: {", ".join(obj_edata.keys())}")
 
-    for obj, edata in obj_data.items():
+    for obj, edata in obj_edata.items():
         verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                        "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
         # verbose(edata.exposure)
         # verbose(edata.times)
 
-    obj_data = sort_obj_data(obj_data)
-    verbose(f"sorted object sequence: {", ".join(obj_data.keys())}")
+    obj_edata = sort_obj_data(obj_edata)
+    verbose(f"sorted object sequence: {", ".join(obj_edata.keys())}")
 
     log_file = neofiles.path("obs-planner-1.log")
     with verbose.logfile(log_file):
@@ -306,16 +307,16 @@ def main():
         verbose(f"obs-planner-1 {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
 
         # Run obs planner
-        obs_planner_1(obj_data, local)
+        obs_planner_1(obj_edata, local)
         if args.csv:
             ##FIXME: output file name depending on mode
-            obj_data_csv_output(obj_data, args.output or neofiles.path("neo-obs-plan.csv"))
+            obj_data_csv_output(obj_edata, args.output or neofiles.path("neo-obs-plan.csv"))
 
         # Plot objects and Moon
         if args.plot:
             plot_file = neofiles.path("neo-obs-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
-            plot_objects(obj_data, plot_file, local.loc)
+            plot_objects(obj_edata, plot_file, local.loc)
 
 
 
