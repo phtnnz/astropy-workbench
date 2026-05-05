@@ -85,7 +85,6 @@ def _rename_columns_jpl(eph: Ephem) -> None:
 
 ## Used only by sbephem command line ##
 def get_ephem_mpc_for_objects(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
-    ##FIXME: pass obj_data dict
     """Get ephemerides for object list from MPC
 
     Args:
@@ -127,6 +126,20 @@ def get_ephem_mpc_for_objects(objects: list, local: LocalCircumstances, type: st
 
 
 def obj_edata_add_exposure(obj_edata: dict[str, EphemData], local: LocalCircumstances) -> dict[str, EphemData]:
+    """Add Exposure data to EphemData dict
+
+    Parameters
+    ----------
+    obj_edata : dict[str, EphemData]
+        EphemData dict
+    local : LocalCircumstances
+        Local circumstances: location, dusk/dawn etc.
+
+    Returns
+    -------
+    dict[str, EphemData]
+        EphemData dict, same as passed obj_edata arg
+    """
     for obj in obj_edata.keys():
         edata = obj_edata.get(obj)
         edata.exposure = exposure_calc(edata.motion, edata.mag)
@@ -136,6 +149,20 @@ def obj_edata_add_exposure(obj_edata: dict[str, EphemData], local: LocalCircumst
 
 
 def obj_edata_add_ephem_mpc(obj_edata: dict[str, EphemData], local: LocalCircumstances) -> dict[str, EphemData]:
+    """Add ephemerides to EphemData dict
+
+    Parameters
+    ----------
+    obj_edata : dict[str, EphemData]
+        EphemData dict
+    local : LocalCircumstances
+        Local circumstances: location, dusk/dawn etc.
+
+    Returns
+    -------
+    dict[str, EphemData]
+        EphemData dict, same as passed obj_edata arg
+    """
     min_alt = config.min_alt
 
     for obj in obj_edata.keys():
