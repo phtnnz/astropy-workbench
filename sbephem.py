@@ -48,7 +48,7 @@ from sbpy.data.core import QueryError
 # Local modules
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
-from neoephem   import get_ephem_jpl, get_ephem_mpc, get_local_circumstances, get_dec_limits
+from neoephem   import get_ephem_jpl, get_ephem_mpc_for_objects, get_local_circumstances, get_dec_limits
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -164,7 +164,7 @@ def main():
         if args.jpl:
             obj_data = get_ephem_jpl(objects, local, type)
         else:
-            obj_data = get_ephem_mpc(objects, local, type)
+            obj_data = get_ephem_mpc_for_objects(objects, local, type)
 
         for obj, edata in obj_data.items():
             verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
