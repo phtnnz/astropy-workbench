@@ -195,8 +195,8 @@ def to_string(edata: EphemData) -> str:
 
 
 
-def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
-    ic(url, filename)
+def mpc_query_customize(url: str, list_type: str) -> str:
+    ic(url)
 
     timeout = config.requests_timeout
 
@@ -229,9 +229,6 @@ def mpc_query_customize(url: str, filename: str, list_type: str) -> None:
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    if filename:
-        with open(filename, mode="w", encoding=response.encoding) as file:
-            file.write(response.text)
     return response.text
 
 
@@ -332,11 +329,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> MPCDLxData:
 
 
 
-def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict[str, EphemData]:
-    if not content:
-        with open(filename) as file:
-            content = file.read()
-
+def mpc_parse_customize(content: str, list_type: str) -> dict[str, EphemData]:
     objects = {}
 
     in_unnumbered1 = False
@@ -366,8 +359,8 @@ def mpc_parse_customize(content: str, filename: str, list_type: str) -> dict[str
 
 
 ## Currently not used ##
-def mpc_query_lastobs(url: str, filename: str = None) -> None:
-    ic(url, filename)
+def mpc_query_lastobs(url: str) -> str:
+    ic(url)
 
     timeout = config.requests_timeout
 
@@ -378,19 +371,11 @@ def mpc_query_lastobs(url: str, filename: str = None) -> None:
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    if filename:
-        with open(filename, mode="w", encoding=response.encoding) as file:
-            file.write(response.text)
-    return response.text
 
 
 
 ## Currently not used ##
-def mpc_parse_lastobs(content: str, filename: str = None) -> dict[str, MPCDLxData]:
-    if not content:
-        with open(filename) as file:
-            content = file.read()
-
+def mpc_parse_lastobs(content: str) -> dict[str, MPCDLxData]:
     objects = {}
     for txt_line in content.splitlines():
         object1 = parse_txt_line(txt_line, "DLN")       # same format als customize/DLN
@@ -460,10 +445,18 @@ def sbwobs_get_obj_edata(local: LocalCircumstances, comet: bool=False) -> dict[s
         verbose("---------------------------------------------")
     else:
         # Asteroids
-        query = mpc_query_customize(config.customize_url, None, "DLU")   # "DLN" | "DLU"
-        obj_edata2 = mpc_parse_customize(query, None, "DLU")
+        query = mpc_query_customize(config.customize_url, "DLU")   # "DLN" | "DLU"
+        obj_edata2 = mpc_parse_customize(query, "DLU")
         keys2 = obj_edata2.keys()
         verbose(f"DLU objects ({len(keys2)}): {", ".join(sorted(keys2))}")
+
+        ## DLN is a subset of DLU, tested on 2025-11-18, not used ##
+        # mpc_query_customize(config.customize_url, "DLN")   # "DLN" | "DLU"
+        # mpc_parse_customize(content, "DLN")
+
+        ## LastObs list currently not used ##
+        # mpc_query_lastobs(config.lastobs_url)
+        # mpc_parse_lastobs(content)
 
         # Filter DLU for "Last OBS"
         # None: data from WOBS not yet used in object_filter()
@@ -539,17 +532,6 @@ def main():
     local = get_local_circumstances(args.location if args.location else config.mpc_code)
 
     keys_selected = sbwobs_get_objects(local, args.comets)
-
-    # DLN is a subset of DLU, tested on 2025-11-18, not used
-    # mpc_query_customize(config.customize_url, "tmp/dln.html", "DLN")   # "DLN" | "DLU"
-    # objs3 = mpc_parse_customize(None, "tmp/dln.html", "DLN")
-    # keys3 = sorted(objs3.keys())
-    # verbose(f"DLN objects ({len(keys3)}): {", ".join(keys3)}")
-
-    # mpc_query_lastobs(config.lastobs_url, "tmp/lastobs.txt")
-    # objs4 = mpc_parse_lastobs(None, "tmp/lastobs.txt")
-    # keys4 = sorted(objs4.keys())
-    # verbose(f"Last obs objects ({len(keys4)}): {", ".join(keys4)}")
 
     if args.output:
         with open(args.output, "w") as file:
