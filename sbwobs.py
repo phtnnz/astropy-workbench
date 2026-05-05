@@ -56,7 +56,7 @@ from verbose import verbose, warning, error, message
 from neoconfig import config
 from neoutils import fmt_time
 from neoephem import get_local_circumstances
-from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData
+from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData
 
 
 
@@ -115,7 +115,7 @@ def jpl_query_sbwobs(url: str, local: LocalCircumstances) -> str:
 
 
 
-def jpl_parse_sbwobs(text: str) -> dict:
+def jpl_parse_sbwobs(text: str) -> dict[str, EphemData]:
     """
     Parse JSON retrieve from JPL What's Observable
 
@@ -178,8 +178,9 @@ def jpl_parse_sbwobs(text: str) -> dict:
             # Type from config
             config.sb_group if config.sb_group else "comet" if config.sb_kind == "c" else "-"
         )
-        ic(wobs)
-        objects[designation] = wobs
+        edata = EphemData(wobs.type, wobs.designation, None, None, None, None, wobs.vmag, None, wobs=wobs)
+        ic(edata)
+        objects[designation] = edata
     return objects
 
 
@@ -435,8 +436,8 @@ def object_filter(key: str, obj1: dict, obj2: dict) -> bool:
 def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str]:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
-    objs1 = jpl_parse_sbwobs(query)
-    keys1 = objs1.keys()
+    obj_edata1 = jpl_parse_sbwobs(query)
+    keys1 = obj_edata1.keys()
     verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
 
     if comet:
@@ -446,7 +447,7 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
         verbose("Type   Designation Rise   Trans  Set     Vmag")
         verbose("---------------------------------------------")
         for key in keys_selected:
-            verbose(to_string1(objs1.get(key)))
+            verbose(to_string1(obj_edata1.get(key).wobs))
         verbose("---------------------------------------------")
     else:
         # Asteroids
@@ -456,7 +457,8 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
         verbose(f"DLU objects ({len(keys2)}): {", ".join(sorted(keys2))}")
 
         # Filter DLU for "Last OBS"
-        keys2_filtered = [ k for k in keys2 if object_filter(k, objs1.get(k), objs2.get(k)) ]
+        # None: data from WOBS not yet used in object_filter()
+        keys2_filtered = [ k for k in keys2 if object_filter(k, None, objs2.get(k)) ]
 
         # Intersection 1 & 2: observable objects also in DLU list
         keys_selected = sorted(keys1 & keys2_filtered)
@@ -466,7 +468,7 @@ def sbwobs_get_objects(local: LocalCircumstances, comet: bool=False) -> list[str
         verbose("Type   Designation Rise   Trans  Set     Vmag  U  Last Obs")
         verbose("------------------------------------------------------------")
         for key in keys_selected:
-            verbose(to_string(objs1.get(key), objs2.get(key)))
+            verbose(to_string(obj_edata1.get(key).wobs, objs2.get(key)))
         verbose("------------------------------------------------------------")
 
         return keys_selected
