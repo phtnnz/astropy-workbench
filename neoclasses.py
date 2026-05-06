@@ -140,12 +140,12 @@ class EphemData:
     """All object data incl. ephemeris"""
     type: str                   # object type: NEO, PHA, COMET, NEOCP, PCCP
     obj: str                    # object name
-    sort_time: Time             # time for sorting objects
-    ephem: Ephem                # ephemeris of object
-    times: EphemTimes           # ephemeris/planned times
-    exposure: Exposure          # exposure data object
-    mag: Magnitude              # magnitude of object
-    motion: Quantity            # max. motion of object
+    sort_time: Time = None      # time for sorting objects
+    ephem: Ephem = None         # ephemeris of object
+    times: EphemTimes = None    # ephemeris/planned times
+    exposure: Exposure = None   # exposure data object
+    mag: Magnitude = None       # magnitude of object
+    motion: Quantity = None     # max. motion of object
     ra: Angle = None            # planned RA
     dec: Angle = None           # planned DEC
     neocp: NEOCPListData = None # data from NEOCP list
@@ -153,6 +153,13 @@ class EphemData:
     dlx: MPCDLxData = None      # data from MPC DLU/DLN lists
     force: bool = False         # force observation of this object (e.g. from --force option)
 
+
+class EphemDataList(list):
+    def objects(self):
+        return [ edata.obj for edata in self ]
+    def objects_str(self):
+        return ", ".join(self.objects())
+    
 
 
 @dataclass
