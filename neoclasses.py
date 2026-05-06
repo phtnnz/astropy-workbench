@@ -155,11 +155,20 @@ class EphemData:
 
 
 class EphemDataList(list):
-    def objects(self):
+    def objects(self) -> list[str]:
         return [ edata.obj for edata in self ]
-    def objects_str(self):
+
+    def objects_str(self) -> str:
         return ", ".join(self.objects())
-    
+
+
+    def sort_by_time(self) -> None:
+        return self.sort(key=lambda item: item.sort_time)
+
+
+    def __str__(self) -> str:
+        return "\n".join(f"{edata.type} {edata.obj} {edata.sort_time.iso}" for edata in self)
+
 
 
 @dataclass
