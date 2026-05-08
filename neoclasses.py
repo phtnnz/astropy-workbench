@@ -43,6 +43,7 @@ from astropy.units import Quantity, Magnitude
 
 # Local modules
 from astroutils import location_to_string
+from verbose import verbose
 
 
 
@@ -168,6 +169,15 @@ class EphemDataList(list):
 
     def __str__(self) -> str:
         return "\n".join(f"{edata.type} {edata.obj} {edata.sort_time.iso}" for edata in self)
+
+
+    def verbose_ephem(self) -> None:
+        for edata in self:
+            if edata.ephem:
+                verbose("===================================================================================================================")
+                verbose(f"{edata.obj} ephemeris")
+                verbose.print_lines(edata.ephem)
+        verbose("===================================================================================================================")
 
 
 
