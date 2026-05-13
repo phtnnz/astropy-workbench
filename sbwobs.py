@@ -56,7 +56,7 @@ from verbose import verbose, warning, error, message
 from neoconfig import config
 from neoutils import fmt_time
 from neoephem import get_local_circumstances
-from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData
+from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, EphemDataList
 
 
 
@@ -479,6 +479,9 @@ def sbwobs_get_obj_edata(local: LocalCircumstances) -> dict[str, EphemData]:
         for key in keys_selected:
             verbose(to_string(obj_edata.get(key)))
         verbose("------------------------------------------------------------")
+
+    ##FIXME: this should be the new return type for this function
+    edata_list = EphemDataList.from_dict(obj_edata)
 
     return obj_edata
 
