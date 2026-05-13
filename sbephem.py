@@ -48,7 +48,7 @@ from sbpy.data.core import QueryError
 # Local modules
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
-from neoephem   import get_ephem_jpl, get_ephem_mpc_for_objects, get_local_circumstances, get_dec_limits, obj_edata_add_exposure
+from neoephem   import get_ephem_jpl_for_objects, get_ephem_mpc_for_objects, get_local_circumstances, get_dec_limits, obj_edata_add_exposure
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -162,7 +162,7 @@ def main():
 
         # Get ephemerides
         if args.jpl:
-            obj_data = get_ephem_jpl(objects, local, type)
+            obj_data = get_ephem_jpl_for_objects(objects, local, type)
         else:
             obj_data = get_ephem_mpc_for_objects(objects, local, type)
         obj_edata_add_exposure(obj_data, local)

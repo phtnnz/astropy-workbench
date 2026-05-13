@@ -198,8 +198,8 @@ def obj_edata_add_ephem_mpc(obj_edata: dict[str, EphemData], local: LocalCircums
 
 
 
-## Not used anymore ##
-def get_ephem_jpl(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
+## Use only for sbephem / neoephem command line ##
+def get_ephem_jpl_for_objects(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
     """Get ephemerides for object list from JPL
 
     Args:
@@ -364,9 +364,9 @@ def main():
     verbose.print_lines(local)
 
     if args.jpl:
-        obj_data = get_ephem_jpl(objects, local)
+        obj_data = get_ephem_jpl_for_objects(objects, local)
     else:
-        obj_data = get_ephem_mpc_for_objects(objects, local)
+        obj_data = get_ephem_mpc_for_objects(objects, local, type="-")
 
     ic(obj_data)
     for obj, data in obj_data.items():
