@@ -62,7 +62,7 @@ def _rename_columns_mpc(eph: Ephem) -> None:
     Args:
         eph (Ephem): Ephemeris table
     """
-    eph._table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
+    eph.table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
                                "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
                               # -->
                               ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
