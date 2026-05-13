@@ -182,7 +182,9 @@ def _get_table(eph: Ephem) -> QTable:
     # for row in eph yields single line QTable objects
     # for row in get_table(eph) yields Row object as expected
     # Reported as a bug to sbpy, may change with future implementations
-    return eph._table
+    ##FIXME: table attribute is an "official" attribute for sbpy DataClass,
+    ##       use directly in the neoutils code?
+    return eph.table
 
 
 
