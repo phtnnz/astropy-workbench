@@ -28,6 +28,7 @@ NAME        = "neoclasses"
 DESCRIPTION = "Dataclasses for ephemeris/planning"
 
 from dataclasses import dataclass
+from typing import Self
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -168,7 +169,7 @@ class EphemDataList(list):
 
 
     def __str__(self) -> str:
-        return "\n".join(f"{edata.type} {edata.obj} {edata.sort_time.iso}" for edata in self)
+        return "\n".join(f"{edata.type} {edata.obj} {edata.sort_time.iso if edata.sort_time else ''}" for edata in self)
 
 
     def verbose_ephem(self) -> None:
@@ -179,6 +180,11 @@ class EphemDataList(list):
                 verbose.print_lines(edata.ephem)
         verbose("===================================================================================================================")
 
+
+    @classmethod
+    def from_dict(cls, obj_edata: dict[str, EphemData]) -> Self:
+        return cls(obj_edata.values())
+    
 
 
 @dataclass
