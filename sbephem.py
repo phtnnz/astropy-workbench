@@ -48,7 +48,7 @@ from sbpy.data.core import QueryError
 # Local modules
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
-from neoephem   import get_ephem_jpl, get_ephem_mpc_for_objects, get_local_circumstances, get_dec_limits
+from neoephem   import get_ephem_jpl, get_ephem_mpc_for_objects, get_local_circumstances, get_dec_limits, obj_edata_add_exposure
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -165,10 +165,12 @@ def main():
             obj_data = get_ephem_jpl(objects, local, type)
         else:
             obj_data = get_ephem_mpc_for_objects(objects, local, type)
+        obj_edata_add_exposure(obj_data, local)
 
         for obj, edata in obj_data.items():
             verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                         "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+            verbose("NEO exposure", edata.exposure)
 
             ##CHECK: doesn't work properly
             if args.obs:
