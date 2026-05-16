@@ -21,8 +21,10 @@
 #       Added NEOCPListData
 # Version 0.3 / 2026-02-24
 #       Added JPLWObsData, MPCDLxData
+# Version 0.4 / 2026-05-16
+#       Added EphemDataList
 
-VERSION     = "0.3 / 2026-02-24"
+VERSION     = "0.4 / 2026-05-16"
 AUTHOR      = "Martin Junius"
 NAME        = "neoclasses"
 DESCRIPTION = "Dataclasses for ephemeris/planning"
@@ -156,21 +158,31 @@ class EphemData:
     force: bool = False         # force observation of this object (e.g. from --force option)
 
 
+
 class EphemDataList(list):
+    @classmethod
+    def from_dict(cls, obj_edata: dict[str, EphemData]) -> Self:
+        return cls(obj_edata.values())
+    
+    @classmethod
+    def from_objects(cls, objects: list[str]) -> Self:
+        return cls([ EphemData("-", obj) for obj in objects ])
+
     def objects(self) -> list[str]:
         return [ edata.obj for edata in self ]
 
     def objects_str(self) -> str:
         return ", ".join(self.objects())
-
+    
+    def append_objects(self, objects: list[str]) -> Self:
+        self.extend([ EphemData("-", obj) for obj in objects ])
+        return self
 
     def sort_by_time(self) -> None:
         return self.sort(key=lambda item: item.sort_time)
 
-
     def __str__(self) -> str:
         return "\n".join(f"{edata.type} {edata.obj} {edata.sort_time.iso if edata.sort_time else ''}" for edata in self)
-
 
     def verbose_ephem(self) -> None:
         for edata in self:
@@ -180,11 +192,6 @@ class EphemDataList(list):
                 verbose.print_lines(edata.ephem)
         verbose("===================================================================================================================")
 
-
-    @classmethod
-    def from_dict(cls, obj_edata: dict[str, EphemData]) -> Self:
-        return cls(obj_edata.values())
-    
 
 
 @dataclass
