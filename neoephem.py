@@ -49,7 +49,7 @@ from astroplan import Observer
 from verbose import verbose, warning, error, message
 from astroutils import get_location
 from neoclasses import Exposure, EphemTimes, EphemData, EphemDataList, LocalCircumstances
-from neoutils import exposure_calc, max_motion, get_mag0
+from neoutils import exposure_calc, max_motion, get_mag0, motion_limit
 from neoconfig import config
 
 DEFAULT_LOCATION = config.code
@@ -124,8 +124,11 @@ def edata_list_add_exposure(edata_list: EphemDataList, local: LocalCircumstances
         obj = edata.obj
         if edata.motion != None and edata.mag != None:
             edata.exposure = exposure_calc(edata.motion, edata.mag)
-        else:
-            warning(f"exposure calculation for {obj} failed")
+            ic(edata.obj, edata.exposure)
+        if not edata.exposure:
+            warning(f"exposure calculation for {obj} failed, too fast?")
+            if edata.motion != None:
+                warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
 
     return edata_list
 
