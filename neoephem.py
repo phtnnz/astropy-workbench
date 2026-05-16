@@ -107,7 +107,8 @@ def edata_list_add_ephem_mpc(edata_list: EphemDataList, local: LocalCircumstance
             motion = max_motion(eph1)
 
             # Copy to EphemData
-            edata.type = edata.wobs.type.upper()
+            if edata.wobs:
+                edata.type = edata.wobs.type.upper()
             edata.obj = obj
             edata.ephem = eph1
             edata.mag = mag
