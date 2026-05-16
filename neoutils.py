@@ -559,3 +559,57 @@ def obj_data_csv_output(obj_data: dict[str, EphemData], output: str) -> None:
             writer.writerows(csv_rows)
     else:
         warning("no objects, no CSV output")
+
+
+
+##FIXME: move to neoclosses?
+def edata_list_csv_output(edata_list: EphemDataList, output: str) -> None:
+    csv_rows = list()
+
+    # Traverse objects, only those with valid plan_start time
+    for edata in edata_list:
+        obj = edata.obj
+        if edata.times.plan_start:
+            # CSV output:
+            #   start time, end time, 
+            #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
+            #   type, mag, nobs, arc, notseen, total
+            # RA output  = hourangle !!!
+            # DEC output = degree
+            csv_row = { "target": obj,
+                        "obstime": fmt_time(edata.times.plan_start, add_tz=True),
+                        "ra": float(edata.ra.value),
+                        "dec": float(edata.dec.value),
+                        "exposure": float(edata.exposure.single.value),
+                        "number": edata.exposure.number,
+                        "filter": "L",
+                        "start time": fmt_time(edata.times.plan_start),
+                        "end time": fmt_time(edata.times.plan_end),
+                        "type": edata.type if edata.type else "-",
+                        "mag": float(edata.mag.value),
+                        "nobs": int(edata.neocp.nobs) if edata.neocp else "",
+                        "arc": float(edata.neocp.arc.value) if edata.neocp else "",
+                        "notseen": float(edata.neocp.notseen.value) if edata.neocp else "",
+                        "total": str(edata.exposure)
+                        }
+            ic(csv_row)
+            csv_rows.append(csv_row)
+
+    # Output to CSV file for nina-create-sequence2
+    verbose(f"planned objects for nina-create-sequence2: {output}")
+    # csv_row is the last object, if any were found
+    if csv_row:
+        ##FIXME: improve csvoutput module to cover this usage
+        fieldnames = csv_row.keys()
+        ic(fieldnames)
+        if output:
+            with open(output, "w", newline="") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(csv_rows)
+        else:
+            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+    else:
+        warning("no objects, no CSV output")
