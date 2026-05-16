@@ -49,7 +49,7 @@ from sbpy.data import Ephem
 # Local modules
 from verbose import verbose, warning, error, message
 from neoconfig import config
-from neoclasses import Exposure, EphemData, EphemTimes
+from neoclasses import Exposure, EphemData, EphemTimes, EphemDataList
 
 
 
@@ -431,6 +431,16 @@ def ephem_data_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: 
         # New sort order of neo-obs-planner
         if etimes.alt_start != None:
             edata.sort_time = etimes.alt_start
+
+
+
+def edata_list_add_times(edata_list: EphemDataList, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> EphemDataList:
+    for edata in edata_list:
+        if edata.ephem:
+            ephem_data_add_times(edata, col_obstime, col_alt, col_az, use_old_sort)
+        else:
+            warning(f"no ephemeris for {edata.obj}")
+    return edata_list
 
 
 
