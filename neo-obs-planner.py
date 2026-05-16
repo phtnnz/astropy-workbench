@@ -47,18 +47,18 @@ from astroquery.mpc import MPC
 # Local modules
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
-from neoclasses import EphemData, LocalCircumstances
-from neoutils   import obj_data_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, obj_data_csv_output
-from neoephem   import get_local_circumstances, get_dec_limits, obj_edata_add_ephem_mpc, obj_edata_add_exposure
-from neoplot    import plot_objects
-from sbwobs     import sbwobs_get_obj_edata
+from neoclasses import EphemData, EphemDataList, LocalCircumstances
+from neoutils   import edata_list_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, edata_list_csv_output
+from neoephem   import get_local_circumstances, get_dec_limits, edata_list_add_ephem_mpc, edata_list_add_exposure
+from neoplot    import edata_list_plot
+from sbwobs     import sbwobs_get_edata_list
 import neofiles
 
 DEFAULT_LOCATION = config.code
 
 
 
-def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> None:
+def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     # Start planner at naut. dusk / start time from options
     next_start_time = local.naut_dusk
     objects  = []
@@ -70,7 +70,9 @@ def obs_planner_1(obj_data: dict[str, EphemData], local: LocalCircumstances) -> 
     message("                     # x Exp = total exposure time")
     message("                     RA, DEC, Alt, Az")
 
-    for obj, edata in obj_data.items():
+    for edata in edata_list:
+        obj = edata.obj
+
         exp_start = None
         exp_end = None
 
@@ -248,28 +250,28 @@ def main():
     config.max_dec = int(max_dec.degree)
 
 
-    if args.sbwobs:
-        # Objects from SBWOBS
-        obj_edata = sbwobs_get_obj_edata(local)
-    else:
-        type = "-"
-        # Objects from file / command line
-        objects = list()
-        if args.file:
-            with open(args.file, "r") as file:
-                for line in file:
-                    objects.append(line.strip())
-        if args.object:
-            objects.extend(args.object)
-        ic(objects)
-        if not objects:
-            error("no objects from file or command line")
-        
-        obj_edata = dict()
-        for obj in objects:
-            obj_edata[obj] = EphemData(type, obj, None, None, None, None, None, None)
+    edata_list = EphemDataList()
 
-    # ic(obj_edata)
+    # Objects from SBWOBS
+    if args.sbwobs:
+        edata_list = sbwobs_get_edata_list(local)
+
+    # Objects from file / command line
+    type = "-"
+    objects = list()
+    if args.file:
+        with open(args.file, "r") as file:
+            for line in file:
+                objects.append(line.strip())
+    if args.object:
+        objects.extend(args.object)
+    if objects:
+        edata_list = edata_list.append_objects(objects)
+
+    if not edata_list:
+        error("no objects from file or command line")
+    
+    ic(edata_list)
 
     # Clear astroquery cache
     if args.clear:
@@ -283,23 +285,27 @@ def main():
     verbose.print_lines(local)
 
     # Get ephemerides from MPC (JPL doesn't provide moon phase/distance)
-    obj_edata_add_ephem_mpc(obj_edata, local)
+    edata_list_add_ephem_mpc(edata_list, local)
+
     # Get exposure data from mag and motion
-    obj_edata_add_exposure(obj_edata, local)
-    ic(obj_edata)
+    edata_list_add_exposure(edata_list, local)
+    ic(edata_list)
+
+    # Process only objects with ephemeris and exposure data
+    edata_list = EphemDataList([ edata for edata in edata_list if edata.ephem and edata.exposure ])
 
     # Process objects
-    obj_edata = obj_data_add_times(obj_edata)
-    verbose(f"original object sequence: {", ".join(obj_edata.keys())}")
+    edata_list_add_times(edata_list)
+    verbose(f"original object sequence: {", ".join(edata_list.objects())}")
+    # for edata in edata_list:
+    #     verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+    #                                    "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+    #     verbose(edata.exposure)
+    #     verbose(edata.times)
+    verbose.print_lines(edata_list)
 
-    for obj, edata in obj_edata.items():
-        verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                       "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-        # verbose(edata.exposure)
-        # verbose(edata.times)
-
-    obj_edata = sort_obj_data(obj_edata)
-    verbose(f"sorted object sequence: {", ".join(obj_edata.keys())}")
+    edata_list.sort_by_time()
+    verbose(f"sorted object sequence: {", ".join(edata_list.objects())}")
 
     log_file = neofiles.path("obs-planner-1.log")
     with verbose.logfile(log_file):
@@ -307,16 +313,16 @@ def main():
         verbose(f"obs-planner-1 {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
 
         # Run obs planner
-        obs_planner_1(obj_edata, local)
+        obs_planner_1(edata_list, local)
         if args.csv:
             ##FIXME: output file name depending on mode
-            obj_data_csv_output(obj_edata, args.output or neofiles.path("neo-obs-plan.csv"))
+            edata_list_csv_output(edata_list, args.output or neofiles.path("neo-obs-plan.csv"))
 
         # Plot objects and Moon
         if args.plot:
             plot_file = neofiles.path("neo-obs-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
-            plot_objects(obj_edata, plot_file, local.loc)
+            edata_list_plot(edata_list, plot_file, local.loc)
 
 
 
