@@ -425,7 +425,7 @@ def object_filter(key: str, edata: EphemData) -> bool:
 
 
 
-def sbwobs_get_obj_edata(local: LocalCircumstances) -> dict[str, EphemData]:
+def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
     obj_edata1 = jpl_parse_sbwobs(query)
@@ -480,16 +480,13 @@ def sbwobs_get_obj_edata(local: LocalCircumstances) -> dict[str, EphemData]:
             verbose(to_string(obj_edata.get(key)))
         verbose("------------------------------------------------------------")
 
-    ##FIXME: this should be the new return type for this function
-    edata_list = EphemDataList.from_dict(obj_edata)
-
-    return obj_edata
+    return EphemDataList.from_dict(obj_edata)
 
 
 
 def sbwobs_get_objects(local: LocalCircumstances) -> list[str]:
     # wrapper for sbwobs_get_obj_edata()
-        return sbwobs_get_obj_edata(local).keys()
+        return sbwobs_get_edata_list(local).keys()
 
 
 
