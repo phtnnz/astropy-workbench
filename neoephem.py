@@ -169,67 +169,6 @@ def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> None:
 
 
 
-## Obsolete ##
-def obj_edata_add_exposure(obj_edata: dict[str, EphemData], local: LocalCircumstances) -> dict[str, EphemData]:
-    """Add Exposure data to EphemData dict
-
-    Parameters
-    ----------
-    obj_edata : dict[str, EphemData]
-        EphemData dict
-    local : LocalCircumstances
-        Local circumstances: location, dusk/dawn etc.
-
-    Returns
-    -------
-    dict[str, EphemData]
-        EphemData dict, same as passed obj_edata arg
-    """
-    for obj in obj_edata.keys():
-        edata = obj_edata.get(obj)
-        edata.exposure = exposure_calc(edata.motion, edata.mag)
-
-    return obj_edata
-
-
-
-## Obsolete ##
-def obj_edata_add_ephem_mpc(obj_edata: dict[str, EphemData], local: LocalCircumstances) -> dict[str, EphemData]:
-    min_alt = config.min_alt
-
-    for obj in obj_edata.keys():
-        edata = obj_edata.get(obj)
-        try:
-            verbose(f"{obj} ephemeris from MPC")
-            # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
-            eph = Ephem.from_mpc(obj, location=local.loc, epochs=local.epochs, 
-                                    ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
-                                    dec_format={'sep': ':', 'precision': 1} )
-            # Rename columns to common names
-            _rename_columns_mpc(eph)
-            ic(eph.field_names)
-
-            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
-            eph1 = eph[mask]
-            if len(eph1) == 0:
-                warning(f"skipping empty ephemeris for {obj}")
-                continue
-            mag = get_mag0(eph1)
-            motion = max_motion(eph1)
-
-            # Copy to EphemData
-            edata.type = edata.wobs.type.upper()
-            edata.obj = obj
-            edata.ephem = eph1
-            edata.mag = mag
-            edata.motion = motion
-        except QueryError as e:
-            warning(f"MPC ephemeris for {obj} failed")
-
-    return obj_edata
-
-
-
 def get_local_circumstances(location: str) -> LocalCircumstances:
     """Get local circumentances: location, observer, dusk, dawn, epochs parameter
 
