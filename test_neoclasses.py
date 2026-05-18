@@ -22,7 +22,8 @@
 
 
 # EphemDataList
-from neoclasses import EphemData, EphemDataList
+from neoclasses import EphemData, EphemDataList, LocalCircumstances
+
 test_obj_edata = {
     "1999 A": EphemData("TEST", "1999 A"),
     "2000 B": EphemData("TEST", "2000 B"),
@@ -35,4 +36,11 @@ test_objects = [ "1999 A", "2000 B", "2001 C", "(1234)"]
 test_list1 = EphemDataList.from_dict(test_obj_edata)
 print(test_list1)
 test_list2 = EphemDataList.from_objects(test_objects)
+print(test_list2)
+
+def test_func(edata: EphemData, local: LocalCircumstances) -> None:
+    edata.type = "FUNC"
+
+local = LocalCircumstances(None, None, None, None, None)
+test_list2.process(test_func, local)
 print(test_list2)
