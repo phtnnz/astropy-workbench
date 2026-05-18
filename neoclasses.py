@@ -31,6 +31,7 @@ DESCRIPTION = "Dataclasses for ephemeris/planning"
 
 from dataclasses import dataclass
 from typing import Self
+from collections.abc import Callable
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -159,6 +160,21 @@ class EphemData:
 
 
 
+@dataclass
+class LocalCircumstances:
+    """Observer location and time data"""
+    loc: EarthLocation          # location
+    observer: Observer          # astroplan observer
+    naut_dusk: Time             # nautical dusk
+    naut_dawn: Time             # nautical dawn
+    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
+    code: str = None            # MPC station code
+
+    def __str__(self) -> str:
+        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
+
+
+
 class EphemDataList(list):
     @classmethod
     def from_dict(cls, obj_edata: dict[str, EphemData]) -> Self:
@@ -192,17 +208,9 @@ class EphemDataList(list):
                 verbose.print_lines(edata.ephem)
         verbose("===================================================================================================================")
 
+    def process(self, func: Callable, local: LocalCircumstances) -> None:
+        for edata in self:
+            func(edata, local)
 
 
-@dataclass
-class LocalCircumstances:
-    """Observer location and time data"""
-    loc: EarthLocation          # location
-    observer: Observer          # astroplan observer
-    naut_dusk: Time             # nautical dusk
-    naut_dawn: Time             # nautical dawn
-    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
-    code: str = None            # MPC station code
 
-    def __str__(self) -> str:
-        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
