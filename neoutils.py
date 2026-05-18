@@ -483,7 +483,7 @@ def verbose_obj_data(obj_data: dict[str, EphemData]) -> None:
     for obj in obj_data:
         verbose("===================================================================================================================")
         verbose(f"{obj} ephemeris")
-        verbose.print_lines(obj_data[obj].ephem)
+        verbose.print_lines2(obj_data[obj].ephem)
     verbose("===================================================================================================================")
 
 

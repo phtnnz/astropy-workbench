@@ -205,7 +205,7 @@ class EphemDataList(list):
             if edata.ephem:
                 verbose("===================================================================================================================")
                 verbose(f"{edata.obj} ephemeris")
-                verbose.print_lines(edata.ephem)
+                verbose.print_lines2(edata.ephem)
         verbose("===================================================================================================================")
 
     def process(self, func: Callable, local: LocalCircumstances) -> None:
