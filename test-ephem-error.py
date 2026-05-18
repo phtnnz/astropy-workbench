@@ -17,6 +17,8 @@
 # ChangeLog
 # Version 0.0 / 2025-xx-xx
 #       TEXT
+#
+# https://github.com/NASA-Planetary-Science/sbpy/issues/451
 
 VERSION     = "0.0 / 2025-xx-xx"
 AUTHOR      = "Martin Junius"
@@ -39,9 +41,15 @@ def main():
     loc = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # M49, Hakos, Namibia
     obj = "2026 JH2"
 
-    eph = Ephem.from_mpc(obj, location=loc)
+    ## Working examples
+    epochs = {"start":  Time('2026-05-20 00:00:00.000'),
+              "step":   30 * u.min,
+              "stop":   Time('2026-05-20 06:00:00.000')
+             }
+    eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
     ic(eph)
 
+    ## This epochs setting raised a FieldError exception
     epochs = {"start":  Time('2026-05-19 00:00:00.000'),
               "step":   30 * u.min,
               "stop":   Time('2026-05-19 06:00:00.000')
