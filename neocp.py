@@ -44,8 +44,10 @@
 #       Added log file output
 # Version 0.12 / 2026-03-05
 #       Added -f --force option to include objects in observation plan even if they fail checks
+# Version 0.13 / 2026-05-18
+#       Refactored for EphemDataList
 
-VERSION = "0.12 / 2026-03-05"
+VERSION = "0.13 / 2026-05-18"
 AUTHOR  = "Martin Junius"
 NAME    = "neocp"
 
@@ -59,42 +61,68 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import Angle, EarthLocation
 import astropy.units as u
-from astropy.units import Quantity, Magnitude
-from astropy.time import Time
-from astropy.table import QTable, Row
-
-# Astroplan
-from astroplan import Observer
 
 # Local modules
-from verbose import verbose, warning, error, message
-from astroutils import mpc_station_location, location_to_string
-from neoconfig import config
-from neoplot import plot_objects
-from mpcneocp import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides
-from mpcneocp import parse_neocp_list, obj_data_from_text_ephemerides, obj_data_add_neocp_list
-from neoclasses import EphemData
-from neoutils import obj_data_add_times, sort_obj_data, verbose_obj_data
-from neoutils import motion_limit, get_row_for_time, obj_data_csv_output, fmt_time
+from verbose    import verbose, warning, error, message
+from neoconfig  import config
+from neoplot    import edata_list_plot
+from mpcneocp   import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides
+from mpcneocp   import parse_neocp_list
+from mpcneocp   import edata_list_from_text_ephemerides, edata_list_add_neocp_list
+from neoclasses import EphemData, EphemDataList, LocalCircumstances
+from neoutils   import motion_limit, get_row_for_time, fmt_time
+from neoephem   import get_local_circumstances, edata_add_exposure
+from neoutils   import edata_list_add_times, get_row_for_time, motion_limit, fmt_time, edata_list_csv_output
 import neofiles
 
-
-
-# Command line options
-class Options:
-    """
-    Command line options
-    """
-    csv: bool = False           # -C --csv
-    output: str = None          # -o --output
-    code: str = config.code     # -l --location
-    loc: EarthLocation = mpc_station_location(code)
+DEFAULT_LOCATION = config.code
 
 
 
-def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
+def edata_list_from_neocp(update: bool, local: LocalCircumstances) -> EphemDataList:
+    local_eph   = neofiles.path(config.local_eph)
+    local_neocp = neofiles.path(config.local_neocp)
+    local_pccp  = neofiles.path(config.local_pccp)
+    ic(neofiles.prefix, local_eph, local_neocp, local_pccp)
+
+    if update:
+        verbose(f"download ephemerides from {config.url_neocp_query}")
+        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, local.loc, local.code)
+        verbose(f"download NEOCP list from {config.url_neocp_list}")
+        mpc_query_neocp_list(config.url_neocp_list, local_neocp)
+        verbose(f"download PCCP list from {config.url_pccp_list}")
+        mpc_query_neocp_list(config.url_pccp_list, local_pccp)
+
+    try:
+        # Parse ephemerides
+        verbose(f"processing {local_eph}")
+        with open(local_eph, "r") as file:
+            content = file.readlines()
+            ephemerides_txt = parse_html_ephemerides(content)
+            edata_list = edata_list_from_text_ephemerides(ephemerides_txt, local)
+
+        # Parse lists
+        verbose(f"processing {local_neocp}")
+        with open(local_neocp, "r") as file:
+            content = file.readlines()
+            neocp_list = parse_neocp_list(content)
+            edata_list_add_neocp_list(edata_list, neocp_list)
+
+        verbose(f"processing {local_pccp}")
+        with open(local_pccp, "r") as file:
+            content = file.readlines()
+            pccp_list = parse_neocp_list(content)
+            edata_list_add_neocp_list(edata_list, pccp_list, is_pccp=True)
+
+    except FileNotFoundError as e:
+        error(e)
+
+    return edata_list
+
+
+
+def obs_planner_neocp(edata_list: EphemDataList) -> None:
     """
     New version of process_objects()
     """
@@ -108,7 +136,10 @@ def obs_planner_neocp(obj_data: dict[str, EphemData]) -> None:
     objects  = []
     prev_time_end_exp = None
 
-    for obj, edata in obj_data.items():
+    edata: EphemData
+    for edata in edata_list:
+        obj = edata.obj
+
         max_m = edata.motion
         eph = edata.ephem
         ic(obj, eph, max_m)
@@ -273,24 +304,12 @@ def main():
         verbose.set_prog(NAME)
         verbose.enable()
 
-    Options.csv    = args.csv
-    Options.output = args.output or neofiles.path("neocp-plan.csv")
-    
     if args.mag_limit:
         config.mag_limit = float(args.mag_limit)
-    if args.location:
-        loc = mpc_station_location(args.location)
-        Options.code = args.location
-        Options.loc  = loc
-        ic(loc, loc.to_geodetic())
-    verbose(f"location: {Options.code} {location_to_string(Options.loc)}")
 
-    # Get next midnight
-    observer = Observer(location=Options.loc, description=Options.code)
-    midnight = observer.midnight(Time.now(), which="next")
-    min_time = midnight - 12 * u.hour
-    max_time = midnight + 12 * u.hour
-    ic(midnight, min_time, max_time)
+    # location and local circumstances
+    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
+    verbose.print_lines(local)
 
     if args.prefix:
         if args.update_neocp:
@@ -306,64 +325,42 @@ def main():
     local_pccp  = neofiles.path(config.local_pccp)
     ic(neofiles.prefix, local_eph, local_neocp, local_pccp)
 
-    if args.update_neocp:
-        verbose(f"download ephemerides from {config.url_neocp_query}")
-        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, Options.loc, Options.code)
-        verbose(f"download NEOCP list from {config.url_neocp_list}")
-        mpc_query_neocp_list(config.url_neocp_list, local_neocp)
-        verbose(f"download PCCP list from {config.url_pccp_list}")
-        mpc_query_neocp_list(config.url_pccp_list, local_pccp)
 
-    try:
-        # Parse ephemerides
-        verbose(f"processing {local_eph}")
-        with open(local_eph, "r") as file:
-            content = file.readlines()
-            ephemerides_txt = parse_html_ephemerides(content)
-            obj_data = obj_data_from_text_ephemerides(ephemerides_txt, min_time, max_time)
-            # obj_data = obj_data_add_times(obj_data)
-            ##FIXME: using old sort order for testing
-            obj_data = obj_data_add_times(obj_data, use_old_sort=True)
 
-        # Parse lists
-        verbose(f"processing {local_neocp}")
-        with open(local_neocp, "r") as file:
-            content = file.readlines()
-            neocp_list = parse_neocp_list(content)
-            obj_data = obj_data_add_neocp_list(obj_data, neocp_list)
+    edata_list = edata_list_from_neocp(args.update_neocp, local)
 
-        verbose(f"processing {local_pccp}")
-        with open(local_pccp, "r") as file:
-            content = file.readlines()
-            pccp_list = parse_neocp_list(content)
-            obj_data = obj_data_add_neocp_list(obj_data, pccp_list, is_pccp=True)
+    # Get exposure data from mag and motion
+    edata_list.process(edata_add_exposure, local)
 
-    except FileNotFoundError as e:
-        error(e)
+    ##FIXME: using old sort order for testing
+    edata_list_add_times(edata_list, use_old_sort=True)
+    edata_list.sort_by_time()
+    ic(edata_list)
 
-    obj_data = sort_obj_data(obj_data)
-    verbose("planning objects:", " ".join(obj_data.keys()))
+    verbose("planning objects:", " ".join(edata_list.objects()))
     verbose("forced objects:", " ".join(forced_objs))
-    for obj in forced_objs:
-        if obj in obj_data:
-            obj_data[obj].force = True
-    verbose_obj_data(obj_data)
+    ##FIXME: use process() to implement
+    # for obj in forced_objs:
+    #     if obj in obj_data:
+    #         obj_data[obj].force = True
+    edata_list.verbose_ephem()
 
     log_file = neofiles.path("obs-planner-neocp.log")
     with verbose.logfile(log_file):
         # NEOCP planner
         verbose(f"obs-planner-neocp {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
-        obs_planner_neocp(obj_data)
+        obs_planner_neocp(edata_list)
 
         # Output CSV plan
-        if Options.csv:
-            obj_data_csv_output(obj_data, Options.output)
+        if args.csv:
+            ##FIXME: output file name depending on mode
+            edata_list_csv_output(edata_list, args.output or neofiles.path("neo-obs-plan.csv"))
 
         # Plot objects and Moon
         if args.plot:
             plot_file = neofiles.path("neocp-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
-            plot_objects(obj_data, plot_file, Options.loc)
+            edata_list_plot(edata_list, plot_file, local.loc)
 
 
 
