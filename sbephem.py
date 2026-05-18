@@ -48,7 +48,8 @@ from sbpy.data.core import QueryError
 # Local modules
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
-from neoephem   import get_ephem_jpl_for_objects, get_ephem_mpc_for_objects, get_local_circumstances, get_dec_limits, obj_edata_add_exposure
+from neoephem   import edata_add_ephem_jpl, edata_add_ephem_mpc, edata_add_exposure, get_local_circumstances, get_dec_limits, obj_edata_add_exposure
+from neoclasses import EphemData
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -160,32 +161,35 @@ def main():
         #     warning(f"query MPC observations failed for {obj}!")
         #     obs = None
 
+        edata = EphemData("-", obj)
+
         # Get ephemerides
         if args.jpl:
-            obj_data = get_ephem_jpl_for_objects(objects, local, type)
+            edata_add_ephem_jpl(edata, local)
         else:
-            obj_data = get_ephem_mpc_for_objects(objects, local, type)
-        obj_edata_add_exposure(obj_data, local)
+            edata_add_ephem_mpc(edata, local)
+        edata_add_exposure(edata, local)
+        ic(edata)
 
-        for obj, edata in obj_data.items():
+        if edata.ephem:
             verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                        "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+                                            "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
             verbose("NEO exposure", edata.exposure)
 
-            ##CHECK: doesn't work properly
-            if args.obs:
-                try:
-                    obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-                    print(obs)
-                    # # Handle masked entries
-                    # for i in range(-1, -10, -1):
-                    #     mag = obs["mag"][i].unmasked
-                    #     if mag > Magnitude(0):
-                    #         break
-                except QueryError as e:
-                    warning(f"MPC observations for {obj} failed")
-                except ConnectionError as e:
-                    warning(f"MPC request failed: {e}")
+        ##CHECK: doesn't work properly
+        if args.obs:
+            try:
+                obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
+                print(obs)
+                # # Handle masked entries
+                # for i in range(-1, -10, -1):
+                #     mag = obs["mag"][i].unmasked
+                #     if mag > Magnitude(0):
+                #         break
+            except QueryError as e:
+                warning(f"MPC observations for {obj} failed")
+            except ConnectionError as e:
+                warning(f"MPC request failed: {e}")
 
 
 
