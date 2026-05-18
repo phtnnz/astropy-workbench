@@ -49,7 +49,7 @@ from verbose    import verbose, warning, error, message
 from neoconfig  import config
 from neoclasses import EphemData, EphemDataList, LocalCircumstances
 from neoutils   import edata_list_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, edata_list_csv_output
-from neoephem   import get_local_circumstances, get_dec_limits, edata_list_add_ephem_mpc, edata_list_add_exposure
+from neoephem   import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc, edata_add_exposure
 from neoplot    import edata_list_plot
 from sbwobs     import sbwobs_get_edata_list
 import neofiles
@@ -285,10 +285,10 @@ def main():
     verbose.print_lines(local)
 
     # Get ephemerides from MPC (JPL doesn't provide moon phase/distance)
-    edata_list_add_ephem_mpc(edata_list, local)
+    edata_list.process(edata_add_ephem_mpc, local)
 
     # Get exposure data from mag and motion
-    edata_list_add_exposure(edata_list, local)
+    edata_list.process(edata_add_exposure, local)
     ic(edata_list)
 
     # Process only objects with ephemeris and exposure data
