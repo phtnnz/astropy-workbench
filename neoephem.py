@@ -112,8 +112,46 @@ def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
         edata.ephem = eph1
         edata.mag = mag
         edata.motion = motion
+
     except (QueryError, FieldError) as e:
         warning(f"MPC ephemeris for {obj} failed")
+
+
+
+def edata_add_ephem_jpl(edata: EphemData, local: LocalCircumstances) -> None:
+    min_alt = config.min_alt
+
+    obj = edata.obj
+    try:
+        verbose(f"{obj} ephemeris from JPL")
+        eph = Ephem.from_horizons(obj, location=local.loc, epochs=local.epochs)
+        # Compute total motion from RA/DEC rates
+        eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
+        # Rename columns to common names
+        _rename_columns_jpl(eph)
+        ic(eph.field_names)
+
+        mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
+        eph1 = eph[mask]
+        if len(eph1) == 0:
+            warning(f"skipping empty ephemeris for {obj}")
+            return
+        ##Quick hack: missing Moon_dist, Moon_alt in JPL ephemeris?
+        eph1["Moon_dist"] = 180 * u.degree
+        eph1["Moon_alt"]  = -90 * u.degree
+        mag = get_mag0(eph1)
+        motion = max_motion(eph1)
+
+        # Copy to EphemData
+        if edata.wobs:
+            edata.type = edata.wobs.type.upper()
+        edata.obj = obj
+        edata.ephem = eph1
+        edata.mag = mag
+        edata.motion = motion
+
+    except (QueryError, FieldError) as e:
+        warning(f"JPL ephemeris for {obj} failed")
 
 
 
@@ -129,47 +167,6 @@ def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> None:
         if edata.motion != None:
             warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
 
-
-
-## Used only by sbephem command line ##
-def get_ephem_mpc_for_objects(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
-    """Get ephemerides for object list from MPC
-
-    Args:
-        objects (list): object list
-        local (LocalCircumstances): local circumstances for upcoming observation night
-
-    Returns:
-        dict[EphemData]: object dict with ephemerides data
-    """
-    min_alt = config.min_alt
-    obj_data = {}
-
-    for obj in objects:
-        try:
-            verbose(f"{obj} ephemeris from MPC")
-            # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
-            eph = Ephem.from_mpc(obj, location=local.loc, epochs=local.epochs, 
-                                    ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
-                                    dec_format={'sep': ':', 'precision': 1} )
-            # Rename columns to common names
-            _rename_columns_mpc(eph)
-            ic(eph.field_names)
-
-            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
-            eph1 = eph[mask]
-            if len(eph1) == 0:
-                warning(f"skipping empty ephemeris for {obj}")
-                continue
-            mag = get_mag0(eph1)
-            motion = max_motion(eph1)
-            exp = exposure_calc(motion, mag)
-            data = EphemData(type, obj, None, eph1, None, exp, mag, motion)
-            obj_data[obj] = data
-        except QueryError as e:
-            warning(f"MPC ephemeris for {obj} failed")
-
-    return obj_data
 
 
 ## Obsolete ##
@@ -230,50 +227,6 @@ def obj_edata_add_ephem_mpc(obj_edata: dict[str, EphemData], local: LocalCircums
             warning(f"MPC ephemeris for {obj} failed")
 
     return obj_edata
-
-
-
-## Use only for sbephem / neoephem command line ##
-def get_ephem_jpl_for_objects(objects: list, local: LocalCircumstances, type: str) -> dict[str, EphemData]:
-    """Get ephemerides for object list from JPL
-
-    Args:
-        objects (list): object list
-        local (LocalCircumstances): local circumstances for upcoming observation night
-
-    Returns:
-        dict[EphemData]: object dict with ephemerides data
-    """
-    min_alt = config.min_alt
-    obj_data = {}
-
-    for obj in objects:
-        try:
-            verbose(f"{obj} ephemeris from JPL")
-            eph = Ephem.from_horizons(obj, location=local.loc, epochs=local.epochs)
-            # Compute total motion from RA/DEC rates
-            eph["Motion"] = np.sqrt( np.square(eph["RA*cos(Dec)_rate"]) + np.square(eph["DEC_rate"]) )
-            # Rename columns to common names
-            _rename_columns_jpl(eph)
-            ic(eph.field_names)
-
-            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
-            eph1 = eph[mask]
-            if len(eph1) == 0:
-                warning(f"skipping empty ephemeris for {obj}")
-                continue
-            ##Quick hack: missing Moon_dist, Moon_alt in JPL ephemeris?
-            eph1["Moon_dist"] = 180 * u.degree
-            eph1["Moon_alt"]  = -90 * u.degree
-            mag = get_mag0(eph1)
-            motion = max_motion(eph1)
-            exp = exposure_calc(motion, mag)
-            data = EphemData(type, obj, None, eph1, None, exp, mag, motion)
-            obj_data[obj] = data
-        except QueryError as e:
-            warning(f"MPC ephemeris for {obj} failed")
-
-    return obj_data
 
 
 
@@ -352,64 +305,3 @@ def get_dec_limits(local: LocalCircumstances, min_alt: Angle) -> tuple[Angle, An
         max_dec = +90*u.deg 
     ic(lat, min_alt, min_dec, max_dec)
     return Angle(min_dec), Angle(max_dec)
-
-
-
-def main():
-    arg = argparse.ArgumentParser(
-        prog        = NAME,
-        description = DESCRIPTION,
-        epilog      = "Version " + VERSION + " / " + AUTHOR)
-    arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
-    arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
-    arg.add_argument("-f", "--file", help="read list of objects from file")
-    arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
-    arg.add_argument("--clear", action="store_true", help="clear MPC cache")
-    arg.add_argument("object", nargs="*", help="object name")
-
-    args = arg.parse_args()
-
-    if args.debug:
-        ic.enable()
-        ic(sys.version_info, sys.path, args)
-    if args.verbose:
-        verbose.set_prog(NAME)
-        verbose.enable()
-
-    # Observer location and local circumstances
-    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
-
-    # Objects
-    objects = []
-    if args.file:
-        with open(args.file, "r") as file:
-            for line in file:
-                objects.append(line.strip())
-    if args.object:
-        objects.extend(args.object)
-    ic(objects)
-    if not objects:
-        error("no objects from file or command line")
-
-    # Clear astroquery cache
-    if args.clear:
-        MPC.clear_cache()    
-
-    verbose.print_lines(local)
-
-    if args.jpl:
-        obj_data = get_ephem_jpl_for_objects(objects, local)
-    else:
-        obj_data = get_ephem_mpc_for_objects(objects, local, type="-")
-
-    ic(obj_data)
-    for obj, data in obj_data.items():
-        verbose.print_lines(data.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                       "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-        verbose(data.exposure)
-
-
-
-if __name__ == "__main__":
-    main()
