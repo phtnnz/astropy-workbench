@@ -42,7 +42,7 @@ from astropy.table import QTable
 # Local modules
 from verbose import verbose, warning, error
 from neoconfig import config
-from neoclasses import EphemData, Ephem, NEOCPListData
+from neoclasses import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
 from neoutils import get_mag0, max_motion, exposure_calc
 
 
@@ -154,27 +154,10 @@ def mpc_query_neocp_list(url: str, filename: str) -> None:
 
 
 
-def obj_data_from_text_ephemerides(eph_text: dict[str, list[str]], min_time: Time, max_time: Time) -> dict[str, EphemData]:
-    """
-    Convert ephemerides from plain text format to Ephem for all objects
-
-    Parameters
-    ----------
-    eph_text : dict
-        Ephemerides dictionary in plain text format
-    min_time : Time
-        Lower limit for ephemeris time
-    max_time : Time
-        Upper limit for ephemeris time
-
-    Returns
-    -------
-    dict
-        EphemData dictionary for further processing
-    """
+def obj_data_from_text_ephemerides(eph_text: dict[str, list[str]], local: LocalCircumstances) -> dict[str, EphemData]:
     obj_data = {}
     for obj, lines in eph_text.items():
-        qt = convert_text_ephemeris1(obj, lines, min_time, max_time)
+        qt = convert_text_ephemeris1(obj, lines, local)
         if len(qt) == 0:
             verbose(f"skipping NEOCP {obj=} (empty)")
             continue
@@ -218,7 +201,7 @@ def obj_data_add_neocp_list(obj_data: dict[str, EphemData], neocp_list: dict[str
 
 
 
-def convert_text_ephemeris1(id: str, eph: list[str], min_time: Time, max_time: Time) -> QTable:
+def convert_text_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) -> QTable:
     """
     Convert ephemeris in plain text format to table
 
@@ -228,11 +211,8 @@ def convert_text_ephemeris1(id: str, eph: list[str], min_time: Time, max_time: T
         Object id
     eph : list
         Ephemeris as list of plain text lines from MPC query results
-    min_time : Time
-        Lower limit for ephemeris time
-    max_time : Time
-        Upper limit for ephemeris time
-
+    local : LocalCircumstances
+        Location data &c.
     Returns
     -------
     QTable
@@ -271,8 +251,8 @@ def convert_text_ephemeris1(id: str, eph: list[str], min_time: Time, max_time: T
         alt       = Angle(line[72:75], unit=u.degree)
         moon_dist = Angle(line[91:94], unit=u.degree)
         moon_alt  = Angle(line[96:99], unit=u.degree)
-        ic(time, min_time, max_time)
-        if time < min_time or time > max_time:
+        ic(time, local.naut_dusk, local.naut_dawn)
+        if time < local.naut_dusk or time > local.naut_dawn:
             ic("skipping")
             continue
         ic(ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
