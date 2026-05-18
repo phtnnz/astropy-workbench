@@ -48,7 +48,7 @@ from sbpy.data.core import QueryError
 # Local modules
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
-from neoephem   import edata_add_ephem_jpl, edata_add_ephem_mpc, edata_add_exposure, get_local_circumstances, get_dec_limits, obj_edata_add_exposure
+from neoephem   import edata_add_ephem_jpl, edata_add_ephem_mpc, edata_add_exposure, get_local_circumstances, get_dec_limits
 from neoclasses import EphemData
 
 ##FIXME: use config
