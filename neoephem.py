@@ -39,7 +39,7 @@ import astropy.units as u
 import numpy as np
 
 from sbpy.data import Ephem
-from sbpy.data.core import QueryError
+from sbpy.data.core import QueryError, FieldError
 
 from astroquery.mpc import MPC
 
@@ -83,55 +83,51 @@ def _rename_columns_jpl(eph: Ephem) -> None:
 
 
 
-def edata_list_add_ephem_mpc(edata_list: EphemDataList, local: LocalCircumstances) -> EphemDataList:
+def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
     min_alt = config.min_alt
 
-    for edata in edata_list:
-        obj = edata.obj
-        try:
-            verbose(f"{obj} ephemeris from MPC")
-            # eph = Ephem.from_mpc(obj, location=loc, epochs=epochs)
-            eph = Ephem.from_mpc(obj, location=local.loc, epochs=local.epochs, 
-                                    ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
-                                    dec_format={'sep': ':', 'precision': 1} )
-            # Rename columns to common names
-            _rename_columns_mpc(eph)
-            ic(eph.field_names)
+    obj = edata.obj
+    try:
+        verbose(f"{obj} ephemeris from MPC")
+        ic(local.epochs)
+        eph = Ephem.from_mpc(obj, location=local.loc, epochs=local.epochs, 
+                                ra_format={'sep': ':', 'unit': 'hourangle', 'precision': 1}, 
+                                dec_format={'sep': ':', 'precision': 1} )
+        # Rename columns to common names
+        _rename_columns_mpc(eph)
+        ic(eph.field_names)
 
-            mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
-            eph1 = eph[mask]
-            if len(eph1) == 0:
-                warning(f"skipping empty ephemeris for {obj}")
-                continue
-            mag = get_mag0(eph1)
-            motion = max_motion(eph1)
+        mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
+        eph1 = eph[mask]
+        if len(eph1) == 0:
+            warning(f"skipping empty ephemeris for {obj}")
+            return
+        mag = get_mag0(eph1)
+        motion = max_motion(eph1)
 
-            # Copy to EphemData
-            if edata.wobs:
-                edata.type = edata.wobs.type.upper()
-            edata.obj = obj
-            edata.ephem = eph1
-            edata.mag = mag
-            edata.motion = motion
-        except QueryError as e:
-            warning(f"MPC ephemeris for {obj} failed")
-
-    return edata_list
+        # Copy to EphemData
+        if edata.wobs:
+            edata.type = edata.wobs.type.upper()
+        edata.obj = obj
+        edata.ephem = eph1
+        edata.mag = mag
+        edata.motion = motion
+    except (QueryError, FieldError) as e:
+        warning(f"MPC ephemeris for {obj} failed")
 
 
 
-def edata_list_add_exposure(edata_list: EphemDataList, local: LocalCircumstances) -> EphemDataList:
-    for edata in edata_list:
-        obj = edata.obj
-        if edata.motion != None and edata.mag != None:
-            edata.exposure = exposure_calc(edata.motion, edata.mag)
-            ic(edata.obj, edata.exposure)
-        if not edata.exposure:
-            warning(f"exposure calculation for {obj} failed, too fast?")
-            if edata.motion != None:
-                warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
-
-    return edata_list
+def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> None:
+    obj = edata.obj
+    if not edata.ephem:
+        return
+    if edata.motion != None and edata.mag != None:
+        edata.exposure = exposure_calc(edata.motion, edata.mag)
+        ic(edata.obj, edata.exposure)
+    if not edata.exposure:
+        warning(f"exposure calculation for {obj} failed, too fast?")
+        if edata.motion != None:
+            warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
 
 
 
