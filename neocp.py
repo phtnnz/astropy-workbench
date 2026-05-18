@@ -67,9 +67,7 @@ import astropy.units as u
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
 from neoplot    import edata_list_plot
-from mpcneocp   import mpc_query_neocp_ephemerides, mpc_query_neocp_list, parse_html_ephemerides
-from mpcneocp   import parse_neocp_list
-from mpcneocp   import edata_list_from_text_ephemerides, edata_list_add_neocp_list
+from mpcneocp   import neocp_get_edata_list
 from neoclasses import EphemData, EphemDataList, LocalCircumstances
 from neoutils   import motion_limit, get_row_for_time, fmt_time
 from neoephem   import get_local_circumstances, edata_add_exposure
@@ -77,48 +75,6 @@ from neoutils   import edata_list_add_times, get_row_for_time, motion_limit, fmt
 import neofiles
 
 DEFAULT_LOCATION = config.code
-
-
-
-def edata_list_from_neocp(update: bool, local: LocalCircumstances) -> EphemDataList:
-    local_eph   = neofiles.path(config.local_eph)
-    local_neocp = neofiles.path(config.local_neocp)
-    local_pccp  = neofiles.path(config.local_pccp)
-    ic(neofiles.prefix, local_eph, local_neocp, local_pccp)
-
-    if update:
-        verbose(f"download ephemerides from {config.url_neocp_query}")
-        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, local.loc, local.code)
-        verbose(f"download NEOCP list from {config.url_neocp_list}")
-        mpc_query_neocp_list(config.url_neocp_list, local_neocp)
-        verbose(f"download PCCP list from {config.url_pccp_list}")
-        mpc_query_neocp_list(config.url_pccp_list, local_pccp)
-
-    try:
-        # Parse ephemerides
-        verbose(f"processing {local_eph}")
-        with open(local_eph, "r") as file:
-            content = file.readlines()
-            ephemerides_txt = parse_html_ephemerides(content)
-            edata_list = edata_list_from_text_ephemerides(ephemerides_txt, local)
-
-        # Parse lists
-        verbose(f"processing {local_neocp}")
-        with open(local_neocp, "r") as file:
-            content = file.readlines()
-            neocp_list = parse_neocp_list(content)
-            edata_list_add_neocp_list(edata_list, neocp_list)
-
-        verbose(f"processing {local_pccp}")
-        with open(local_pccp, "r") as file:
-            content = file.readlines()
-            pccp_list = parse_neocp_list(content)
-            edata_list_add_neocp_list(edata_list, pccp_list, is_pccp=True)
-
-    except FileNotFoundError as e:
-        error(e)
-
-    return edata_list
 
 
 
@@ -327,7 +283,7 @@ def main():
 
 
 
-    edata_list = edata_list_from_neocp(args.update_neocp, local)
+    edata_list = neocp_get_edata_list(args.update_neocp, local)
 
     # Get exposure data from mag and motion
     edata_list.process(edata_add_exposure, local)

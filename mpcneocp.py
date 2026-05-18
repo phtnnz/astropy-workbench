@@ -46,7 +46,7 @@ from verbose import verbose, warning, error
 from neoconfig import config
 from neoclasses import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
 from neoutils import get_mag0, max_motion
-
+import neofiles
 
 
 # Requests timeout
@@ -363,3 +363,45 @@ def parse_neocp_list(content: list[str]) -> dict[str, NEOCPListData]:
         neocp_list[obj] = data
 
     return neocp_list
+
+
+
+def neocp_get_edata_list(update: bool, local: LocalCircumstances) -> EphemDataList:
+    local_eph   = neofiles.path(config.local_eph)
+    local_neocp = neofiles.path(config.local_neocp)
+    local_pccp  = neofiles.path(config.local_pccp)
+    ic(neofiles.prefix, local_eph, local_neocp, local_pccp)
+
+    if update:
+        verbose(f"download ephemerides from {config.url_neocp_query}")
+        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, local.loc, local.code)
+        verbose(f"download NEOCP list from {config.url_neocp_list}")
+        mpc_query_neocp_list(config.url_neocp_list, local_neocp)
+        verbose(f"download PCCP list from {config.url_pccp_list}")
+        mpc_query_neocp_list(config.url_pccp_list, local_pccp)
+
+    try:
+        # Parse ephemerides
+        verbose(f"processing {local_eph}")
+        with open(local_eph, "r") as file:
+            content = file.readlines()
+            ephemerides_txt = parse_html_ephemerides(content)
+            edata_list = edata_list_from_text_ephemerides(ephemerides_txt, local)
+
+        # Parse lists
+        verbose(f"processing {local_neocp}")
+        with open(local_neocp, "r") as file:
+            content = file.readlines()
+            neocp_list = parse_neocp_list(content)
+            edata_list_add_neocp_list(edata_list, neocp_list)
+
+        verbose(f"processing {local_pccp}")
+        with open(local_pccp, "r") as file:
+            content = file.readlines()
+            pccp_list = parse_neocp_list(content)
+            edata_list_add_neocp_list(edata_list, pccp_list, is_pccp=True)
+
+    except FileNotFoundError as e:
+        error(e)
+
+    return edata_list
