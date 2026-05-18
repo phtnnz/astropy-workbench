@@ -32,6 +32,8 @@
 #       Added .print_lines(), splits multi-line string representations
 # Version 2.0 / 2026-02-20
 #       Added context manager and logfile output
+# Version 2.1 / 2026-05-18
+#       Added print_lines2(), omitting 1st line string representation
 #
 #       Usage:  from verbose import message, verbose, warning, error
 #               message(print-like-args)
@@ -39,6 +41,7 @@
 #               warning(print-like-args)
 #               error(print-like-args)
 #               .print_lines(line(s), ...)
+#               .print_lines2(line(s), ...)
 #               .enable(flag=True)
 #               .disable()
 #               .enabled
@@ -106,6 +109,14 @@ class Verbose:
         """
         for arg in args:
             for line in str(arg).splitlines():
+                self.__call__(line, **kwargs)
+
+
+    def print_lines2(self, *args, **kwargs) -> None:
+        """Multi-line output using default string representation, skip 1st line
+        """
+        for arg in args:
+            for line in str(arg).splitlines()[1:]:
                 self.__call__(line, **kwargs)
 
 
