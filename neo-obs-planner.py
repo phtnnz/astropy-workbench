@@ -50,7 +50,7 @@ from astroquery.mpc import MPC
 from verbose    import verbose, warning, error, message
 from neoconfig  import config
 from neoclasses import EphemData, EphemDataList, LocalCircumstances
-from neoutils   import edata_list_add_times, sort_obj_data, get_row_for_time, motion_limit, fmt_time, edata_list_csv_output
+from neoutils   import edata_list_add_times, get_row_for_time, motion_limit, fmt_time, edata_list_csv_output
 from neoephem   import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc, edata_add_exposure
 from neoplot    import edata_list_plot
 from sbwobs     import sbwobs_get_edata_list
