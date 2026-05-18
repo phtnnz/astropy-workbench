@@ -16,9 +16,11 @@
 
 # ChangeLog
 # Version 0.0 / 2026-02-03
-#       plot functions moved to this module
+#       Plot functions moved to this module
+# Version 0.1 / 2026-05-18
+#       Refactored for EphemDataList
 
-VERSION = "0.0 / 2026-02-03"
+VERSION = "0.1 / 2026-05-18"
 AUTHOR  = "Martin Junius"
 NAME    = "neoplot"
 
@@ -65,72 +67,6 @@ def ephem_to_altaz(id: str, eph: Ephem, loc: EarthLocation, col_obstime: str="Ob
     altaz.name = id
     ic(altaz)
     return altaz
-
-
-
-def plot_objects(obj_data: dict[str, EphemData], filename: str, loc: EarthLocation, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
-    """
-    Generate altitude and sky plot
-
-    Parameters
-    ----------
-    obj_data : dict
-        Dictionary with EphemData for all objects
-    filename : str
-        File name for generated PNG
-    loc: EarthLocation
-        Observer location
-    """
-    # Get next midnight
-    observer = Observer(location=loc, description=loc.info.name)
-    midnight = observer.midnight(Time.now(), which="next")
-    ic(midnight)
-
-    # Intervals around midnight
-    time_interval = midnight + np.linspace(-8, 8, 160)*u.hour
-    moon          = observer.moon_altaz(time_interval)
-    # Quick hack to get a proper label for plot_altitude()
-    moon.name     = "Moon"
-
-    # Subplots
-    fig = plt.figure(figsize=(15, 6))
-    ax1 = plt.subplot(1, 2, 1)
-
-    # Plot altitude for all NEOCP objects
-
-    # Traverse objects, only those with valid plan_start time
-    for id, edata in obj_data.items():
-        if edata.times.plan_start != None:
-            altaz = ephem_to_altaz(id, edata.ephem, loc, col_obstime, col_alt, col_az)
-            plot_altitude(altaz, observer, altaz.obstime, ax1, style_kwargs=dict(fmt="o"))
-
-    # Add Moon
-    plot_altitude(moon, observer, moon.obstime, ax1, brightness_shading=True, style_kwargs=dict(fmt="y--"))
-    plt.legend(bbox_to_anchor=(1.0, 1.015))
-
-    # Hourly intervals around midnight
-    time_interval = midnight + np.linspace(-5, 5, 11)*u.hour
-    moon          = observer.moon_altaz(time_interval)
-    # Quick hack to get a proper label for plot_sky()
-    moon.name     = "Moon"
-
-    # Subplot for altitude
-    ax2 = plt.subplot(1, 2, 2, projection='polar')
-
-    # Plot sky for all NEOCP objects
-    # Traverse objects, only those with valid plan_start time
-    for id, edata in obj_data.items():
-        if edata.times.plan_start != None:
-            altaz = ephem_to_altaz(id, edata.ephem, loc, col_obstime, col_alt, col_az)
-            plot_sky(altaz, observer, altaz.obstime, ax2)
-
-    # Add Moon
-    plot_sky(moon, observer, moon.obstime, ax2, style_kwargs=dict(color="y", marker="x"))
-    # plt.legend(bbox_to_anchor=(1.32, 1.15))
-
-    plt.subplots_adjust(wspace=0.3)
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close()
 
 
 
