@@ -19,8 +19,10 @@
 #       NEOCP ephemeris and list queries moved from neocp.py
 # Version 0.1 / 2026-02-08
 #       Refactoring complete
+# Version 0.2 / 2026-05-18
+#       Refactoring for EphemDataList
 
-VERSION = "0.1 / 2026-02-08"
+VERSION = "0.2 / 2026-05-18"
 AUTHOR  = "Martin Junius"
 NAME    = "mpcneocp"
 
@@ -43,7 +45,7 @@ from astropy.table import QTable
 from verbose import verbose, warning, error
 from neoconfig import config
 from neoclasses import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
-from neoutils import get_mag0, max_motion, exposure_calc
+from neoutils import get_mag0, max_motion
 
 
 
@@ -154,42 +156,28 @@ def mpc_query_neocp_list(url: str, filename: str) -> None:
 
 
 
-def obj_data_from_text_ephemerides(eph_text: dict[str, list[str]], local: LocalCircumstances) -> dict[str, EphemData]:
-    obj_data = {}
+def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: LocalCircumstances) -> EphemDataList:
+    edata_list = EphemDataList()
+
     for obj, lines in eph_text.items():
         qt = convert_text_ephemeris1(obj, lines, local)
         if len(qt) == 0:
             verbose(f"skipping NEOCP {obj=} (empty)")
             continue
         eph1 = Ephem.from_table(qt)
-        ##FIXME: get column names for caller?
         mag = get_mag0(eph1)
         motion = max_motion(eph1)
-        exp = exposure_calc(motion, mag)
-        data = EphemData("-", obj, None, eph1, None, exp, mag, motion)
-        obj_data[obj] = data
-    return obj_data
+
+        edata = EphemData("-", obj, None, eph1, None, None, mag, motion)
+        edata_list.append(edata)
+
+    return edata_list
 
 
 
-def obj_data_add_neocp_list(obj_data: dict[str, EphemData], neocp_list: dict[str, NEOCPListData], is_pccp: bool=False) -> dict[str, EphemData]:
-    """Add data from NEOCP / PCCP list to object data dict
-
-    Parameters
-    ----------
-    obj_data : dict[str, EphemData]
-        Object data dict
-    neocp_list : dict[str, NEOCPListData]
-        NEOCP / PCCP list data dict
-    is_pccp : bool, optional
-        True if PCCP, by default False
-
-    Returns
-    -------
-    dict[str, EphemData]
-        Object data dict
-    """
-    for obj, edata in obj_data.items():
+def edata_list_add_neocp_list(edata_list: EphemDataList, neocp_list: dict[str, NEOCPListData], is_pccp: bool=False) -> EphemDataList:
+    for edata in edata_list:
+        obj = edata.obj
         neocp = neocp_list.get(obj)
         if neocp:
             neocp.type = "PCCP" if is_pccp else "NEOCP"
@@ -197,7 +185,7 @@ def obj_data_add_neocp_list(obj_data: dict[str, EphemData], neocp_list: dict[str
             edata.type = neocp.type
         elif not is_pccp:
             warning(f"no NEOCP / PCCP list data for {obj}")
-    return obj_data
+    return edata_list
 
 
 
