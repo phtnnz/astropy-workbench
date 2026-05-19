@@ -310,7 +310,7 @@ def main():
         # Output CSV plan
         if args.csv:
             ##FIXME: output file name depending on mode
-            edata_list_csv_output(edata_list, args.output or neofiles.path("neo-obs-plan.csv"))
+            edata_list_csv_output(edata_list, args.output or neofiles.path("neocp-plan.csv"))
 
         # Plot objects and Moon
         if args.plot:
