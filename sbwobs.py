@@ -60,6 +60,13 @@ from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, E
 
 
 
+def jpl_query_verbose_error(text: str) -> None:
+    obj = json.loads(text)
+    verbose(f"ERROR: {obj['code']} {obj['message']}")
+    verbose(f"ERROR: info {obj['moreInfo']}")
+
+
+
 def jpl_query_sbwobs(url: str, local: LocalCircumstances) -> str:
     """Retrieve What's Observable from JPL via API, see
     https://ssd.jpl.nasa.gov/tools/sbwobs.html#/
@@ -109,6 +116,7 @@ def jpl_query_sbwobs(url: str, local: LocalCircumstances) -> str:
     response = requests.get(url, params=data, timeout=timeout)
     ic(response.status_code)
     if response.status_code != 200:
+        jpl_query_verbose_error(response.text)
         error(f"query to {url} failed")
 
     return response.text
