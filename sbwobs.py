@@ -494,7 +494,7 @@ def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
 
 def sbwobs_get_objects(local: LocalCircumstances) -> list[str]:
     # wrapper for sbwobs_get_obj_edata()
-        return sbwobs_get_edata_list(local).keys()
+        return sbwobs_get_edata_list(local).objects()
 
 
 
