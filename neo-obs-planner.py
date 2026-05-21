@@ -324,7 +324,7 @@ def main():
 
     # Process objects
     edata_list_add_times(edata_list)
-    verbose(f"original object sequence: {", ".join(edata_list.objects())}")
+    verbose(f"original object sequence: {edata_list.objects_str()}")
     # for edata in edata_list:
     #     verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
     #                                    "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
@@ -333,7 +333,7 @@ def main():
     verbose.print_lines(edata_list)
 
     edata_list.sort_by_time()
-    verbose(f"sorted object sequence: {", ".join(edata_list.objects())}")
+    verbose(f"sorted object sequence: {edata_list.objects_str()}")
 
     log_file = neofiles.path("obs-planner-1.log")
     with verbose.logfile(log_file):
