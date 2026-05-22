@@ -293,12 +293,13 @@ def main():
     edata_list.sort_by_time()
     ic(edata_list)
 
-    verbose("planning objects:", " ".join(edata_list.objects()))
-    verbose("forced objects:", " ".join(forced_objs))
+    verbose("planning objects:", edata_list.objects_str())
+    verbose("forced objects:", ", ".join(forced_objs))
     ##FIXME: use process() to implement
-    # for obj in forced_objs:
-    #     if obj in obj_data:
-    #         obj_data[obj].force = True
+    edata: EphemData
+    for edata in edata_list:
+        if edata.obj in forced_objs:
+            edata.force = True
     edata_list.verbose_ephem()
 
     log_file = neofiles.path("obs-planner-neocp.log")
