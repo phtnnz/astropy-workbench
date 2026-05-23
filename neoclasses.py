@@ -214,3 +214,11 @@ class EphemDataList(list):
 
 
 
+@dataclass
+class PrevNEOCPData:
+    trk_id: str
+    designation: str = None
+    error: str = None
+    time: Time = None
+    mpec: str = None
+    mpec_url: str = None
