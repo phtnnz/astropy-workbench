@@ -276,13 +276,6 @@ def main():
     if args.force:
         forced_objs = args.force.split(",")
 
-    local_eph   = neofiles.path(config.local_eph)
-    local_neocp = neofiles.path(config.local_neocp)
-    local_pccp  = neofiles.path(config.local_pccp)
-    ic(neofiles.prefix, local_eph, local_neocp, local_pccp)
-
-
-
     edata_list = neocp_get_edata_list(args.update_neocp, local)
 
     # Get exposure data from mag and motion
