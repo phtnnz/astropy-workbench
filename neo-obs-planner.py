@@ -27,11 +27,14 @@
 #       Added -m --min-alt option
 # Version 0.5 / 2026-05-18
 #       Planner output aligned with neocp output
+# Version 1.0 / 2026-05-25
+#       Joint planner for NEOCP, SBWOBS and other objects, added all code and
+#       options from neocp.py
 
-VERSION     = "0.5 / 2026-05-18"
+VERSION     = "1.0 / 2026-05-25"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
-DESCRIPTION = "NEO observation planner"
+DESCRIPTION = "NEOCP/NEO observation planner"
 
 import sys
 import argparse
