@@ -84,6 +84,10 @@ def _rename_columns_jpl(eph: Ephem) -> None:
 
 
 def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
+    if edata.ephem:
+        verbose(f"already got ephemeris for {edata.obj}")
+        return
+
     min_alt = config.min_alt
 
     obj = edata.obj
