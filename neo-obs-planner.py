@@ -54,6 +54,7 @@ from neoutils   import edata_list_add_times, get_row_for_time, motion_limit, fmt
 from neoephem   import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc, edata_add_exposure
 from neoplot    import edata_list_plot
 from sbwobs     import sbwobs_get_edata_list
+from mpcneocp   import neocp_get_edata_list
 import neofiles
 
 DEFAULT_LOCATION = config.code
@@ -75,6 +76,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     edata: EphemData
     for edata in edata_list:
         obj = edata.obj
+        eph = edata.ephem
 
         exp_start = None
         exp_end = None
@@ -131,12 +133,18 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             end = None
 
         # check valid exposure data, skip if None = object is too fast
+        ##FIXME: meanwhile this should be called earlier
         if edata.exposure:
             total_time = edata.exposure.total_time
         else:
             message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
             continue
-       
+
+        # Skip, if ephemeris is only 1 line
+        if len(eph) < 2:
+            message(f"SKIPPED: only {len(eph)} line(s) of ephemeris data")
+            continue
+
         ic(next_start_time.iso)
         ic(obj, start, end, total_time, alt_start, alt_end, before, after)
 
@@ -178,20 +186,40 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             continue
 
         # Ephemeris row best matching start time
-        row = get_row_for_time(edata.ephem, exp_start)
+        row = get_row_for_time(eph, exp_start)
         ic(row)
 
-        # Skip, if percentage of total exposure time is less than threshold
-        if edata.exposure.percentage < config.min_perc_required:
-            message(f"SKIPPED: only {edata.exposure.percentage:.0f}% of required total exposure time (< {config.min_perc_required}%)")
-            continue
+        if not edata.force:
+            ##### Skip object for various reasons ... #####
+            # Skip, if percentage of total exposure time is less than threshold
+            if edata.exposure.percentage < config.min_perc_required:
+                message(f"SKIPPED: only {edata.exposure.percentage:.0f}% of required total exposure time (< {config.min_perc_required}%)")
+                continue
 
-        # Skip, if moon distance is too small
-        moon_dist = row["Moon_dist"]
-        min_moon_dist = config.min_moon_dist * u.degree
-        if moon_dist < min_moon_dist:
-            message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
-            continue
+            # Skip, if moon distance is too small
+            moon_dist = row["Moon_dist"]
+            min_moon_dist = config.min_moon_dist * u.degree
+            if moon_dist < min_moon_dist:
+                message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+                continue
+
+            # Skip, if below threshold for # obs
+            if not nobs is None and nobs < config.min_n_obs:
+                message(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
+                continue
+
+            # Skip, if not seen for more than threshold days
+            max_notseen = config.max_notseen * u.day
+            if not notseen is None and notseen > max_notseen:
+                message(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
+                continue
+
+            # Skip, if arc is less than threshold
+            min_arc = config.min_arc * u.day
+            if not arc is None and arc < min_arc:
+                message(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
+                continue
+        # /if
 
         # Good to go!
         # Remember end of exposure
@@ -241,6 +269,10 @@ def main():
     arg.add_argument("--pha", action="store_true", help=f"sbwobs: get PHAs")
     arg.add_argument("--comets", action="store_true", help=f"sbwobs: get comets (overrides asteroids options)")
  
+    arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
+    arg.add_argument("-p", "--prefix", help=f"prefix for cached MPD data, default {neofiles.prefix}")
+    arg.add_argument("--force", help=f"skip checks for FORCE objects, include in observation plan")
+
     arg.add_argument("object", nargs="*", help="object name")
 
     args = arg.parse_args()
@@ -277,12 +309,27 @@ def main():
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 
+    # Prefix for cached NEOCP data
+    if args.prefix:
+        if args.update_neocp:
+            error("don't use --prefix with --update-neocp")
+        neofiles.set_prefix(args.prefix)
+
+    # Forced objects
+    forced_objs = []
+    if args.force:
+        forced_objs = args.force.split(",")
+
 
     edata_list = EphemDataList()
 
+    # Objects from NEOCP
+    if args.neocp:
+        edata_list.extend( neocp_get_edata_list(args.update_neocp, local) )
+
     # Objects from SBWOBS
     if args.sbwobs:
-        edata_list = sbwobs_get_edata_list(local)
+        edata_list.extend( sbwobs_get_edata_list(local) )
 
     # Objects from file / command line
     type = "-"
@@ -334,6 +381,14 @@ def main():
 
     edata_list.sort_by_time()
     verbose(f"sorted object sequence: {edata_list.objects_str()}")
+
+    verbose("forced objects:", ", ".join(forced_objs))
+    ##FIXME: use process() to implement
+    edata: EphemData
+    for edata in edata_list:
+        if edata.obj in forced_objs:
+            edata.force = True
+    edata_list.verbose_ephem()
 
     log_file = neofiles.path("obs-planner-1.log")
     with verbose.logfile(log_file):
