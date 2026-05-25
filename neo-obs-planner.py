@@ -64,7 +64,8 @@ DEFAULT_LOCATION = config.code
 def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     # Start planner at naut. dusk / start time from options
     next_start_time = local.naut_dusk
-    objects  = []
+    objects = list()
+    skipped = list()
 
     message("-------------------------------------------------------------------------------------------------------------------")
     message("              Score       Mag #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                 Max motion")
@@ -138,11 +139,13 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             total_time = edata.exposure.total_time
         else:
             message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
+            skipped.append(obj)
             continue
 
         # Skip, if ephemeris is only 1 line
         if len(eph) < 2:
             message(f"SKIPPED: only {len(eph)} line(s) of ephemeris data")
+            skipped.append(obj)
             continue
 
         ic(next_start_time.iso)
@@ -183,6 +186,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         # Skip, if failed to allocate total_time
         if not exp_start:
             message(f"SKIPPED: can't allocate exposure time {total_time:.2f} ({start} -- {end})")
+            skipped.append(obj)
             continue
 
         # Ephemeris row best matching start time
@@ -194,6 +198,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             # Skip, if percentage of total exposure time is less than threshold
             if edata.exposure.percentage < config.min_perc_required:
                 message(f"SKIPPED: only {edata.exposure.percentage:.0f}% of required total exposure time (< {config.min_perc_required}%)")
+                skipped.append(obj)
                 continue
 
             # Skip, if moon distance is too small
@@ -201,23 +206,27 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             min_moon_dist = config.min_moon_dist * u.degree
             if moon_dist < min_moon_dist:
                 message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
+                skipped.append(obj)
                 continue
 
             # Skip, if below threshold for # obs
             if not nobs is None and nobs < config.min_n_obs:
                 message(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
+                skipped.append(obj)
                 continue
 
             # Skip, if not seen for more than threshold days
             max_notseen = config.max_notseen * u.day
             if not notseen is None and notseen > max_notseen:
                 message(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
+                skipped.append(obj)
                 continue
 
             # Skip, if arc is less than threshold
             min_arc = config.min_arc * u.day
             if not arc is None and arc < min_arc:
                 message(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
+                skipped.append(obj)
                 continue
         # /if
 
@@ -240,6 +249,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     # end for
     message("-------------------------------------------------------------------------------------------------------------------")
     message(f"{len(objects)} object(s) planned: {", ".join(objects)}")
+    message(f"{len(skipped)} object(s) skipped: {", ".join(skipped)}")
 
 
 
