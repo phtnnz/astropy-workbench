@@ -190,6 +190,9 @@ class EphemDataList(list):
     def objects_str(self) -> str:
         return ", ".join(self.objects())
     
+    def len(self) -> int:
+        return len(self)
+    
     def append_objects(self, objects: list[str]) -> Self:
         self.extend([ EphemData("-", obj) for obj in objects ])
         return self

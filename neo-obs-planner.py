@@ -401,8 +401,12 @@ def main():
     for edata in edata_list:
         if edata.obj in forced_objs:
             edata.force = True
-    edata_list.verbose_ephem()
+        verbose("")
+        verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+                                         "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+    # edata_list.verbose_ephem()
 
+    verbose("")
     log_file = neofiles.path("obs-planner-1.log")
     with verbose.logfile(log_file):
         # NEOCP planner

@@ -211,16 +211,17 @@ def convert_text_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) 
     qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
     # Initialize empty columns with proper Quantity type, same as .add_column()
     # A bit ugly, but I found no other to handle this
-    qt["Obstime"]   = Time("2000-01-01 00:00")
-    qt["RA"]        = 0 * u.hourangle
-    qt["DEC"]       = 0 * u.degree
-    qt["Mag"]       = 0 * u.mag
-    qt["Motion"]    = 0 * u.arcsec / u.min
-    qt["PA"]        = 0 * u.degree
-    qt["Alt"]       = 0 * u.degree
-    qt["Az"]        = 0 * u.degree
-    qt["Moon_dist"] = 0 * u.degree
-    qt["Moon_alt"]  = 0 * u.degree
+    qt["Targetname"] = id
+    qt["Obstime"]    = Time("2000-01-01 00:00")
+    qt["RA"]         = 0 * u.hourangle
+    qt["DEC"]        = 0 * u.degree
+    qt["Mag"]        = 0 * u.mag
+    qt["Motion"]     = 0 * u.arcsec / u.min
+    qt["PA"]         = 0 * u.degree
+    qt["Alt"]        = 0 * u.degree
+    qt["Az"]         = 0 * u.degree
+    qt["Moon_dist"]  = 0 * u.degree
+    qt["Moon_alt"]   = 0 * u.degree
 
     for line in eph:
         # Date       UT      R.A. (J2000) Decl.  Elong.  V        Motion     Object     Sun         Moon        Uncertainty
@@ -244,7 +245,7 @@ def convert_text_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) 
             ic("skipping")
             continue
         ic(ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
-        qt.add_row([ time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
+        qt.add_row([ id, time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
 
         # # Test: compare alt/az in ephemerides to values computed from ra/dec
         # coord=SkyCoord(ra, dec, frame=FK5, equinox="J2000", obstime=time)
@@ -404,4 +405,5 @@ def neocp_get_edata_list(update: bool, local: LocalCircumstances) -> EphemDataLi
     except FileNotFoundError as e:
         error(e)
 
+    verbose(f"NEOCP objects ({edata_list.len()}): {edata_list.objects_str()}")
     return edata_list
