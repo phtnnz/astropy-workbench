@@ -46,6 +46,7 @@ from verbose import verbose, warning, error
 from neoconfig import config
 from neoclasses import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
 from neoutils import get_mag0, max_motion
+from neoephem import get_dec_limits
 import neofiles
 
 
@@ -76,16 +77,13 @@ def mpc_query_neocp_ephemerides(url: str, filename: str, local: LocalCircumstanc
     ic(url, filename, code)
 
     # Compute min/max DEC from min altitude and latitude
-    lat = loc.lat.degree
-    mag_limit = config.mag_limit
-    min_alt = config.min_alt
+    mag_limit = config.neocp_mag_limit
+    min_alt   = config.min_alt
 
     ##FIXME: use neoephem.get_dec_limits()
-    min_dec = -90 + min_alt + lat
-    max_dec = +90 - min_alt + lat
-    min_dec = -90 if min_dec < -90 else int(min_dec)
-    max_dec = +90 if max_dec > +90 else int(max_dec)
-    ic(lat, min_dec, max_dec)
+    min_dec, max_dec = get_dec_limits(local, min_alt * u.deg)
+    ic(min_dec, max_dec)
+    min_dec, max_dec = int(min_dec.value), int(max_dec.value)
 
     data = { 
         "W":	"a",            # all objects with ...

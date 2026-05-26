@@ -273,7 +273,10 @@ def main():
 
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
 
-    arg.add_argument("-M", "--mag-limit", type=float, help="override mag_limit from config")
+    arg.add_argument("-M", "--mag-limit", type=float, help="override *mag_limits from config (see below)")
+    arg.add_argument("--neocp-mag-limit", type=float, help=f"override neocp_mag_limit from config ({config.neocp_mag_limit})")
+    arg.add_argument("--sbwobs-mag-limit", type=float, help=f"override sbwobs_mag_limit from config ({config.sbwobs_mag_limit})")
+
     arg.add_argument("-m", "--min-alt", type=float, help="override min_alt/elev_min from config")
     arg.add_argument("--neocp", action="store_true", help="observable NEOCP objects")
     arg.add_argument("--sbwobs", action="store_true", help="observable objects from JPL WOBS service")
@@ -299,11 +302,14 @@ def main():
 
     # override defaults from config
     if args.mag_limit:
-        config.mag_limit = args.mag_limit
-        config.vmag_max = args.mag_limit
-    if args.min_alt != None:
+        config.neocp_mag_limit = args.mag_limit
+        config.sbwobs_mag_limit = args.mag_limit
+    if args.neocp_mag_limit:
+        config.neocp_mag_limit = args.mag_limit
+    if args.sbwobs_mag_limit:
+        config.sbwobs_mag_limit = args.mag_limit
+    if not args.min_alt is None:
         config.min_alt = args.min_alt
-        config.elev_min = args.min_alt
     if args.asteroids:
         config.sb_kind = "a"
     if args.neo:

@@ -96,8 +96,8 @@ def jpl_query_sbwobs(url: str, local: LocalCircumstances) -> str:
     data = { 
         "mpc-code":     local.code,             # MPC observatory code
         "obs-time":     fmt_time(Time.now()),   # Date/time of the observation
-        "elev-min":     config.elev_min,        # Minimum altitude
-        "vmag-max":     config.vmag_max,        # Max V mag = minimum brightness
+        "elev-min":     config.min_alt,         # Minimum altitude
+        "vmag-max":     config.sbwobs_mag_limit,# Max V mag = minimum brightness
         "output-sort":  config.output_sort,     # Sort records
 
         "sb-ns":        config.sb_ns,           # Numbered (n) ./. unnumbered (u)
@@ -216,7 +216,7 @@ def mpc_query_customize(url: str, list_type: str) -> str:
         "elong1":       60,                         # Elongation limits
         "elong2":       180,
         "mag1":         0,                          # V mag limits
-        "mag2":         config.vmag_max,
+        "mag2":         config.sbwobs_mag_limit,
         "to":           1,                          # Single-opposition unnumbered objects
         "wh":           list_type                   # "DLN" | "DLU"
         # Valid list types:
