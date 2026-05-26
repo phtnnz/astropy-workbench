@@ -70,21 +70,9 @@ EXP_TIMES = config.exposure_times
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-def mpc_query_neocp_ephemerides(url: str, filename: str, loc: EarthLocation, code: str) -> None:
-    """
-    Retrieve NEOCP ephemerides from MPC
-
-    Parameters
-    ----------
-    url : str
-        MPC web service URL
-    filename : str
-        Local file name in cache
-    loc : EarthLocation
-        Observer location
-    code : str
-        MPC station code
-    """
+def mpc_query_neocp_ephemerides(url: str, filename: str, local: LocalCircumstances) -> None:
+    loc = local.loc
+    code = local.code
     ic(url, filename, code)
 
     # Compute min/max DEC from min altitude and latitude
@@ -92,6 +80,7 @@ def mpc_query_neocp_ephemerides(url: str, filename: str, loc: EarthLocation, cod
     mag_limit = config.mag_limit
     min_alt = config.min_alt
 
+    ##FIXME: use neoephem.get_dec_limits()
     min_dec = -90 + min_alt + lat
     max_dec = +90 - min_alt + lat
     min_dec = -90 if min_dec < -90 else int(min_dec)
@@ -375,7 +364,7 @@ def neocp_get_edata_list(update: bool, local: LocalCircumstances) -> EphemDataLi
 
     if update:
         verbose(f"download ephemerides from {config.url_neocp_query}")
-        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, local.loc, local.code)
+        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, local)
         verbose(f"download NEOCP list from {config.url_neocp_list}")
         mpc_query_neocp_list(config.url_neocp_list, local_neocp)
         verbose(f"download PCCP list from {config.url_pccp_list}")
