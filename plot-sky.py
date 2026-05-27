@@ -123,7 +123,12 @@ def main():
     moon_vals_pm5.name = "Moon"
     ic(time_interval_pm5, moon_vals_pm5)
 
-    # plot objects from file
+    # Subplots
+    fig = plt.figure(figsize=(15, 6))
+    ax1 = plt.subplot(1, 2, 1)
+    ax2 = plt.subplot(1, 2, 2, projection='polar')
+
+    # Plot objects from file
     if args.file:
         with open(args.file, newline="") as file:
             line = file.readline()
@@ -139,23 +144,15 @@ def main():
 
                 coord = get_coord(obj, args.query_simbad)
                 if not coord:
-                    warning(f"{obj} not a coordinate or not found (--query-simbad)")
+                    warning(f"{obj} not a coordinate or not found (--query-simbad missing?)")
                     continue
 
                 verbose(f"object: {name}={coord_to_string(coord, short=True)}")
                 target = FixedTarget(name=name, coord=coord)
                 ic(target)
 
-                if args.altitude:
-                    # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
-                    plot_altitude(target, observer, time_interval_full, style_kwargs=dict(fmt=""))
-                else:
-                    plot_sky(target, observer, time_interval_pm5)
-
-    # Subplots
-    fig = plt.figure(figsize=(15, 6))
-    ax1 = plt.subplot(1, 2, 1)
-    ax2 = plt.subplot(1, 2, 2, projection='polar')
+                plot_altitude(target, observer, time_interval_full, ax1, style_kwargs=dict(fmt=""))
+                plot_sky(target, observer, time_interval_pm5, ax2)
 
     # Plot objects from command line
     for obj in args.object:
