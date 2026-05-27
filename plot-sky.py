@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024-2025 Martin Junius
+# Copyright 2024-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@
 #       multiple objects
 # Version 0.3 / 2025-08-12
 #       Added support for CSV list with objects, improved plots
+# Version 0.4 / 2026-05-27
+#       Removed -A --altitude, output joint altitude/sky plot
 
 VERSION = "0.3 / 2025-08-12"
 AUTHOR  = "Martin Junius"
@@ -30,7 +32,6 @@ NAME    = "plot-sky"
 import sys
 import argparse
 import csv
-from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 # Required on Windows
 import tzdata
@@ -57,12 +58,6 @@ from astroutils import get_location, get_coord, coord_to_string, location_to_str
 
 
 
-# Command line options
-class Options:
-    pass
-
-
-
 def main():
     arg = argparse.ArgumentParser(
         prog        = NAME,
@@ -73,7 +68,6 @@ def main():
     arg.add_argument("-t", "--time", help="time (UTC) for computation, default now")
     arg.add_argument("-l", "--location", help="coordinates, named location or MPC station code")
     arg.add_argument("-q", "--query-simbad", action="store_true", help="query Simbad for OBJECT name")
-    arg.add_argument("-A", "--altitude", action="store_true", help="plot altitude (default: sky)")
     arg.add_argument("-f", "--file", help="read list of objects from file")
     arg.add_argument("object", nargs="*", help="object name (-q required) or [name=]\"RA DEC\" coordinates")
 
@@ -113,10 +107,10 @@ def main():
     # .strftime() format
     format = "%Y-%m-%d %H:%M:%S %Z"
 
-    verbose(f"time: {time.to_datetime(timezone=timezone.utc).strftime(format)}")
+    verbose(f"time: {time.iso}")
     midnight = observer.midnight(time, which="next")
     ic(midnight)
-    verbose(f"next midnight: {midnight.to_datetime(timezone=timezone.utc).strftime(format)}")
+    verbose(f"next midnight: {midnight.iso}")
     time = midnight
 
     # Intervals around midnight
@@ -158,7 +152,12 @@ def main():
                 else:
                     plot_sky(target, observer, time_interval_pm5)
 
-    # plot objects from command line
+    # Subplots
+    fig = plt.figure(figsize=(15, 6))
+    ax1 = plt.subplot(1, 2, 1)
+    ax2 = plt.subplot(1, 2, 2, projection='polar')
+
+    # Plot objects from command line
     for obj in args.object:
         if "=" in obj:
             (name, obj) = obj.split("=")
@@ -175,31 +174,16 @@ def main():
         verbose(f"object coord: {coord_to_string(coord)}")
         ic(target)
 
-        if args.altitude:
-            # Must use fmt="", not marker="none" to avoid warnings from plot_date()!
-            plot_altitude(target, observer, time_interval_full, style_kwargs=dict(fmt=""))
-        else:
-            plot_sky(target, observer, time_interval_pm5)
+        plot_altitude(target, observer, time_interval_full, ax1, style_kwargs=dict(fmt=""))
+        plot_sky(target, observer, time_interval_pm5, ax2)
 
-    # Add moon plot and legend
-    if args.altitude:
-        plot_altitude(moon_vals_full, observer, time_interval_full, brightness_shading=True, style_kwargs=dict(fmt="y--"))
-        # Set legend for last curve
-        plt.legend(bbox_to_anchor=(1.0, 1.02))
-        # plt.legend(loc='upper right').get_texts()[-1].set_text("Moon")
-        # plt.tight_layout()
-    else:
-        plot_sky(moon_vals_pm5, observer, time_interval_pm5, style_kwargs=dict(color="y", marker="x"))
-        plt.legend(bbox_to_anchor=(1.48, 1.11))
+    # Add Moon
+    plot_altitude(moon_vals_full, observer, time_interval_full, ax1, brightness_shading=True, style_kwargs=dict(fmt="y--"))
+    plot_sky(moon_vals_pm5, observer, time_interval_pm5, ax2, style_kwargs=dict(color="y", marker="x"))
+    ax1.legend(bbox_to_anchor=(1.0, 1.015))
 
     plt.savefig("tmp/plot.png", bbox_inches="tight")
     plt.close()
-
-
-    # ic("plot_airmass")
-    # plot_airmass(target, observer, time, brightness_shading=True, altitude_yaxis=True)
-    # plt.savefig("tmp/plot-airmass.png", bbox_inches="tight")
-    # plt.close()
 
     # Doesn't work anymore, see https://github.com/astropy/astroplan/pull/591
     # and https://github.com/astropy/astroplan/pull/622 seems to be fixed but not yet
