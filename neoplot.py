@@ -97,7 +97,7 @@ def edata_list_plot(edata_list: EphemDataList, filename: str, loc: EarthLocation
 
     # Add Moon
     plot_altitude(moon, observer, moon.obstime, ax1, brightness_shading=True, style_kwargs=dict(fmt="y--"))
-    plt.legend(bbox_to_anchor=(1.0, 1.015))
+    ax1.legend(bbox_to_anchor=(1.0, 1.015))
 
     # Hourly intervals around midnight
     time_interval = midnight + np.linspace(-5, 5, 11)*u.hour
