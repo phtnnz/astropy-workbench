@@ -46,6 +46,9 @@
 #       Added -f --force option to include objects in observation plan even if they fail checks
 # Version 0.13 / 2026-05-18
 #       Refactored for EphemDataList
+#
+# OBSOLETE!!!
+# Functionality moved to neo-obs-planner.py
 
 VERSION = "0.13 / 2026-05-18"
 AUTHOR  = "Martin Junius"
