@@ -62,7 +62,7 @@ def test_m49():
     """
     Run test case M49
     """
-    loc1 = EarthLocation(lat=-23.23639*u.deg, lon=16.36167*u.deg , height=1825*u.m) # M49, Hakos, Namibia
+    loc1 = EarthLocation(lat=-23.23655*u.deg, lon=16.36172*u.deg , height=1853*u.m) # M49, Hakos, Namibia
     ic(loc1, loc1.to_geodetic())
 
     loc2 = mpc_station_location("M49")
@@ -139,7 +139,7 @@ def main():
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("--test_m49", action="store_true", help="MPC station M49 test case")
+    arg.add_argument("--test-m49", action="store_true", help="MPC station M49 test case")
     arg.add_argument("station", nargs="*", help="MPC station code")
 
     args = arg.parse_args()
