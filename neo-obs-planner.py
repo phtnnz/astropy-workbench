@@ -323,7 +323,7 @@ def main():
     # Observer location and local circumstances
     local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
 
-    # Override config DEC limits
+    # Update DEC limits in config
     min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
