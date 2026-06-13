@@ -30,8 +30,10 @@
 # Version 1.0 / 2026-05-25
 #       Joint planner for NEOCP, SBWOBS and other objects, added all code and
 #       options from neocp.py
+# Version 1.1 / 2026-06-13
+#       Removed -U --update-neocp option, no local files cached anymore
 
-VERSION     = "1.0 / 2026-05-25"
+VERSION     = "1.1 / 2026-06-13"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEOCP/NEO observation planner"
@@ -285,8 +287,7 @@ def main():
     arg.add_argument("--pha", action="store_true", help=f"sbwobs: get PHAs")
     arg.add_argument("--comets", action="store_true", help=f"sbwobs: get comets (overrides asteroids options)")
  
-    arg.add_argument("-U", "--update-neocp", action="store_true", help="update NEOCP data from MPC")
-    arg.add_argument("-p", "--prefix", help=f"prefix for cached MPD data, default {neofiles.prefix}")
+    arg.add_argument("-p", "--prefix", help=f"prefix for planner data, default {neofiles.prefix}")
     arg.add_argument("--force", help=f"skip checks for FORCE objects, include in observation plan")
 
     arg.add_argument("object", nargs="*", help="object name")
@@ -330,8 +331,6 @@ def main():
 
     # Prefix for cached NEOCP data
     if args.prefix:
-        if args.update_neocp:
-            error("don't use --prefix with --update-neocp")
         neofiles.set_prefix(args.prefix)
 
     # Forced objects
@@ -344,7 +343,7 @@ def main():
 
     # Objects from NEOCP
     if args.neocp:
-        edata_list.extend( neocp_get_edata_list(args.update_neocp, local) )
+        edata_list.extend( neocp_get_edata_list(local) )
 
     # Objects from SBWOBS
     if args.sbwobs:
