@@ -69,10 +69,10 @@ TIMEOUT = config.requests_timeout
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-def mpc_query_neocp_ephemerides(url: str, filename: str, local: LocalCircumstances) -> None:
+def mpc_query_neocp_ephemerides(url: str, local: LocalCircumstances) -> None:
     loc = local.loc
     code = local.code
-    ic(url, filename, code)
+    ic(url, code)
 
     # Compute min/max DEC from min altitude and latitude
     mag_limit = config.neocp_mag_limit
@@ -112,12 +112,11 @@ def mpc_query_neocp_ephemerides(url: str, filename: str, local: LocalCircumstanc
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    with open(filename, mode="w", encoding=response.encoding) as file:
-        file.write(response.text)
+    return response.text
 
 
 
-def mpc_query_neocp_list(url: str, filename: str) -> None:
+def mpc_query_neocp_list(url: str) -> None:
     """
     Retrieve NEOCP/PCCP txt list from MPC
 
@@ -128,14 +127,13 @@ def mpc_query_neocp_list(url: str, filename: str) -> None:
     filename : str
         Local file name in cache
     """
-    ic(url, filename)
+    ic(url)
     response = requests.get(url, timeout=TIMEOUT)
     ic(response.status_code)
     if response.status_code != 200:
         error(f"query to {url} failed")
 
-    with open(filename, mode="w", encoding=response.encoding) as file:
-        file.write(response.text)
+    return response.text
 
 
 
@@ -350,43 +348,21 @@ def parse_neocp_list(content: list[str]) -> dict[str, NEOCPListData]:
 
 
 
-def neocp_get_edata_list(update: bool, local: LocalCircumstances) -> EphemDataList:
-    local_eph   = neofiles.path(config.local_eph)
-    local_neocp = neofiles.path(config.local_neocp)
-    local_pccp  = neofiles.path(config.local_pccp)
-    ic(neofiles.prefix, local_eph, local_neocp, local_pccp)
+def neocp_get_edata_list(local: LocalCircumstances) -> EphemDataList:
+    verbose(f"download ephemerides from {config.url_neocp_query}")
+    content_ephem = mpc_query_neocp_ephemerides(config.url_neocp_query, local)
+    ephemerides_txt = parse_html_ephemerides(content_ephem.splitlines())
+    edata_list = edata_list_from_text_ephemerides(ephemerides_txt, local)
 
-    if update:
-        verbose(f"download ephemerides from {config.url_neocp_query}")
-        mpc_query_neocp_ephemerides(config.url_neocp_query, local_eph, local)
-        verbose(f"download NEOCP list from {config.url_neocp_list}")
-        mpc_query_neocp_list(config.url_neocp_list, local_neocp)
-        verbose(f"download PCCP list from {config.url_pccp_list}")
-        mpc_query_neocp_list(config.url_pccp_list, local_pccp)
+    verbose(f"download NEOCP list from {config.url_neocp_list}")
+    content_neocp = mpc_query_neocp_list(config.url_neocp_list)
+    neocp_list = parse_neocp_list(content_neocp.splitlines())
+    edata_list_add_neocp_list(edata_list, neocp_list)
 
-    try:
-        # Parse ephemerides
-        verbose(f"processing {local_eph}")
-        with open(local_eph, "r") as file:
-            content = file.readlines()
-            ephemerides_txt = parse_html_ephemerides(content)
-            edata_list = edata_list_from_text_ephemerides(ephemerides_txt, local)
-
-        # Parse lists
-        verbose(f"processing {local_neocp}")
-        with open(local_neocp, "r") as file:
-            content = file.readlines()
-            neocp_list = parse_neocp_list(content)
-            edata_list_add_neocp_list(edata_list, neocp_list)
-
-        verbose(f"processing {local_pccp}")
-        with open(local_pccp, "r") as file:
-            content = file.readlines()
-            pccp_list = parse_neocp_list(content)
-            edata_list_add_neocp_list(edata_list, pccp_list, is_pccp=True)
-
-    except FileNotFoundError as e:
-        error(e)
+    verbose(f"download PCCP list from {config.url_pccp_list}")
+    content_pccp  = mpc_query_neocp_list(config.url_pccp_list)
+    pccp_list = parse_neocp_list(content_pccp.splitlines())
+    edata_list_add_neocp_list(edata_list, pccp_list, is_pccp=True)
 
     verbose(f"NEOCP objects ({edata_list.len()}): {edata_list.objects_str()}")
     return edata_list
