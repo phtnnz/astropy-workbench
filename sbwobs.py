@@ -55,7 +55,7 @@ from astropy.units import Quantity, Magnitude
 from verbose import verbose, warning, error, message
 from neoconfig import config
 from neoutils import fmt_time
-from neoephem import get_local_circumstances
+from neoephem import get_local_circumstances, get_dec_limits
 from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, EphemDataList
 
 
@@ -494,7 +494,7 @@ def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
 
 def sbwobs_get_objects(local: LocalCircumstances) -> list[str]:
     # wrapper for sbwobs_get_obj_edata()
-        return sbwobs_get_edata_list(local).objects()
+    return sbwobs_get_edata_list(local).objects()
 
 
 
@@ -511,7 +511,7 @@ def main():
     arg.add_argument("--comets", action="store_true", help=f"get comets (overrides asteroid options)")
     arg.add_argument("-o", "--output", help="write object list to OUTPUT")
     arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
-    arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {config.mpc_code}")
+    arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {config.code}")
 
     args = arg.parse_args()
 
@@ -537,7 +537,12 @@ def main():
         config.sb_group = None
 
     # Observer location and local circumstances
-    local = get_local_circumstances(args.location if args.location else config.mpc_code)
+    local = get_local_circumstances(args.location if args.location else config.code)
+
+    # Update DEC limits in config
+    min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
+    config.min_dec = int(min_dec.degree)
+    config.max_dec = int(max_dec.degree)
 
     keys_selected = sbwobs_get_objects(local)
 
