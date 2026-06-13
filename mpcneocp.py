@@ -21,8 +21,10 @@
 #       Refactoring complete
 # Version 0.2 / 2026-05-18
 #       Refactoring for EphemDataList
+# Version 1.0 / 2026-06-13
+#       Removed locally cached files
 
-VERSION = "0.2 / 2026-05-18"
+VERSION = "1.0 / 2026-06-13"
 AUTHOR  = "Martin Junius"
 NAME    = "mpcneocp"
 
@@ -238,24 +240,24 @@ def convert_text_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) 
 
 
 
-def parse_html_ephemerides(content: list[str]) -> dict[str, list[str]]:
+def parse_html_ephemerides(content: str) -> dict[str, list[str]]:
     """
     Parse HTML page with the result of the MPC NEOCP ephemerides query
 
     Parameters
     ----------
-    content : list
+    content : str
         Web page content
 
     Returns
     -------
     dict
-        Dictionary with ephemerides in plain text format
+        Dictionary with ephemerides in list of plain text format
     """
     neocp_id = None
     neocp_text_eph = {}
 
-    content_iter = iter(content)
+    content_iter = iter(content.splitlines())
     while (line := next(content_iter, None)) != None:
         line = line.strip()
         # ic(line)
@@ -305,13 +307,13 @@ def parse_html_ephemerides(content: list[str]) -> dict[str, list[str]]:
 
 
 
-def parse_neocp_list(content: list[str]) -> dict[str, NEOCPListData]:
+def parse_neocp_list(content: str) -> dict[str, NEOCPListData]:
     """
     Parse plain text HTML page of NEOCP/PCCP list
 
     Parameters
     ----------
-    content : list[str]
+    content : str
         Web page content
 
     Returns
@@ -319,9 +321,9 @@ def parse_neocp_list(content: list[str]) -> dict[str, NEOCPListData]:
     dict[str, NEOCPListData]
         Dict of relevant data from NEOCP list
     """
-    neocp_list = {}
+    neocp_list = dict()
 
-    for line in content:
+    for line in content.splitlines():
         # Format example:
         # ZTF105X  76 2025 09 10.2  22.6070  +0.8481 18.2 Updated Sept. 11.49 UT          26   1.25 24.5  0.038
         # P12e56E 100 2025 08 30.4  23.2926 -12.0924 18.9 Updated Sept. 11.20 UT           6   0.09 23.0 12.007
@@ -351,17 +353,17 @@ def parse_neocp_list(content: list[str]) -> dict[str, NEOCPListData]:
 def neocp_get_edata_list(local: LocalCircumstances) -> EphemDataList:
     verbose(f"download ephemerides from {config.url_neocp_query}")
     content_ephem = mpc_query_neocp_ephemerides(config.url_neocp_query, local)
-    ephemerides_txt = parse_html_ephemerides(content_ephem.splitlines())
+    ephemerides_txt = parse_html_ephemerides(content_ephem)
     edata_list = edata_list_from_text_ephemerides(ephemerides_txt, local)
 
     verbose(f"download NEOCP list from {config.url_neocp_list}")
     content_neocp = mpc_query_neocp_list(config.url_neocp_list)
-    neocp_list = parse_neocp_list(content_neocp.splitlines())
+    neocp_list = parse_neocp_list(content_neocp)
     edata_list_add_neocp_list(edata_list, neocp_list)
 
     verbose(f"download PCCP list from {config.url_pccp_list}")
     content_pccp  = mpc_query_neocp_list(config.url_pccp_list)
-    pccp_list = parse_neocp_list(content_pccp.splitlines())
+    pccp_list = parse_neocp_list(content_pccp)
     edata_list_add_neocp_list(edata_list, pccp_list, is_pccp=True)
 
     verbose(f"NEOCP objects ({edata_list.len()}): {edata_list.objects_str()}")
