@@ -52,8 +52,6 @@ import neofiles
 
 # Requests timeout
 TIMEOUT = config.requests_timeout
-# Exposure times / s
-EXP_TIMES = config.exposure_times
 
 # MPC pages:
 # NEOCP form
@@ -79,8 +77,6 @@ def mpc_query_neocp_ephemerides(url: str, filename: str, local: LocalCircumstanc
     # Compute min/max DEC from min altitude and latitude
     mag_limit = config.neocp_mag_limit
     min_alt   = config.min_alt
-
-    ##FIXME: use neoephem.get_dec_limits()
     min_dec, max_dec = get_dec_limits(local, min_alt * u.deg)
     ic(min_dec, max_dec)
     min_dec, max_dec = int(min_dec.value), int(max_dec.value)
