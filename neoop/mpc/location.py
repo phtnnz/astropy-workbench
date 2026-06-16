@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024-2025 Martin Junius
+# Copyright 2024-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@
 # Version 0.2 / 2025-01-24
 #       Formatted verbose output for main, add station name to
 #       EarthLocation.info.name
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
 import sys
 import argparse
@@ -42,7 +44,7 @@ ic.disable()
 from utils.verbose import verbose, warning, error
 
 
-VERSION = "0.2 / 2025-01-24"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "mpclocation"
 

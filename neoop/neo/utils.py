@@ -21,11 +21,13 @@
 #       Ephemeris column names can be passed as optional parameters
 # Version 0.3 / 2026-05-18
 #       Refactored for EphemDataList
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 #
 # Usage:
 #       from neoutils import ...
 
-VERSION     = "0.3 / 2026-05-18"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
 NAME        = "neoutils"
 DESCRIPTION = "NEO utility functions"

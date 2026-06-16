@@ -28,8 +28,10 @@
 #       older than 14 days or uncertainty < 3
 # Version 0.4 / 2026-02-17
 #       New option -l --location, some refactoring
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
-VERSION     = "0.4 / 2026-02-17"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
 NAME        = "sbwobs"
 DESCRIPTION = "Retrieve observable NEOs/comets from JPL/MPC"

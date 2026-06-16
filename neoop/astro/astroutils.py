@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024-2025 Martin Junius
+# Copyright 2024-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #       Utility functions moved to this module
 # Version 0.2 / 2025-10-18
 #       Added time_jd_as_iso(), added address search via of_address() to get_location()
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
 import re
 
@@ -41,7 +43,7 @@ from mpc.location import mpc_station_location
 # from querysimbad import query_simbad
 
 
-VERSION = "0.2 / 2025-10-18"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "astroutils"
 

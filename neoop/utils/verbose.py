@@ -34,6 +34,8 @@
 #       Added context manager and logfile output
 # Version 2.1 / 2026-05-18
 #       Added print_lines2(), omitting 1st line string representation
+# Version 2.2 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 #
 #       Usage:  from verbose import message, verbose, warning, error
 #               message(print-like-args)
@@ -51,7 +53,7 @@
 #               with verbose.logfile(LOGFILE):
 #                   ...
 
-VERSION = "2.0 / 2026-02-20"
+VERSION = "2.2 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "verbose"
 

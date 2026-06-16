@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2023 Martin Junius
+# Copyright 2023-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,6 +36,8 @@
 #       Top-level in JSON config must be a dictionary {}
 #       Added warning/error for missing keys, use .set_warn_on_missing() / 
 #       .set_error_on_missing() to enable
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
 import os
 import sys
@@ -54,7 +56,7 @@ from utils.verbose import verbose, warning, error
 
 
 
-VERSION = "0.7 / 2025-09-25"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "JSONConfig"
 

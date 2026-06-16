@@ -19,8 +19,10 @@
 #       Plot functions moved to this module
 # Version 0.1 / 2026-05-18
 #       Refactored for EphemDataList
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
-VERSION = "0.1 / 2026-05-18"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "neoplot"
 
