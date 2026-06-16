@@ -22,9 +22,6 @@
 # Version 1.0 / 2026-06-16
 #       Moved and adapted to new directory structure under neoop/
 
-import re
-
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
