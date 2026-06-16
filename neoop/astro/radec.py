@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2023-2025 Martin Junius
+# Copyright 2023-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,14 +21,15 @@
 #       Fixed sign handling for DEC
 # Version 0.3 / 2025-10-15
 #       Rewritten using AstroPy's SkyCoord
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
-VERSION = "0.3 / 2025-12-15"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
-NAME    = "radec"
+NAME    = "astro.radec"
 
 import argparse
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -39,7 +40,7 @@ from astropy.coordinates import Angle
 import astropy.units as u
 
 # Local modules
-from verbose import verbose, error
+from utils.verbose import verbose, error
 
 
 
