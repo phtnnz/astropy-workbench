@@ -23,8 +23,7 @@
 # Version 1.0 / 2026-06-16
 #       Moved and adapted to new directory structure under neoop/
 
-import sys
-import argparse
+import re
 import numpy as np
 
 # AstroPy
@@ -32,21 +31,22 @@ from astropy.coordinates import EarthLocation  # High-level coordinates
 import astropy.constants as C
 import astropy.units as u
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
+from astropy.coordinates import errors, name_resolve
 
 # Astroquery
 from astroquery.mpc import MPC
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
+
 # Local modules
 from utils.verbose import verbose, warning, error
 
 
 VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
-NAME    = "mpclocation"
+NAME    = "mpc.location"
 
 
 
@@ -57,36 +57,6 @@ R_earth = 6378137.0                 # GRS 80/WGS 84 value (Wikipedia)
                                     # The IAU Resolutions on Astronomical Reference Systems,
                                     # Time Scales, and Earth Rotation Models
                                     # https://aa.usno.navy.mil/downloads/Circular_179.pdf
-
-
-
-def test_m49():
-    """
-    Run test case M49
-    """
-    loc1 = EarthLocation(lat=-23.23655*u.deg, lon=16.36172*u.deg , height=1853*u.m) # M49, Hakos, Namibia
-    ic(loc1, loc1.to_geodetic())
-
-    loc2 = mpc_station_location("M49")
-    ic(loc2, loc2.to_geodetic())
-
-    # https://projectpluto.com/parallax.htm
-    #
-    # M49 !+016.361720000  -23.236548535  1853.495   IAS Remote Observatory, Hakos
-    # M49  16.361720.919630-0.392206IAS Remote Observatory, Hakos
-    # Longitude   16.361720000 = +16 21 42.19199
-    # Latitude  -23.236548535 = -23 14 11.57472
-    # Altitude 1853.49468 meters above the WGS84 ellipsoid (_not_ above sea level/geoid)
-    # Parallax constants 0.91963000000 -0.39220600000
-    # In meters: 5865526.12931 -2501543.60022
-    # xyz in Earth radii -0.7300066 -0.5592940 -0.3922060
-    # xyz in meters      -4656081.99331 -3567253.45962 -2501543.60022
-    # This point is somewhere in Namibia
-    lon_p = 16.361720000
-    lat_p = -23.236548535
-    alt_p = 1853.49468
-    ic("projectpluto results in comparison")
-    ic(lon_p, lat_p, alt_p)
 
 
 
@@ -133,37 +103,50 @@ def mpc_parallax_to_location(longitude: Longitude, rho_cos_phi: float, rho_sin_p
 
 
 
-### Test run as a command line script ###
-def main():
-    arg = argparse.ArgumentParser(
-        prog        = NAME,
-        description = "Convert MPC station location to EarthLocation",
-        epilog      = "Version " + VERSION + " / " + AUTHOR)
-    arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
-    arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("--test-m49", action="store_true", help="MPC station M49 test case")
-    arg.add_argument("station", nargs="*", help="MPC station code")
+def get_location(name: str) -> EarthLocation:
+    """
+    Try to interpret location name as lon/lat coordinates, MPC station code,
+    site name, or openstreetmap address
 
-    args = arg.parse_args()
+    Parameters
+    ----------
+    name : str
+        Location text
 
-    if args.debug:
-        ic.enable()
-        ic(args, sys.version_info, sys.path)
-    if args.verbose:
-        verbose.set_prog(NAME)
-        verbose.enable()
+    Returns
+    -------
+    EarthLocation
+        Astropy location object
+    """
+    loc = None
+    m = re.match(r'^(-?[0-9.]+) ([+-]?[0-9.]+) ([0-9.]+)$', name)
+    if m:
+        (lon, lat, height) = [ float(v) for v in m.groups() ]
+        loc = EarthLocation(lon=lon*u.degree, lat=lat*u.degree, height=height*u.m)
+        verbose(f"location {lon=} {lat=} {height=}")
 
-    if args.test_m49:
-        ic.enable()
-        test_m49()
-    else:
-        for station in args.station:
-            loc = mpc_station_location(station)
-            ic(loc, loc.to_geodetic(), loc.info)
-            verbose(f"station {station}: {loc.info.name}")
-            verbose(f"    lon={loc.lon.to_string(unit=u.degree, precision=2)} lat={loc.lat.to_string(unit=u.degree, precision=2)} height={loc.height.to_string(unit=u.m, precision=0)}")
-            verbose(f"    lon={loc.lon.to_string(unit=u.degree, decimal=True, precision=6)}° lat={loc.lat.to_string(unit=u.degree, decimal=True, precision=6)}° height={loc.height.to_string(unit=u.m, precision=0)}")
+    if loc == None:
+        try:
+            loc = mpc_station_location(name)
+        except (LookupError, ValueError):
+            verbose(f"location {name} not an MPC station code")
+            loc = None
 
+    if loc == None:
+        try:
+            loc = EarthLocation.of_site(name)
+        except errors.UnknownSiteException as e:
+            verbose(f"location {name} not in astropy database")
+            loc = None
 
-if __name__ == "__main__":
-    main()
+    if loc == None:
+        try:
+            loc = EarthLocation.of_address(name)
+        except name_resolve.NameResolveError as e:
+            verbose(f"location {name} not a recognized address")
+            loc = None
+
+    if loc == None:
+        error(f"named location {name} not found")
+
+    return loc

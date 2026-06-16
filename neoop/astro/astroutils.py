@@ -31,16 +31,14 @@ ic.disable()
 
 # AstroPy
 from astropy.coordinates import EarthLocation, SkyCoord
-from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-from astropy.coordinates import errors, name_resolve
+from astropy.coordinates import Angle
 import astropy.units as u
-from astropy.time        import Time, TimeDelta
+from astropy.time        import Time
 import numpy as np
 
 # Local modules
-from utils.verbose import verbose, warning, error
-from mpc.location import mpc_station_location
-# from querysimbad import query_simbad
+from utils.verbose import error
+
 
 
 VERSION = "1.0 / 2026-06-16"
@@ -142,86 +140,8 @@ def hourangle_to_string(a: Angle) -> str:
 
 
 
-def get_location(name: str) -> EarthLocation:
-    """
-    Try to interpret location name as lon/lat coordinates, MPC station code,
-    site name, or openstreetmap address
-
-    Parameters
-    ----------
-    name : str
-        Location text
-
-    Returns
-    -------
-    EarthLocation
-        Astropy location object
-    """
-    loc = None
-    m = re.match(r'^(-?[0-9.]+) ([+-]?[0-9.]+) ([0-9.]+)$', name)
-    if m:
-        (lon, lat, height) = [ float(v) for v in m.groups() ]
-        loc = EarthLocation(lon=lon*u.degree, lat=lat*u.degree, height=height*u.m)
-        verbose(f"location {lon=} {lat=} {height=}")
-
-    if loc == None:
-        try:
-            loc = mpc_station_location(name)
-        except (LookupError, ValueError):
-            verbose(f"location {name} not an MPC station code")
-            loc = None
-
-    if loc == None:
-        try:
-            loc = EarthLocation.of_site(name)
-        except errors.UnknownSiteException as e:
-            verbose(f"location {name} not in astropy database")
-            loc = None
-
-    if loc == None:
-        try:
-            loc = EarthLocation.of_address(name)
-        except name_resolve.NameResolveError as e:
-            verbose(f"location {name} not a recognized address")
-            loc = None
-
-    if loc == None:
-        error(f"named location {name} not found")
-
-    return loc
-
-
-
 def location_to_string(loc: EarthLocation) -> str:
     return f"lon={loc.to_geodetic().lon.to_string(unit=u.degree, precision=1)} lat={loc.to_geodetic().lat.to_string(unit=u.degree, precision=1)} height={loc.to_geodetic().height.to_string(precision=0)}"
-
-
-
-# def get_coord(name: str, simbad=False) -> SkyCoord:
-#     """
-#     Get coordinates for object, either by converting "RA DEC" string, or querying Simbad
-
-#     :param name: object name or "RA DEC" string
-#     :type name: str
-#     :param simbad: query simbad for object name, defaults to False
-#     :type simbad: bool, optional
-#     :return: coordinates object
-#     :rtype: SkyCoord
-#     """
-#     # Try ICRS coords first
-#     try:
-#         coord = SkyCoord(name, unit=(u.hour, u.deg))
-#     except ValueError:
-#         ic("not ra/dec coordinates")
-#         coord = None
-#         pass
-
-#     # Try to query Simbad for object name
-#     if not coord and simbad:
-#         coord = query_simbad(name, w_velocity=False)
-
-#     ic(name, coord)
-#     return coord;
 
 
 
@@ -242,8 +162,3 @@ def time_jd_as_iso(jd: np.float64) -> Time:
     time = Time(jd, format="jd")
     time.format = "iso"
     return time
-
-
-
-if __name__ == "__main__":
-    error("no main() function")

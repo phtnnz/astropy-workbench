@@ -20,16 +20,13 @@
 # Version 1.0 / 2026-06-16
 #       Moved and adapted to new directory structure under neoop/
 
-VERSION = "1.0 / 2026-06-16"
+VERSION     = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
-NAME        = "neoephem"
+NAME        = "neo.ephem"
 DESCRIPTION = "Ephemeris for solar system objects"
 
-import sys
-import argparse
 import re
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -49,7 +46,7 @@ from astroplan import Observer
 
 # Local modules
 from utils.verbose import verbose, warning, error, message
-from astro.astroutils import get_location
+from mpc.location import get_location
 from neo.classes import Exposure, EphemTimes, EphemData, EphemDataList, LocalCircumstances
 from neo.utils import exposure_calc, max_motion, get_mag0, motion_limit
 from neo.config import config
