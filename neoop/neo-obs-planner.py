@@ -34,8 +34,10 @@
 #       Removed -U --update-neocp option, no local files cached anymore
 # Version 2.0 / 2026-06-16
 #       Refactored version in new subdirectory neoop/
+# Version 2.1 / 2026-06-16
+#       New option --verbose-ephem for ephemerides output, fixed mag limits
 
-VERSION     = "2.0 / 2026-06-16"
+VERSION     = "2.1 / 2026-06-16"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEOCP/NEO observation planner"
@@ -43,7 +45,6 @@ DESCRIPTION = "NEOCP/NEO observation planner"
 import sys
 import argparse
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -266,6 +267,7 @@ def main():
         description = DESCRIPTION,
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
+    arg.add_argument("--verbose-ephem", action="store_true", help="verbose ephemerides")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("-f", "--file", help="read list of objects from file")
@@ -308,9 +310,9 @@ def main():
         config.neocp_mag_limit = args.mag_limit
         config.sbwobs_mag_limit = args.mag_limit
     if args.neocp_mag_limit:
-        config.neocp_mag_limit = args.mag_limit
+        config.neocp_mag_limit = args.neocp_mag_limit
     if args.sbwobs_mag_limit:
-        config.sbwobs_mag_limit = args.mag_limit
+        config.sbwobs_mag_limit = args.sbwobs_mag_limit
     if not args.min_alt is None:
         config.min_alt = args.min_alt
     if args.asteroids:
@@ -403,15 +405,16 @@ def main():
     verbose(f"sorted object sequence: {edata_list.objects_str()}")
 
     verbose("forced objects:", ", ".join(forced_objs))
-    ##FIXME: use process() to implement
-    edata: EphemData
-    for edata in edata_list:
-        if edata.obj in forced_objs:
-            edata.force = True
-        verbose("")
-        verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                         "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-    # edata_list.verbose_ephem()
+    if args.verbose_ephem:
+        ##FIXME: use process() to implement
+        edata: EphemData
+        for edata in edata_list:
+            if edata.obj in forced_objs:
+                edata.force = True
+            verbose("")
+            verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+                                            "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+        # edata_list.verbose_ephem()
 
     verbose("")
     log_file = neo.files.path("obs-planner-1.log")
