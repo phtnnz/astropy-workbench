@@ -44,12 +44,11 @@ from astropy.time import Time
 from astropy.table import QTable
 
 # Local modules
-from verbose import verbose, warning, error
-from neoconfig import config
-from neoclasses import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
-from neoutils import get_mag0, max_motion
-from neoephem import get_dec_limits
-import neofiles
+from utils.verbose import verbose, warning, error
+from neo.config import config
+from neo.classes import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
+from neo.utils import get_mag0, max_motion
+from neo.ephem import get_dec_limits
 
 
 # Requests timeout

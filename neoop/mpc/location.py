@@ -39,7 +39,7 @@ from icecream import ic
 # Disable debugging
 ic.disable()
 # Local modules
-from verbose import verbose, warning, error
+from utils.verbose import verbose, warning, error
 
 
 VERSION = "0.2 / 2025-01-24"

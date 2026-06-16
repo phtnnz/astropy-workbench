@@ -52,11 +52,11 @@ import astropy.units as u
 from astropy.units import Quantity, Magnitude
 
 # Local modules
-from verbose import verbose, warning, error, message
-from neoconfig import config
-from neoutils import fmt_time
-from neoephem import get_local_circumstances, get_dec_limits
-from neoclasses import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, EphemDataList
+from utils.verbose import verbose, warning, error, message
+from neo.config import config
+from neo.utils import fmt_time
+from neo.ephem import get_local_circumstances, get_dec_limits
+from neo.classes import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, EphemDataList
 
 
 

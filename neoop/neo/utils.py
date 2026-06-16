@@ -49,9 +49,9 @@ import numpy as np
 from sbpy.data import Ephem
 
 # Local modules
-from verbose import verbose, warning, error, message
-from neoconfig import config
-from neoclasses import Exposure, EphemData, EphemTimes, EphemDataList
+from utils.verbose import verbose, warning, error, message
+from neo.config import config
+from neo.classes import Exposure, EphemData, EphemTimes, EphemDataList
 
 
 

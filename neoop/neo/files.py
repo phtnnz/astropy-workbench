@@ -38,8 +38,8 @@ import os
 from astropy.time import Time
 
 # Local modules
-from neoconfig import config
-from verbose import warning
+from neo.config import config
+from utils.verbose import warning
 
 
 

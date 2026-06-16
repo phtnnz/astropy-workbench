@@ -46,11 +46,11 @@ from astroquery.mpc import MPC
 from astroplan import Observer
 
 # Local modules
-from verbose import verbose, warning, error, message
-from astroutils import get_location
-from neoclasses import Exposure, EphemTimes, EphemData, EphemDataList, LocalCircumstances
-from neoutils import exposure_calc, max_motion, get_mag0, motion_limit
-from neoconfig import config
+from utils.verbose import verbose, warning, error, message
+from astro.astroutils import get_location
+from neo.classes import Exposure, EphemTimes, EphemData, EphemDataList, LocalCircumstances
+from neo.utils import exposure_calc, max_motion, get_mag0, motion_limit
+from neo.config import config
 
 DEFAULT_LOCATION = config.code
 

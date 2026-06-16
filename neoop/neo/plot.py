@@ -42,7 +42,7 @@ from astroplan import Observer
 from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
-from neoclasses import EphemData, Ephem, EphemDataList
+from neo.classes import EphemData, Ephem, EphemDataList
 
 
 

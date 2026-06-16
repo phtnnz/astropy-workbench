@@ -46,8 +46,8 @@ from astroplan import Observer
 from astropy.units import Quantity, Magnitude
 
 # Local modules
-from astroutils import location_to_string
-from verbose import verbose
+from astro.astroutils import location_to_string
+from utils.verbose import verbose
 
 
 

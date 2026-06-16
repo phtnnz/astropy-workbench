@@ -35,8 +35,8 @@ from icecream import ic
 ic.disable()
 
 # Local modules
-from verbose import verbose, warning, error, message
-from jsonconfig import JSONConfig, config
+from utils.verbose import verbose, warning, error, message
+from utils.jsonconfig import JSONConfig, config
 
 
 

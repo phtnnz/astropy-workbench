@@ -50,7 +50,7 @@ from icecream import ic
 # Disable debugging
 
 # Local modules
-from verbose import verbose, warning, error
+from utils.verbose import verbose, warning, error
 
 
 
