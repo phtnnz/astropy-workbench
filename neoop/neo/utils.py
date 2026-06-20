@@ -76,29 +76,6 @@ def get_mag0(eph: Ephem, column: str="Mag") -> Magnitude:
 
 
 
-def _get_table(eph: Ephem) -> QTable:
-    """Hack for proper iteration: get actual table from Ephem object
-
-    Parameters
-    ----------
-    eph : Ephem
-        Ephemeris object
-
-    Returns
-    -------
-    QTable
-        Table object
-    """
-    # Hack for iterating over Ephem object:
-    # for row in eph yields single line QTable objects
-    # for row in get_table(eph) yields Row object as expected
-    # Reported as a bug to sbpy, may change with future implementations
-    ##FIXME: table attribute is an "official" attribute for sbpy DataClass,
-    ##       use directly in the neoutils code?
-    return eph.table
-
-
-
 def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
     """
     Get max value for motion column(s) from ephemeris table
@@ -123,7 +100,7 @@ def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
         # Single column with proper motion
         col1 = column
         col2 = None
-    for row in _get_table(eph):
+    for row in eph.table:
         if col2:
             motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
         else:
@@ -192,7 +169,7 @@ def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tupl
     prev_time = None
     prev_az   = None
 
-    for row in _get_table(eph):
+    for row in eph.table:
         time = row[col_obstime]
         az   = row[col_az]
         # ic(time, az)
@@ -232,7 +209,7 @@ def opt_alt_times(eph: Ephem, alt: Angle, col_obstime: str="Obstime", col_alt: s
     time_alt0 = None
     time_alt1 = None
 
-    for row in _get_table(eph):
+    for row in eph.table:
         if time_alt0 == None and row[col_alt] >= alt:
             time_alt0 = row[col_obstime]
         if time_alt0 != None and row[col_alt] >= alt:
@@ -264,7 +241,7 @@ def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> 
     """
     max_alt = -90 * u.degree
     time_max = None
-    for row in _get_table(eph):
+    for row in eph.table:
         if row[col_alt] > max_alt:
             max_alt = row[col_alt]
             time_max = row[col_obstime]
@@ -291,7 +268,7 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
         Corresponding row from ephemeris table
         None, if not found
     """
-    for r1, r2 in pairwise(_get_table(eph)):
+    for r1, r2 in pairwise(eph.table):
         if r1[col_obstime] <= t and t <= r2[col_obstime]:
             return r1
     
