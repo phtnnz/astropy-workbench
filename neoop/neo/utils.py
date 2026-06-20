@@ -76,7 +76,7 @@ def get_mag0(eph: Ephem, column: str="Mag") -> Magnitude:
 
 
 
-def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
+def get_max_motion(eph: Ephem, column: str="Motion") -> Quantity:
     """
     Get max value for motion column(s) from ephemeris table
 

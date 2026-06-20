@@ -49,7 +49,7 @@ from astropy.table import QTable
 from utils.verbose import verbose, warning, error
 from neo.config import config
 from neo.classes import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
-from neo.utils import get_mag0, max_motion
+from neo.utils import get_mag0, get_max_motion
 from neo.ephem import get_dec_limits
 
 
@@ -150,7 +150,7 @@ def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: Loca
             continue
         eph1 = Ephem.from_table(qt)
         mag = get_mag0(eph1)
-        motion = max_motion(eph1)
+        motion = get_max_motion(eph1)
 
         edata = EphemData("-", obj, None, eph1, None, None, mag, motion)
         edata_list.append(edata)

@@ -48,7 +48,7 @@ from astroplan import Observer
 from utils.verbose import verbose, warning
 from mpc.location import get_location
 from neo.classes import EphemData, LocalCircumstances
-from neo.utils import max_motion
+from neo.utils import get_max_motion
 from neo.utils import get_mag0
 from neo.config import config
 
@@ -107,7 +107,7 @@ def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
             warning(f"skipping empty ephemeris for {obj}")
             return
         mag = get_mag0(eph1)
-        motion = max_motion(eph1)
+        motion = get_max_motion(eph1)
 
         # Copy to EphemData
         if edata.wobs:
@@ -144,7 +144,7 @@ def edata_add_ephem_jpl(edata: EphemData, local: LocalCircumstances) -> None:
         eph1["Moon_dist"] = 180 * u.degree
         eph1["Moon_alt"]  = -90 * u.degree
         mag = get_mag0(eph1)
-        motion = max_motion(eph1)
+        motion = get_max_motion(eph1)
 
         # Copy to EphemData
         if edata.wobs:
