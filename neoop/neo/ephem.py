@@ -20,7 +20,7 @@
 # Version 1.0 / 2026-06-16
 #       Moved and adapted to new directory structure under neoop/
 
-VERSION     = "1.0 / 2026-06-16"
+VERSION     = "1.0 / 2026-06-20"
 AUTHOR      = "Martin Junius"
 NAME        = "neo.ephem"
 DESCRIPTION = "Ephemeris for solar system objects"
@@ -45,10 +45,11 @@ from astroquery.mpc import MPC
 from astroplan import Observer
 
 # Local modules
-from utils.verbose import verbose, warning, error, message
+from utils.verbose import verbose, warning
 from mpc.location import get_location
-from neo.classes import Exposure, EphemTimes, EphemData, EphemDataList, LocalCircumstances
-from neo.utils import exposure_calc, max_motion, get_mag0, motion_limit
+from neo.classes import EphemData, LocalCircumstances
+from neo.utils import max_motion
+from neo.utils import get_mag0
 from neo.config import config
 
 DEFAULT_LOCATION = config.code
@@ -155,20 +156,6 @@ def edata_add_ephem_jpl(edata: EphemData, local: LocalCircumstances) -> None:
 
     except (QueryError, FieldError) as e:
         warning(f"JPL ephemeris for {obj} failed")
-
-
-
-def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> None:
-    obj = edata.obj
-    if not edata.ephem:
-        return
-    if edata.motion != None and edata.mag != None:
-        edata.exposure = exposure_calc(edata.motion, edata.mag)
-        ic(edata.obj, edata.exposure)
-    if not edata.exposure:
-        warning(f"exposure calculation for {obj} failed, too fast?")
-        if edata.motion != None:
-            warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
 
 
 

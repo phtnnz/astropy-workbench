@@ -37,7 +37,7 @@
 # Version 2.1 / 2026-06-16
 #       New option --verbose-ephem for ephemerides output, fixed mag limits
 
-VERSION     = "2.1 / 2026-06-16"
+VERSION     = "2.1 / 2026-06-20"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEOCP/NEO observation planner"
@@ -58,8 +58,9 @@ from astroquery.mpc import MPC
 from utils.verbose import verbose, warning, error, message
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances
-from neo.utils     import edata_list_add_times, get_row_for_time, motion_limit, fmt_time, edata_list_csv_output
-from neo.ephem     import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc, edata_add_exposure
+from neo.utils     import edata_list_add_times, get_row_for_time, fmt_time, edata_list_csv_output
+from neo.exposure  import motion_limit, edata_add_exposure
+from neo.ephem     import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc
 from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
 from mpc.neocp     import neocp_get_edata_list
