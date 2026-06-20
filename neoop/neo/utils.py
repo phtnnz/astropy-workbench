@@ -52,6 +52,7 @@ from sbpy.data import Ephem
 
 # Local modules
 from utils.verbose import verbose, warning
+from utils.csvoutput import csv_output
 from neo.config import config
 from neo.classes import EphemData, EphemTimes, EphemDataList
 
@@ -359,6 +360,7 @@ def edata_list_csv_output(edata_list: EphemDataList, output: str) -> None:
     csv_rows = list()
 
     # Traverse objects, only those with valid plan_start time
+    csv_row = None
     for edata in edata_list:
         obj = edata.obj
         if edata.times.plan_start:
@@ -385,23 +387,15 @@ def edata_list_csv_output(edata_list: EphemDataList, output: str) -> None:
                         "total": str(edata.exposure)
                         }
             ic(csv_row)
-            csv_rows.append(csv_row)
+            csv_output(csv_row)
 
     # Output to CSV file for nina-create-sequence2
     verbose(f"planned objects for nina-create-sequence2: {output}")
     # csv_row is the last object, if any were found
     if csv_row:
-        ##FIXME: improve csvoutput module to cover this usage
         fieldnames = csv_row.keys()
         ic(fieldnames)
-        if output:
-            with open(output, "w", newline="") as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(csv_rows)
-        else:
-            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(csv_rows)
+        csv_output.add_fields(fieldnames)
+        csv_output.write(output, set_locale=False)
     else:
         warning("no objects, no CSV output")
