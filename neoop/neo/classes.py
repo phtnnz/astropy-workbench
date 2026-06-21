@@ -221,9 +221,18 @@ class EphemDataList(list):
 
 @dataclass
 class PrevNEOCPData:
-    trk_id: str
+    trk_sub: str
     designation: str = None
-    error: str = None
-    time: Time = None
-    mpec: str = None
+    comment: str = None
+    date: Time = None
+    mpec_no: str = None
     mpec_url: str = None
+
+    def __str__(self) -> str:
+        if self.designation:
+            if self.mpec_no:
+                return f"{self.trk_sub:7s} = {self.designation:10s}  MPEC {self.mpec_no:9s}  {self.mpec_url}"
+            else:
+                return f"{self.trk_sub:7s} = {self.designation:10s}"
+        else:
+            return f"{self.trk_sub:7s}   {self.comment}"
