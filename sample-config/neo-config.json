@@ -52,6 +52,15 @@
 
     "##3": "Config for MPC Dates Of Last Observation Of NEOs (sbwobs)",
     "lastobs_url":      "https://www.minorplanetcenter.net/iau/NEO/LastObsNEO.txt",
-    "customize_url":    "https://cgi.minorplanetcenter.net/cgi-bin/customize.cgi"
+    "customize_page":   "https://www.minorplanetcenter.net/iau/lists/Customize.html",
+    "customize_url":    "https://cgi.minorplanetcenter.net/cgi-bin/customize.cgi",
+
+    "##3a": "Automatically calculated from location in neo-obs-planner and sbwobs",
+    "min_dec":      -90,
+    "max_dec":      40,
+
+    "##4": "Config for Previous NEO Confirmation Page Objects",
+    "prev_neocp_url":   "https://www.minorplanetcenter.net/iau/NEO/ToConfirm_PrevDes.html",
+    "mpc_url":          "https://www.minorplanetcenter.net"
 
 }
