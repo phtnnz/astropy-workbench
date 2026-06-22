@@ -56,7 +56,7 @@ from utils.verbose import verbose, warning, error, message
 from neo.config import config
 from neo.utils import fmt_time
 from neo.classes import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, EphemDataList
-from mpc.lastobs import mpc_query_customize, mpc_parse_customize
+from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_lastobs, mpc_parse_lastobs
 
 
 
@@ -224,7 +224,7 @@ def object_filter(key: str, edata: EphemData) -> bool:
 
 
 
-def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
+def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
     obj_edata1 = jpl_parse_sbwobs(query)
@@ -244,31 +244,29 @@ def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
         verbose("---------------------------------------------")
     else:
         # Asteroids
-        query = mpc_query_customize(config.customize_url, "DLU")   # "DLN" | "DLU"
-        obj_edata2 = mpc_parse_customize(query, "DLU")
+        if list_type == "LASTOBS":
+            # LastObs
+            query = mpc_query_lastobs(config.lastobs_url)
+            obj_edata2 = mpc_parse_lastobs(query)
+        else:
+            # DLU/DLN
+            query = mpc_query_customize(config.customize_url, "DLU")   # "DLN" | "DLU"
+            obj_edata2 = mpc_parse_customize(query, "DLU")
+
         keys2 = obj_edata2.keys()
-        verbose(f"DLU objects ({len(keys2)}): {", ".join(sorted(keys2))}")
+        verbose(f"{list_type} objects ({len(keys2)}): {", ".join(sorted(keys2))}")
 
-        ## DLN is a subset of DLU, tested on 2025-11-18, not used ##
-        # mpc_query_customize(config.customize_url, "DLN")   # "DLN" | "DLU"
-        # mpc_parse_customize(content, "DLN")
-
-        ## LastObs list currently not used ##
-        # mpc_query_lastobs(config.lastobs_url)
-        # mpc_parse_lastobs(content)
-
-        # Filter DLU for "Last OBS"
-        # None: data from WOBS not yet used in object_filter()
+        # Filter MPC list
         keys2_filtered = [ k for k in keys2 if object_filter(k, obj_edata2.get(k)) ]
 
-        # Intersection 1 & 2: observable objects also in DLU list
+        # Intersection 1 & 2: observable objects also in MPC list
         keys_selected = sorted(keys1 & keys2_filtered)
-        verbose(f"WOBS & DLU objects ({len(keys_selected)}): {", ".join(keys_selected)}")
+        verbose(f"WOBS & {list_type} objects ({len(keys_selected)}): {", ".join(keys_selected)}")
         # Build new dict
         obj_edata = dict()
         for k in keys_selected:
             edata = obj_edata1.get(k)
-            # Copy MPCDLxData from DLU data
+            # Copy MPCDLxData from MPC data
             edata.dlx = obj_edata2.get(k).dlx
             obj_edata[k] = edata
 
@@ -283,9 +281,9 @@ def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
 
 
 
-def sbwobs_get_objects(local: LocalCircumstances) -> list[str]:
+def sbwobs_get_objects(local: LocalCircumstances, list_type: str="DLU") -> list[str]:
     # wrapper for sbwobs_get_obj_edata()
-    return sbwobs_get_edata_list(local).objects()
+    return sbwobs_get_edata_list(local, list_type).objects()
 
 
 

@@ -54,6 +54,9 @@ def main():
     arg.add_argument("-o", "--output", help="write object list to OUTPUT")
     arg.add_argument("-M", "--mag-limit", help="override mag_limit from config")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {config.code}")
+    arg.add_argument("--dln", action="store_true", help=f"use DLN list (default: DLU)")
+    arg.add_argument("--lastobs", action="store_true", help=f"use LastObs list (default: DLU)")
+
 
     args = arg.parse_args()
 
@@ -86,7 +89,13 @@ def main():
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 
-    keys_selected = sbwobs_get_objects(local)
+    # MPC list type
+    list_type = "DLU"
+    if args.dln:
+        list_type = "DLN"
+    if args.lastobs:
+        list_type = "LASTOBS"
+    keys_selected = sbwobs_get_objects(local, list_type)
 
     if args.output:
         with open(args.output, "w") as file:

@@ -205,7 +205,6 @@ def mpc_parse_customize(content: str, list_type: str) -> dict[str, EphemData]:
 
 
 
-## Currently not used ##
 def mpc_query_lastobs(url: str) -> str:
     ic(url)
 
@@ -218,25 +217,27 @@ def mpc_query_lastobs(url: str) -> str:
     if response.status_code != 200:
         error(f"query to {url} failed")
 
+    return response.text
 
 
 
-## Currently not used ##
-def mpc_parse_lastobs(content: str) -> dict[str, MPCDLxData]:
+def mpc_parse_lastobs(content: str) -> dict[str, EphemData]:
     objects = dict()
-    
+
     for txt_line in content.splitlines():
-        object1 = parse_txt_line(txt_line, "DLN")       # same format als customize/DLN
-        if object1:
+        dlx = parse_txt_line(txt_line, "DLN")       # same format als customize/DLN
+        if dlx:
             # Check mag limit
-            mag = object1.get("Last mag") or 99.99
-            if mag > config.vmag_max:
+            mag = dlx.last_mag or 99.99
+            if mag > config.sbwobs_mag_limit:
                 continue
             # Check DEC limit
-            dec = object1.get("DEC") or 0.0
+            dec = dlx.dec.value or 0.0
             if dec < config.min_dec or dec > config.max_dec:
                 continue
-            objects[ object1.get("Designation") ] = object1
+            ##FIXME: check last obs data here?
+            edata = EphemData("", dlx.designation, None, None, None, None, dlx.vmag, None, dlx=dlx)
+            objects[dlx.designation] = edata
 
     return objects
 
