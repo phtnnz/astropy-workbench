@@ -97,7 +97,7 @@ def mpc_parse_prev_neocp(content: str) -> dict[str, PrevNEOCPData]:
         if m:
             trk_sub, comment, date = m.groups()
             ic(trk_sub, comment, date)
-            objects[trk_sub] = PrevNEOCPData(trk_sub, None, comment, date, mpec_no, mpec_url)
+            objects[trk_sub] = PrevNEOCPData(trk_sub, None, comment, date)
             continue
             
         if not m:
