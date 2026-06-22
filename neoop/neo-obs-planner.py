@@ -113,9 +113,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             nobs    = None
             arc     = None
             last    = edata.dlx.last_obs
-            # notseen = (Time.now() - last).to(u.day)
-            # already handled by sbwobs.object_filter()
-            notseen = None
+            notseen = (Time.now() - last).to(u.day)
         else:
             score   = None
             mag     = edata.mag
@@ -228,7 +226,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
 
             # Skip, if not seen for more than threshold days
             max_notseen = config.max_notseen * u.day
-            if not notseen is None and notseen > max_notseen:
+            if edata.neocp and not notseen is None and notseen > max_notseen:
                 message(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
                 skipped.append(obj)
                 continue
