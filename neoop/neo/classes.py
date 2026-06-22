@@ -160,6 +160,14 @@ class EphemData:
     dlx: MPCDLxData = None      # data from MPC DLU/DLN lists
     force: bool = False         # force observation of this object (e.g. from --force option)
 
+    def __str__(self) -> str:
+        wobs = self.wobs
+        dlx = self.dlx
+        if dlx:
+            return f"{wobs.type.upper():5s}  {wobs.designation:11s} {wobs.rise_time:6s} {wobs.transit_time:6s} {wobs.set_time:6s}  {float(wobs.vmag.value):4.1f}  {dlx.uncertainty}  {str(dlx.last_obs):10.10s}"
+        else:
+            return str(wobs)
+
 
 
 @dataclass

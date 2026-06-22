@@ -195,16 +195,6 @@ def jpl_parse_sbwobs(text: str) -> dict[str, EphemData]:
 
 
 
-def to_string(edata: EphemData) -> str:
-    wobs = edata.wobs
-    dlx = edata.dlx
-    if dlx:
-        return f"{wobs.type.upper():5s}  {wobs.designation:11s} {wobs.rise_time:6s} {wobs.transit_time:6s} {wobs.set_time:6s}  {float(wobs.vmag.value):4.1f}  {dlx.uncertainty}  {str(dlx.last_obs):10.10s}"
-    else:
-        return str(wobs)
-
-
-
 def mpc_query_customize(url: str, list_type: str) -> str:
     ic(url)
 
@@ -450,7 +440,7 @@ def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
         verbose("Type   Designation Rise   Trans  Set     Vmag")
         verbose("---------------------------------------------")
         for key in keys_selected:
-            verbose(to_string(obj_edata1.get(key)))
+            verbose(obj_edata1.get(key))
         verbose("---------------------------------------------")
     else:
         # Asteroids
@@ -486,7 +476,7 @@ def sbwobs_get_edata_list(local: LocalCircumstances) -> EphemDataList:
         verbose("Type   Designation Rise   Trans  Set     Vmag  U  Last Obs")
         verbose("------------------------------------------------------------")
         for key in keys_selected:
-            verbose(to_string(obj_edata.get(key)))
+            verbose(obj_edata.get(key))
         verbose("------------------------------------------------------------")
 
     return EphemDataList.from_dict(obj_edata)
