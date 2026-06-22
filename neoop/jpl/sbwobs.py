@@ -418,15 +418,14 @@ def object_filter(key: str, edata: EphemData) -> bool:
             t_obs = last_obs
             t_now = Time.now()
             ic(t_obs, t_now)
-            ##FIXME: add config option
-            if t_obs < t_now - 14 * u.day:
+            if t_obs < t_now - config.max_last_obs * u.day:
                 verbose(f"{key}: last obs {last_obs} too old, not included")
                 return False
 
         uncertainty = dlx.uncertainty
         if uncertainty:
-            ##FIXME: add config option
-            if int(uncertainty) < 3:
+            min_uncertainty = config.min_uncertainty
+            if int(uncertainty) < min_uncertainty:
                 verbose(f"{key}: uncertainty < 3, not included")
                 return False
 
