@@ -113,7 +113,9 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             nobs    = None
             arc     = None
             last    = edata.dlx.last_obs
-            notseen = (Time.now() - last).to(u.day)
+            # notseen = (Time.now() - last).to(u.day)
+            # already handled by sbwobs.object_filter()
+            notseen = None
         else:
             score   = None
             mag     = edata.mag
