@@ -23,17 +23,18 @@
 #       Common column names for ephemeris tables
 # Version 0.3 / 2026-03-15
 #       Use functions from neoephem, with slightly different user interface
+# Version 0.4 / 2026-06-23
+#       Moved and adapted to new directory structure under neoop/
 
-VERSION     = "0.3 / 2026-03-15"
+VERSION     = "0.4 / 2026-06-23"
 AUTHOR      = "Martin Junius"
-NAME        = "sbephem"
+NAME        = "neo-sbephem"
 DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
 import re
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -46,10 +47,11 @@ from sbpy.data import Obs
 from sbpy.data.core import QueryError
 
 # Local modules
-from verbose    import verbose, warning, error, message
-from neoconfig  import config
-from neoephem   import edata_add_ephem_jpl, edata_add_ephem_mpc, edata_add_exposure, get_local_circumstances, get_dec_limits
-from neoclasses import EphemData
+from utils.verbose import verbose, warning, error, message
+from neo.config    import config
+from neo.ephem     import edata_add_ephem_jpl, edata_add_ephem_mpc, get_local_circumstances, get_dec_limits
+from neo.exposure  import edata_add_exposure
+from neo.classes   import EphemData
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -172,7 +174,7 @@ def main():
         ic(edata)
 
         if edata.ephem:
-            verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+            verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                             "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
             verbose("NEO exposure", edata.exposure)
 
