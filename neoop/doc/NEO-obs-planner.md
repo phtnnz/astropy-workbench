@@ -71,10 +71,107 @@ Output saved to ./neo-obs-data/
 
 ## N.I.N.A.
 
+```
+usage: nina-create-sequence2 [-h] [-v] [-d] [-A] [-D DESTINATION_DIR] [-o OUTPUT] [-n] [-l] [-S SETTING] [--date DATE] filename [filename ...]
+
+Create/populate multiple N.I.N.A target templates/complete sequence with data from NEO Planner CSV
+
+positional arguments:
+  filename              CSV target data list
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         debug messages
+  -d, --debug           more debug messages
+  -A, --debug-print-attr
+                        extra debug output
+  -D DESTINATION_DIR, --destination-dir DESTINATION_DIR
+                        output dir for created sequence
+  -o OUTPUT, --output OUTPUT
+                        output .json file
+  -n, --no-output       dry run, don't create output files
+  -l, --list-targets    list targets only
+  -S SETTING, --setting SETTING
+                        use template/target SETTING from config
+  --date DATE           use DATE for generating sequence (default 2026-06-24)
+
+Version: 2.0 / 2026-06-16 / Martin Junius
+```
+
 Create sequence:
 ```
 nina-create-sequence2.py -v --setting remote3-neo .\neo-obs-data\YYYYMMDD-neo-obs-plan.csv
 ```
+
+
+## Utilities
+
+```
+usage: neo-list-prev [-h] [-v] [-d] [-f FILE] [object ...]
+
+Query previous NEOCP list from MPC
+
+positional arguments:
+  object                object name
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbose messages
+  -d, --debug           more debug messages
+  -f FILE, --file FILE  read objects from CSV FILE
+
+Version 0.2 / 2026-06-23 / Martin Junius
+```
+
+```
+usage: neo-sbephem [-h] [-v] [-d] [-l LOCATION] [-f FILE] [-t TIME] [-J] [-a] [--obs] [--clear] [object ...]
+
+Ephemeris for solar system objects
+
+positional arguments:
+  object                object name
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbose messages
+  -d, --debug           more debug messages
+  -l LOCATION, --location LOCATION
+                        coordinates, named location or MPC station code, default M49
+  -f FILE, --file FILE  read list of objects from file
+  -t TIME, --time TIME  start time for ephemeris (1h, 5min steps)
+  -J, --jpl             use JPL Horizons ephemeris, default MPC
+  -a, --allnight        ephemeris for midnight +/- 8h (30min steps)
+  --obs                 output MPC obs
+  --clear               clear MPC cache
+
+Version 0.4 / 2026-06-23 / Martin Junius
+```
+
+```
+usage: neo-sbwobs [-h] [-v] [-d] [--asteroids] [--neo] [--pha] [--comets] [-o OUTPUT] [-M MAG_LIMIT] [-l LOCATION] [--dln] [--lastobs]
+
+Retrieve observable NEOs/comets from JPL/MPC
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbose messages
+  -d, --debug           more debug messages
+  --asteroids           get asteroids default=a
+  --neo                 get NEOs default=neo
+  --pha                 get PHAs
+  --comets              get comets (overrides asteroid options)
+  -o OUTPUT, --output OUTPUT
+                        write object list to OUTPUT
+  -M MAG_LIMIT, --mag-limit MAG_LIMIT
+                        override mag_limit from config
+  -l LOCATION, --location LOCATION
+                        coordinates, named location or MPC station code, default M49
+  --dln                 use DLN list (default: DLU)
+  --lastobs             use LastObs list (default: DLU)
+
+Version 0.1 / 2026-06-22 / Martin Junius
+```
+
 
 ## Example
 
