@@ -10,6 +10,13 @@ API:
 https://cgi.minorplanetcenter.net/cgi-bin/customize.cgi 
 
 
+### NEO Confirmation Page
+https://www.minorplanetcenter.net/iau/NEO/toconfirm_tabular.html
+
+API:
+https://cgi.minorplanetcenter.net/cgi-bin/confirmeph2.cgi
+
+
 ### Previous NEO Confirmation Page Objects"
 https://www.minorplanetcenter.net/iau/NEO/ToConfirm_PrevDes.html
 

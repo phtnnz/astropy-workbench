@@ -12,8 +12,7 @@ Images are stored under Image file path > _asteroids_YYYY-MM-DD > TARGET, must b
 ```"subdir": "_asteroids_{1}"```
 setting in nina-create-sequence.json. All dates use the DATEMINUS12 convention.
 
-Important! N.I.N.A Image file pattern setting: ```_asteroids_$$DATEMINUS12$$\$$TARGETNAME$$\$$TARGETNAME$$_```[...]
-
+Important! N.I.N.A Image file pattern setting: ```_asteroids_$$DATEMINUS12$$\$$TARGETNAME$$\$$TARGETNAME$$_$$IMAGETYPE$$_$$DATETIME$$_$$FILTER$$_$$EXPOSURETIME$$s_$$SENSORTEMP$$_$$READOUTMODE$$_G$$GAIN$$_O$$OFFSET$$_$$FRAMENR$$```
 
 ## nina-create-sequence2
 
@@ -24,7 +23,7 @@ Create the complete N.I.N.A sequence for the observation night, default date is 
 ```
 nina-create-sequence2.py -v --setting remote3-neo PLAN.csv
 ```
-(Use remote2-neo or remote3-neo and the NEO planner, neocp.py, neo-obs-planner.py CSV output.)
+(Use remote2-neo or remote3-neo and the NEO planner neo-obs-planner.py CSV output.)
 
 Example output (NINA templates depend on setting): 
 
@@ -57,7 +56,7 @@ nina-create-sequence2: writing JSON sequence D:\Users\mj\Documents\N.I.N.A\NEO-2
 ```
 
 The new sequence NEO-2025-08-25.json is then ready to be loaded in N.I.N.A's advanced sequencer.
-As of 2025-08-25, the sequence works with N.I.N.A. 3.1 and 3.2.
+As of 2025-08-25, the sequence works with N.I.N.A. 3.2. and the plugins 10 Micron Tools, ASA Tools, Sequencer+, and Groundstation.
 
 
 ## nina-zip-data
@@ -67,6 +66,7 @@ nina-zip-data.py runs in parallel with the observation sequence in N.I.N.A, wait
 ```
 nina-zip-data.py -v --ready --subdir=_asteroids
 ```
+Alternatively use the ```run-asteroids.bat``` batch file.
 
 Example Output:
 
@@ -132,4 +132,4 @@ Elapsed time:      6m31.3s
 [...]
 ```
 
-Archives will be uploaded to the buckets remote-upload2 / remote-upload3 and a subdirectory structure SUBDIR/YYYY/MM/SUBDIR_YYYY-MM-DD. SUBDIR (--subdir option) for NEOs is "_asteroids".
+Archives will be uploaded to the S3 buckets remote-upload2 / remote-upload3 and a subdirectory structure SUBDIR/YYYY/MM/SUBDIR_YYYY-MM-DD. SUBDIR (--subdir option) for NEOs is "_asteroids".
