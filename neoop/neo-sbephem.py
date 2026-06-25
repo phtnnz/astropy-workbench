@@ -25,15 +25,16 @@
 #       Use functions from neoephem, with slightly different user interface
 # Version 0.4 / 2026-06-23
 #       Moved and adapted to new directory structure under neoop/
+# Version 0.5 / 2026-06-25
+#       Added --lastobs option
 
-VERSION     = "0.4 / 2026-06-23"
+VERSION     = "0.5 / 2026-06-25"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-sbephem"
 DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
-import re
 
 from icecream import ic
 # Disable debugging
