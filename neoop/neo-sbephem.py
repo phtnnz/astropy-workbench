@@ -43,8 +43,6 @@ ic.disable()
 from astropy.time import Time
 import astropy.units as u
 from astroquery.mpc import MPC
-from sbpy.data import Obs
-from sbpy.data.core import QueryError
 
 # Local modules
 from utils.verbose import verbose, warning, error, message
@@ -52,27 +50,10 @@ from neo.config    import config
 from neo.ephem     import edata_add_ephem_jpl, edata_add_ephem_mpc, get_local_circumstances, get_dec_limits
 from neo.exposure  import edata_add_exposure
 from neo.classes   import EphemData
+from mpc.observations import get_obs_from_mpc, get_lastobs_from_mpc, get_notseen_from_mpc
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
-
-
-
-def id_type_from_name(name: str) -> str:
-    id_type_regex = {   "asteroid number":        r'^[1-9][0-9]*$',
-                        "asteroid designation":   r'^\d{4}[ _][A-Z]{1,2}\d{0,3}$',
-                        "comet number":           r'^[0-9]{1,3}[PIA]$',
-                        "comet designation":      r'^[PDCXAI]\/\d{4}[ _][A-Z]{1,2}\d{0,3}$'
-                    }
-
-    for id, regex in id_type_regex.items():
-        ic(id, regex)
-        m = re.match(regex, name)
-        if m:
-            ic(name, id)
-            return id
-    ## Default None or "asteroid designation"?
-    return None
 
 
 
@@ -89,6 +70,7 @@ def main():
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("-a", "--allnight", action="store_true", help="ephemeris for midnight +/- 8h (30min steps)")
     arg.add_argument("--obs", action="store_true", help="output MPC obs")
+    arg.add_argument("--lastobs", action="store_true", help="output MPC obs last row")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
     arg.add_argument("object", nargs="*", help="object name")
 
@@ -180,18 +162,14 @@ def main():
             verbose("NEO exposure", edata.exposure)
 
         if args.obs:
-            try:
-                obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-                print(obs)
-                # # Handle masked entries
-                # for i in range(-1, -10, -1):
-                #     mag = obs["mag"][i].unmasked
-                #     if mag > Magnitude(0):
-                #         break
-            except QueryError as e:
-                warning(f"MPC observations for {obj} failed")
-            except ConnectionError as e:
-                warning(f"MPC request failed: {e}")
+            obs = get_obs_from_mpc(obj)
+            verbose.print_lines2(obs)
+        
+        if args.lastobs:
+            lastobs = get_lastobs_from_mpc(obj)
+            verbose.print_lines(lastobs)
+            notseen = get_notseen_from_mpc(obj)
+            verbose(f"notseen = {notseen:.2f}")
 
 
 
