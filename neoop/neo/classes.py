@@ -118,7 +118,7 @@ class JPLWObsData:
     type: str                   #  Object type: neo, pha, comet
 
     def __str__(self) -> str:
-        return f"{self.type.upper()}  {self.designation:11s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
+        return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
 
 
 

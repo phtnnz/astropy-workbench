@@ -224,6 +224,16 @@ def object_filter(key: str, edata: EphemData) -> bool:
 
 
 
+def edata_comet_add_prefix(edata: EphemData) -> EphemData:
+    if not edata.wobs or edata.type != "comet":
+        return None
+    if edata.wobs.full_name[1] == "/":
+        # Comet full name contains X/ prefix
+        edata.obj = edata.wobs.designation = f"{edata.wobs.full_name[0]}/{edata.obj}"
+    return edata
+
+
+
 def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
@@ -236,12 +246,15 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
         keys_selected = sorted(keys1)
         obj_edata = obj_edata1
 
-        verbose("---------------------------------------------")
-        verbose("Type   Designation Rise   Trans  Set     Vmag")
-        verbose("---------------------------------------------")
+        verbose("----------------------------------------------")
+        verbose("Type   Designation  Rise   Trans  Set     Vmag")
+        verbose("----------------------------------------------")
         for key in keys_selected:
+            edata = obj_edata1.get(key)
+            edata_comet_add_prefix(edata)
+            ic(edata)
             verbose(obj_edata1.get(key))
-        verbose("---------------------------------------------")
+        verbose("----------------------------------------------")
     else:
         # Asteroids
         if list_type == "LASTOBS":
