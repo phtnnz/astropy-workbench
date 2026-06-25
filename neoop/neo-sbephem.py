@@ -59,14 +59,15 @@ DEFAULT_LOCATION = config.code
 
 
 def id_type_from_name(name: str) -> str:
-    id_type_regex = {   "asteroid numer":         "^[1-9][0-9]*$",
-                        "asteroid designation":   "^20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$",
-                        "comet number":           "^[0-9]{1,3}[PIA]$",
-                        "comet designation":      "^[PDCXAI]/20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$"
+    id_type_regex = {   "asteroid number":        r'^[1-9][0-9]*$',
+                        "asteroid designation":   r'^\d{4}[ _][A-Z]{1,2}\d{0,3}$',
+                        "comet number":           r'^[0-9]{1,3}[PIA]$',
+                        "comet designation":      r'^[PDCXAI]\/\d{4}[ _][A-Z]{1,2}\d{0,3}$'
                     }
 
-    for id in id_type_regex.keys():
-        m = re.match(id_type_regex[id], name)
+    for id, regex in id_type_regex.items():
+        ic(id, regex)
+        m = re.match(regex, name)
         if m:
             ic(name, id)
             return id
@@ -178,7 +179,6 @@ def main():
                                             "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
             verbose("NEO exposure", edata.exposure)
 
-        ##CHECK: doesn't work properly
         if args.obs:
             try:
                 obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
