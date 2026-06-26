@@ -115,10 +115,14 @@ class JPLWObsData:
     obj_obs_moon: Angle         # 'Object-Observer-Moon (deg)'
     galatic_lat: Angle          # 'Galactic latitude (deg)'
     # Extra
-    type: str                   #  Object type: neo, pha, comet
+    type: str                   # Object type: neo, pha, comet
+    last_obs: Time = None       # Time of last observation in MPC database 
 
     def __str__(self) -> str:
-        return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
+        if self.last_obs:
+            return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}  {str(self.last_obs.iso):10.10s}"
+        else:
+            return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
 
 
 
