@@ -69,8 +69,8 @@ def main():
 
     # override defaults from config
     if args.mag_limit:
-        config.mag_limit = float(args.mag_limit)
-        config.vmag_max  = float(args.mag_limit)
+        config.neocp_mag_limit = args.mag_limit
+        config.sbwobs_mag_limit = args.mag_limit
     if args.asteroids:
         config.sb_kind = "a"
     if args.neo:
@@ -96,6 +96,9 @@ def main():
     if args.lastobs:
         list_type = "LASTOBS"
     keys_selected = sbwobs_get_objects(local, list_type)
+
+    verbose(f"objects ({len(keys_selected)}): {", ".join(keys_selected)}")
+
 
     if args.output:
         with open(args.output, "w") as file:
