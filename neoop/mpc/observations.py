@@ -70,7 +70,7 @@ def get_obs_from_mpc(obj: str) -> Obs:
 
 
 
-def get_lastobs_from_mpc(obj: str) -> Row:
+def get_last_row_from_mpc(obj: str) -> Row:
     obs = get_obs_from_mpc(obj)
     # # Handle masked entries
     # for i in range(-1, -10, -1):
@@ -81,9 +81,6 @@ def get_lastobs_from_mpc(obj: str) -> Row:
 
 
 
-def get_notseen_from_mpc(obj: str) -> Quantity:
-    lastrow = get_lastobs_from_mpc(obj)
-    epoch = lastrow.get("epoch")
-    notseen = (Time.now() - epoch).to(u.day)
-    ic(epoch.iso, notseen)
-    return notseen
+def get_last_obs_from_mpc(obj: str) -> Quantity:
+    lastrow = get_last_row_from_mpc(obj)
+    return lastrow.get("epoch")
