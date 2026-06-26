@@ -32,14 +32,17 @@
 #       Moved and adapted to new directory structure under neoop/
 # Version 1.1 / 2026-06-22
 #       Moved MPC functions to new module mpc.lastobs
+# Version 1.2 / 2026-06-26
+#       Get last obs for comets, using mpc.observations, filter accordingly
 
-VERSION     = "1.1 / 2026-06-22"
+VERSION     = "1.2 / 2026-06-26"
 AUTHOR      = "Martin Junius"
 NAME        = "jpl.sbwobs"
 DESCRIPTION = "Retrieve observable NEOs/comets from JPL"
 
 import requests
 import json
+from time import sleep
 
 from icecream import ic
 # Disable debugging
@@ -57,6 +60,7 @@ from neo.config import config
 from neo.utils import fmt_time
 from neo.classes import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, EphemDataList
 from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_lastobs, mpc_parse_lastobs
+from mpc.observations import get_last_obs_from_mpc
 
 
 
@@ -199,8 +203,14 @@ def object_filter(key: str, edata: EphemData) -> bool:
     ic(key, wobs, dlx)
 
     if wobs:
-        # not yet checking anything here
-        pass
+        last_obs = wobs.last_obs
+        if last_obs:
+            t_obs = last_obs
+            t_now = Time.now()
+            ic(t_obs, t_now)
+            if t_obs < t_now - config.max_last_obs * u.day:
+                verbose(f"{wobs.designation}: last obs {last_obs.iso} too old, not included")
+                return False
 
     if dlx:
         last_obs = dlx.last_obs
@@ -209,7 +219,7 @@ def object_filter(key: str, edata: EphemData) -> bool:
             t_now = Time.now()
             ic(t_obs, t_now)
             if t_obs < t_now - config.max_last_obs * u.day:
-                verbose(f"{key}: last obs {last_obs} too old, not included")
+                verbose(f"{key}: last obs {last_obs.iso} too old, not included")
                 return False
 
         uncertainty = dlx.uncertainty
@@ -234,6 +244,16 @@ def edata_comet_add_prefix(edata: EphemData) -> EphemData:
 
 
 
+def edata_add_last_obs(edata: EphemData) -> EphemData:
+    if not edata.wobs:
+        return None
+    edata.wobs.last_obs = get_last_obs_from_mpc(edata.obj)
+    verbose(f"{edata.obj}: last obs {edata.wobs.last_obs.iso}")
+    ic(edata.obj, edata.wobs.last_obs.iso)
+    return edata
+
+
+
 def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
@@ -243,18 +263,28 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
 
     if config.sb_kind == "c":
         # Comets
-        keys_selected = sorted(keys1)
-        obj_edata = obj_edata1
-
-        verbose("----------------------------------------------")
-        verbose("Type   Designation  Rise   Trans  Set     Vmag")
-        verbose("----------------------------------------------")
-        for key in keys_selected:
+        for key, edata in obj_edata1.items():
             edata = obj_edata1.get(key)
             edata_comet_add_prefix(edata)
-            ic(edata)
-            verbose(obj_edata1.get(key))
-        verbose("----------------------------------------------")
+            edata_add_last_obs(edata)
+            ##FIXME: config
+            sleep(0.25) # avoid rapid fire to MPC servers
+
+        # Filter list
+        keys1_filtered = [ k for k in keys1 if object_filter(k, obj_edata1.get(k)) ]
+        keys_selected = sorted(keys1_filtered)
+
+        # Build new dict
+        obj_edata = dict()
+        for k in keys_selected:
+            obj_edata[k] = obj_edata1.get(k)
+
+        verbose("----------------------------------------------------------")
+        verbose("Type   Designation  Rise   Trans  Set     Vmag  Last Obs")
+        verbose("----------------------------------------------------------")
+        for key, edata in obj_edata.items():
+            verbose(edata)
+        verbose("----------------------------------------------------------")
     else:
         # Asteroids
         if list_type == "LASTOBS":
