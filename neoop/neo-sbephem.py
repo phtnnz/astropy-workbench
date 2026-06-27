@@ -51,7 +51,7 @@ from neo.config    import config
 from neo.ephem     import edata_add_ephem_jpl, edata_add_ephem_mpc, get_local_circumstances, get_dec_limits
 from neo.exposure  import edata_add_exposure
 from neo.classes   import EphemData
-from mpc.observations import get_obs_from_mpc, get_last_row_from_mpc, get_notseen_from_mpc
+from mpc.observations import get_obs_from_mpc, get_last_row_from_mpc, get_last_obs_from_mpc
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -167,10 +167,9 @@ def main():
             verbose.print_lines2(obs)
         
         if args.lastobs:
-            lastobs = get_last_row_from_mpc(obj)
-            verbose.print_lines(lastobs)
-            notseen = get_notseen_from_mpc(obj)
-            verbose(f"notseen = {notseen:.2f}")
+            last_obs = get_last_obs_from_mpc(obj)
+            ic(last_obs)
+            verbose(f"last obs {last_obs.iso}")
 
 
 
