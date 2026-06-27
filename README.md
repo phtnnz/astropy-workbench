@@ -33,6 +33,8 @@ Clone the repository, create an virtual environment, and activate it (Windows co
 > .\venv\Scripts\activate.bat
 ```
 
+The current dependency on basemap 2.0.0 requires Python 3.13 or 3.12 (tested with 3.12).
+
 Install the required packages (at lot!):
 ```
 > pip install -r requirements.txt
