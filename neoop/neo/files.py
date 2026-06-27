@@ -17,6 +17,8 @@
 # ChangeLog
 # Version 0.0 / 2026-03-02
 #       New module for NEO obs planner file handling
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 #
 # Usage:
 #       import neofiles
@@ -25,7 +27,7 @@
 #       neofiles.set_prefix(prefix)
 #       neofiles.path(filename)
 
-VERSION     = "0.1 / 2026-03-02"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
 NAME        = "neofiles"
 DESCRIPTION = "NEO file handling"
@@ -38,8 +40,8 @@ import os
 from astropy.time import Time
 
 # Local modules
-from neoconfig import config
-from verbose import warning
+from neo.config import config
+from utils.verbose import warning
 
 
 
@@ -47,7 +49,7 @@ now = Time.now()
 prefix = now.strftime("%Y%m%d")
 neo_obs_data_dir = config.neo_obs_data_dir
 
-# If subdir doesn't exist, create it, NINA will create it only with the 1st frame
+# If data dir doesn't exist, create it
 if not os.path.isdir(neo_obs_data_dir):
     warning(f"directory {neo_obs_data_dir} doesn't exist, creating it")
     os.makedirs(neo_obs_data_dir)

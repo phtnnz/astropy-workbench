@@ -17,17 +17,16 @@
 # ChangeLog
 # Version 0.1 / 2026-01-04
 #       Copy of sbephem 0.2
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
-VERSION     = "0.1 / 2026-01-04"
+VERSION     = "1.0 / 2026-06-20"
 AUTHOR      = "Martin Junius"
-NAME        = "neoephem"
+NAME        = "neo.ephem"
 DESCRIPTION = "Ephemeris for solar system objects"
 
-import sys
-import argparse
 import re
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -46,11 +45,12 @@ from astroquery.mpc import MPC
 from astroplan import Observer
 
 # Local modules
-from verbose import verbose, warning, error, message
-from astroutils import get_location
-from neoclasses import Exposure, EphemTimes, EphemData, EphemDataList, LocalCircumstances
-from neoutils import exposure_calc, max_motion, get_mag0, motion_limit
-from neoconfig import config
+from utils.verbose import verbose, warning
+from mpc.location import get_location
+from neo.classes import EphemData, LocalCircumstances
+from neo.utils import get_max_motion
+from neo.utils import get_mag0
+from neo.config import config
 
 DEFAULT_LOCATION = config.code
 
@@ -107,7 +107,7 @@ def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
             warning(f"skipping empty ephemeris for {obj}")
             return
         mag = get_mag0(eph1)
-        motion = max_motion(eph1)
+        motion = get_max_motion(eph1)
 
         # Copy to EphemData
         if edata.wobs:
@@ -144,7 +144,7 @@ def edata_add_ephem_jpl(edata: EphemData, local: LocalCircumstances) -> None:
         eph1["Moon_dist"] = 180 * u.degree
         eph1["Moon_alt"]  = -90 * u.degree
         mag = get_mag0(eph1)
-        motion = max_motion(eph1)
+        motion = get_max_motion(eph1)
 
         # Copy to EphemData
         if edata.wobs:
@@ -156,20 +156,6 @@ def edata_add_ephem_jpl(edata: EphemData, local: LocalCircumstances) -> None:
 
     except (QueryError, FieldError) as e:
         warning(f"JPL ephemeris for {obj} failed")
-
-
-
-def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> None:
-    obj = edata.obj
-    if not edata.ephem:
-        return
-    if edata.motion != None and edata.mag != None:
-        edata.exposure = exposure_calc(edata.motion, edata.mag)
-        ic(edata.obj, edata.exposure)
-    if not edata.exposure:
-        warning(f"exposure calculation for {obj} failed, too fast?")
-        if edata.motion != None:
-            warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
 
 
 

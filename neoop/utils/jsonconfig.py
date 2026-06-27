@@ -1,0 +1,358 @@
+#!/usr/bin/env python
+
+# Copyright 2023-2026 Martin Junius
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ChangeLog
+# Version 0.1 / 2023-12-18
+#       First version of JSONConfig module
+# Version 0.2 / 2024-01-23
+#       Rewritten for multiple config files, global config object
+#
+#       Usage:  from jsonconfig import config
+#               from jsonconfig import JSONConfig
+#               class MyConfig(JSONConfig)
+# Version 0.3 / 2024-06-19
+#       Search also in .config
+# Version 0.4 / 2024-07-23
+#       Added code for getting the path of Windows' Documents directory
+# Version 0.5 / 2024-08-28
+#       New method .info(), verbose output of config filename and top-level keys
+# Version 0.6 / 2025-06-29
+#       Method .get() now supports nested keys, e.g. config.get("main", "sub", "setting")
+# Version 0.7 / 2025-09-25
+#       Map access to undefined attributes to .get()
+#       Top-level in JSON config must be a dictionary {}
+#       Added warning/error for missing keys, use .set_warn_on_missing() / 
+#       .set_error_on_missing() to enable
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
+
+import os
+import sys
+import argparse
+import json
+from typing import Any
+# Windows specific
+import ctypes.wintypes
+
+# The following libs must be installed with pip
+from icecream import ic
+# Disable debugging
+
+# Local modules
+from utils.verbose import verbose, warning, error
+
+
+
+VERSION = "1.0 / 2026-06-16"
+AUTHOR  = "Martin Junius"
+NAME    = "JSONConfig"
+
+
+CONFIG     = ".config"
+CONFIGDIR  = "astro-python"
+CONFIGFILE = "astro-python-config.json"
+
+#ic.enable()
+ic(CONFIGDIR, CONFIGFILE)
+
+
+
+class JSONConfig:
+    """
+    Base class for JSON config
+    """
+    def __init__(self, file: str, warn: bool=True, err: bool=True):
+        """
+        Initialize JSON config object, read config files
+
+        Parameters
+        ----------
+        file : str
+            Base name of config file
+        warn : bool, optional
+            Warning if config not found, by default True
+        err : bool, optional
+            Error if config not found, by default True
+        """
+        ic("config init", file)
+        self.config = {}
+        self.read_config(file, warn, err)
+        self.warn_on_missing = False
+        self.error_on_missing = False
+
+
+    def __getattr__(self, name: str) -> Any:
+        """
+        Map undefined attributes to .get()
+
+        Parameters
+        ----------
+        name : str
+            Attribute name
+
+        Returns
+        -------
+        Any
+            Value of attribute
+        """
+        value = self.get(name)
+        ic("JSONConfig.getattr", name, value)
+        # self.__dict__[name] = value
+        return value
+    
+
+    def set_warn_on_missing(self):
+        """
+        Set warning on missing key(s)
+        """
+        self.warn_on_missing = True
+
+
+    def set_error_on_missing(self):
+        """
+        Set warning on missing key(s)
+        """
+        self.error_on_missing = True
+        
+
+    def read_config(self, file: str, warn: bool=True, err: bool=True):
+        """
+        Read config files
+
+        Parameters
+        ----------
+        file : str
+            Base name of config file
+        warn : bool, optional
+            Warning if config not found, by default True
+        err : bool, optional
+            Error if config not found, by default True
+        """
+        ic(file)
+        file1 = self.search_config(file)
+        if file1:
+            self.configfile = file1
+            json  = self.read_json(file1)
+            # Merge with existing config
+            self.config = self.config | json
+        elif err:
+            error(f"config {file} not found")
+        elif warn:
+            warning(f"config {file} not found")
+
+
+    def info(self):
+        """
+        Verbose info, print config file and top-level keys
+        """
+        verbose(f"JSON config file = {self.configfile}")
+        verbose(f"config keys = {", ".join( [k for k in self.config.keys() if not k.startswith("#")] )}")
+
+
+    def search_config(self, file: str) -> str:
+        """
+        Search config file in various directories
+
+        Parameters
+        ----------
+        file : str
+            Base name of config file
+
+        Returns
+        -------
+        str
+            Full path of config file
+        """
+        # If full path use as is
+        if os.path.isfile(file):
+            return file
+        
+        # Search config file in current directory, LOCALAPPDATA, APPDATA
+        searchpath = []
+
+        path = os.path.join(os.path.curdir, CONFIG)
+        if os.path.isdir(path):
+            searchpath.append(path)
+
+        path = os.path.join(os.path.curdir, CONFIG, CONFIGDIR)
+        if os.path.isdir(path):
+            searchpath.append(path)
+
+        appdata = os.environ.get('LOCALAPPDATA')
+        if appdata:
+            path = os.path.join(appdata, CONFIGDIR)
+            if os.path.isdir(path):
+                searchpath.append(path)
+        else:
+            ic("environment LOCALAPPDATA not set!")
+
+        appdata = os.environ.get('APPDATA')
+        if appdata:
+            path = os.path.join(appdata, CONFIGDIR)
+            if os.path.isdir(path):
+                searchpath.append(path)
+        else:
+            ic("environment APPDATA not set!")
+
+        # Add Python search path to list
+        searchpath.extend([ os.path.join(d, CONFIG) for d in sys.path ])
+
+        # Search for config file in searchpath list
+        for path in searchpath:
+            ic(path)
+            file1 = os.path.join(path, file)
+            if os.path.isfile(file1):
+                ic(file1)
+                return file1
+
+        return None
+
+
+    def read_json(self, file: str) -> dict:
+        """
+        Read JSON from config file
+
+        Parameters
+        ----------
+        file : str
+            Full path of config files
+
+        Returns
+        -------
+        dict
+            JSON object
+        """
+        with open(file, 'r') as f:
+            return json.load(f)
+
+
+    def write_json(self, file: str):
+        """
+        Write JSON to config file
+
+        Parameters
+        ----------
+        file : str
+            Full path of config file
+        """
+        with open(file, 'w') as f:
+            json.dump(self.config, f, indent = 2)
+
+
+    def get(self, *keys: str) -> Any:
+        """
+        Get value for hierarchical keys from config
+
+        e.g. { "group": {"text": "something"} }
+        .get("group", "text")
+
+        Returns
+        -------
+        Any
+            Value for JSON key(s)
+        *keys : str
+            Multiple keys for nested JSON
+        """
+        cf = self.config
+        for k in keys:
+            cf = cf.get(k)
+            if cf == None:
+                if self.warn_on_missing:
+                    warning("not such key(s):", *keys)
+                if self.error_on_missing:
+                    error("not such key(s):", *keys)
+                return None
+        return cf
+
+
+    def get_keys(self) -> list[str]:
+        """
+        Return list of top-level keys
+
+        Returns
+        -------
+        list[str]
+            Top-level keys
+        """
+        return [k for k in self.config.keys() if not k.startswith("#")]
+
+
+    def get_json(self) -> dict:
+        """
+        Get JSON config attribute for backwards compatibility
+
+        Returns
+        -------
+        dict
+            JSON config
+        """
+        return self.config
+
+
+    def get_documents_path(self) -> str:
+        """
+        Get actual "My Documents" path on Windows, not used in the JSONConfig class
+
+        Returns
+        -------
+        str
+            Documents full path
+        """
+        # Windows hack to get path of Documents folder, which might reside on other drives than C:
+        CSIDL_PERSONAL = 5       # My Documents
+        SHGFP_TYPE_CURRENT = 0   # Get current, not default value
+        buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
+        ctypes.windll.shell32.SHGetFolderPathW(None, CSIDL_PERSONAL, None, SHGFP_TYPE_CURRENT, buf)
+        return buf.value
+
+
+
+"""
+Default global config object
+"""
+config = JSONConfig(CONFIGFILE, False, False)
+
+
+
+def main():
+    arg = argparse.ArgumentParser(
+        prog        = NAME,
+        description = "Test for module",
+        epilog      = "Version " + VERSION + " / " + AUTHOR)
+    arg.add_argument("-v", "--verbose", action="store_true", help="debug messages")
+    arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
+    arg.add_argument("-c", "--config", help="read CONFIG file")
+
+    args = arg.parse_args()
+
+    verbose.set_prog(NAME)
+    if args.verbose:
+        verbose.enable()
+    if args.debug:
+        ic.enable()
+        ic(sys.version_info, sys.path)
+    if args.config:
+        config.read_config(args.config)
+
+    print("JSON config keys =", ", ".join(config.get_keys()))
+    print("Documents path =", config.get_documents_path())
+
+    ic(config.test_1, config.test_2)
+
+
+
+if __name__ == "__main__":
+    main()

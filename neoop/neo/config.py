@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Martin Junius
+# Copyright 2025-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,13 @@
 # ChangeLog
 # Version 0.1 / 2025-11-25
 #       New global config module for NEO modules
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 #
 # Usage:
 #       from neoconfig import config
 
-VERSION     = "0.1 / 2025-11-25"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
 NAME        = "neoconfig"
 DESCRIPTION = "Global NEO config module"
@@ -35,8 +37,8 @@ from icecream import ic
 ic.disable()
 
 # Local modules
-from verbose import verbose, warning, error, message
-from jsonconfig import JSONConfig, config
+from utils.verbose import verbose, warning, error, message
+from utils.jsonconfig import JSONConfig, config
 
 
 

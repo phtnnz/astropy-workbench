@@ -23,8 +23,10 @@
 #       Refactoring for EphemDataList
 # Version 1.0 / 2026-06-13
 #       Removed locally cached files
+# Version 1.1 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
-VERSION = "1.0 / 2026-06-13"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "mpcneocp"
 
@@ -44,12 +46,11 @@ from astropy.time import Time
 from astropy.table import QTable
 
 # Local modules
-from verbose import verbose, warning, error
-from neoconfig import config
-from neoclasses import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
-from neoutils import get_mag0, max_motion
-from neoephem import get_dec_limits
-import neofiles
+from utils.verbose import verbose, warning, error
+from neo.config import config
+from neo.classes import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
+from neo.utils import get_mag0, get_max_motion
+from neo.ephem import get_dec_limits
 
 
 # Requests timeout
@@ -149,7 +150,7 @@ def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: Loca
             continue
         eph1 = Ephem.from_table(qt)
         mag = get_mag0(eph1)
-        motion = max_motion(eph1)
+        motion = get_max_motion(eph1)
 
         edata = EphemData("-", obj, None, eph1, None, None, mag, motion)
         edata_list.append(edata)

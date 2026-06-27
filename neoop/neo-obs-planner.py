@@ -32,8 +32,12 @@
 #       options from neocp.py
 # Version 1.1 / 2026-06-13
 #       Removed -U --update-neocp option, no local files cached anymore
+# Version 2.0 / 2026-06-16
+#       Refactored version in new subdirectory neoop/
+# Version 2.1 / 2026-06-16
+#       New option --verbose-ephem for ephemerides output, fixed mag limits
 
-VERSION     = "1.1 / 2026-06-13"
+VERSION     = "2.1 / 2026-06-20"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEOCP/NEO observation planner"
@@ -41,7 +45,6 @@ DESCRIPTION = "NEOCP/NEO observation planner"
 import sys
 import argparse
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -52,15 +55,16 @@ import astropy.units as u
 from astroquery.mpc import MPC
 
 # Local modules
-from verbose    import verbose, warning, error, message
-from neoconfig  import config
-from neoclasses import EphemData, EphemDataList, LocalCircumstances
-from neoutils   import edata_list_add_times, get_row_for_time, motion_limit, fmt_time, edata_list_csv_output
-from neoephem   import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc, edata_add_exposure
-from neoplot    import edata_list_plot
-from sbwobs     import sbwobs_get_edata_list
-from mpcneocp   import neocp_get_edata_list
-import neofiles
+from utils.verbose import verbose, warning, error, message
+from neo.config    import config
+from neo.classes   import EphemData, EphemDataList, LocalCircumstances
+from neo.utils     import edata_list_add_times, get_row_for_time, fmt_time, edata_list_csv_output
+from neo.exposure  import motion_limit, edata_add_exposure
+from neo.ephem     import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc
+from neo.plot      import edata_list_plot
+from jpl.sbwobs    import sbwobs_get_edata_list
+from mpc.neocp     import neocp_get_edata_list
+import neo.files
 
 DEFAULT_LOCATION = config.code
 
@@ -222,7 +226,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
 
             # Skip, if not seen for more than threshold days
             max_notseen = config.max_notseen * u.day
-            if not notseen is None and notseen > max_notseen:
+            if edata.neocp and not notseen is None and notseen > max_notseen:
                 message(f"SKIPPED: not seen for {notseen:.1f} (> {max_notseen:.1f})")
                 skipped.append(obj)
                 continue
@@ -264,6 +268,7 @@ def main():
         description = DESCRIPTION,
         epilog      = "Version " + VERSION + " / " + AUTHOR)
     arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
+    arg.add_argument("--verbose-ephem", action="store_true", help="verbose ephemerides")
     arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
     arg.add_argument("-l", "--location", help=f"coordinates, named location or MPC station code, default {DEFAULT_LOCATION}")
     arg.add_argument("-f", "--file", help="read list of objects from file")
@@ -287,7 +292,7 @@ def main():
     arg.add_argument("--pha", action="store_true", help=f"sbwobs: get PHAs")
     arg.add_argument("--comets", action="store_true", help=f"sbwobs: get comets (overrides asteroids options)")
  
-    arg.add_argument("-p", "--prefix", help=f"prefix for planner data, default {neofiles.prefix}")
+    arg.add_argument("-p", "--prefix", help=f"prefix for planner data, default {neo.files.prefix}")
     arg.add_argument("--force", help=f"skip checks for FORCE objects, include in observation plan")
 
     arg.add_argument("object", nargs="*", help="object name")
@@ -306,9 +311,9 @@ def main():
         config.neocp_mag_limit = args.mag_limit
         config.sbwobs_mag_limit = args.mag_limit
     if args.neocp_mag_limit:
-        config.neocp_mag_limit = args.mag_limit
+        config.neocp_mag_limit = args.neocp_mag_limit
     if args.sbwobs_mag_limit:
-        config.sbwobs_mag_limit = args.mag_limit
+        config.sbwobs_mag_limit = args.sbwobs_mag_limit
     if not args.min_alt is None:
         config.min_alt = args.min_alt
     if args.asteroids:
@@ -331,7 +336,7 @@ def main():
 
     # Prefix for cached NEOCP data
     if args.prefix:
-        neofiles.set_prefix(args.prefix)
+        neo.files.set_prefix(args.prefix)
 
     # Forced objects
     forced_objs = []
@@ -401,31 +406,32 @@ def main():
     verbose(f"sorted object sequence: {edata_list.objects_str()}")
 
     verbose("forced objects:", ", ".join(forced_objs))
-    ##FIXME: use process() to implement
-    edata: EphemData
-    for edata in edata_list:
-        if edata.obj in forced_objs:
-            edata.force = True
-        verbose("")
-        verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
-                                         "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
-    # edata_list.verbose_ephem()
+    if args.verbose_ephem:
+        ##FIXME: use process() to implement
+        edata: EphemData
+        for edata in edata_list:
+            if edata.obj in forced_objs:
+                edata.force = True
+            verbose("")
+            verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+                                            "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
+        # edata_list.verbose_ephem()
 
     verbose("")
-    log_file = neofiles.path("obs-planner-1.log")
+    log_file = neo.files.path("obs-planner-1.log")
     with verbose.logfile(log_file):
         # NEOCP planner
-        verbose(f"obs-planner-1 {fmt_time(neofiles.now)} {neofiles.now.scale.upper()}")
+        verbose(f"obs-planner-1 {fmt_time(neo.files.now)} {neo.files.now.scale.upper()}")
 
         # Run obs planner
         obs_planner_1(edata_list, local)
         if args.csv:
             ##FIXME: output file name depending on mode
-            edata_list_csv_output(edata_list, args.output or neofiles.path("neo-obs-plan.csv"))
+            edata_list_csv_output(edata_list, args.output or neo.files.path("neo-obs-plan.csv"))
 
         # Plot objects and Moon
         if args.plot:
-            plot_file = neofiles.path("neo-obs-plot.png")
+            plot_file = neo.files.path("neo-obs-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
             edata_list_plot(edata_list, plot_file, local.loc)
 

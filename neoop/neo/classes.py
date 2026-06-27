@@ -23,8 +23,10 @@
 #       Added JPLWObsData, MPCDLxData
 # Version 0.4 / 2026-05-16
 #       Added EphemDataList
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
-VERSION     = "0.4 / 2026-05-16"
+VERSION = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
 NAME        = "neoclasses"
 DESCRIPTION = "Dataclasses for ephemeris/planning"
@@ -46,8 +48,8 @@ from astroplan import Observer
 from astropy.units import Quantity, Magnitude
 
 # Local modules
-from astroutils import location_to_string
-from verbose import verbose
+from astro.astroutils import location_to_string
+from utils.verbose import verbose
 
 
 
@@ -113,10 +115,14 @@ class JPLWObsData:
     obj_obs_moon: Angle         # 'Object-Observer-Moon (deg)'
     galatic_lat: Angle          # 'Galactic latitude (deg)'
     # Extra
-    type: str                   #  Object type: neo, pha, comet
+    type: str                   # Object type: neo, pha, comet
+    last_obs: Time = None       # Time of last observation in MPC database 
 
     def __str__(self) -> str:
-        return f"{self.type.upper()}  {self.designation:11s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
+        if self.last_obs:
+            return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}  {str(self.last_obs.iso):10.10s}"
+        else:
+            return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
 
 
 
@@ -157,6 +163,14 @@ class EphemData:
     wobs: JPLWObsData = None    # data from JPL SBWOBS service
     dlx: MPCDLxData = None      # data from MPC DLU/DLN lists
     force: bool = False         # force observation of this object (e.g. from --force option)
+
+    def __str__(self) -> str:
+        wobs = self.wobs
+        dlx = self.dlx
+        if dlx:
+            return f"{wobs.type.upper():5s}  {wobs.designation:11s} {wobs.rise_time:6s} {wobs.transit_time:6s} {wobs.set_time:6s}  {float(wobs.vmag.value):4.1f}  {dlx.uncertainty}  {str(dlx.last_obs):10.10s}"
+        else:
+            return str(wobs)
 
 
 
@@ -219,9 +233,18 @@ class EphemDataList(list):
 
 @dataclass
 class PrevNEOCPData:
-    trk_id: str
+    trk_sub: str
     designation: str = None
-    error: str = None
-    time: Time = None
-    mpec: str = None
+    comment: str = None
+    date: Time = None
+    mpec_no: str = None
     mpec_url: str = None
+
+    def __str__(self) -> str:
+        if self.designation:
+            if self.mpec_no:
+                return f"{self.trk_sub:7s} = {self.designation:10s}  MPEC {self.mpec_no:9s}  {self.mpec_url}"
+            else:
+                return f"{self.trk_sub:7s} = {self.designation:10s}"
+        else:
+            return f"{self.trk_sub:7s}   {self.comment}"

@@ -21,13 +21,15 @@
 #       Ephemeris column names can be passed as optional parameters
 # Version 0.3 / 2026-05-18
 #       Refactored for EphemDataList
+# Version 1.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 #
 # Usage:
-#       from neoutils import ...
+#       from neo.utils import ...
 
-VERSION     = "0.3 / 2026-05-18"
+VERSION     = "1.0 / 2026-06-20"
 AUTHOR      = "Martin Junius"
-NAME        = "neoutils"
+NAME        = "neo.utils"
 DESCRIPTION = "NEO utility functions"
 
 import sys
@@ -49,102 +51,10 @@ import numpy as np
 from sbpy.data import Ephem
 
 # Local modules
-from verbose import verbose, warning, error, message
-from neoconfig import config
-from neoclasses import Exposure, EphemData, EphemTimes, EphemDataList
-
-
-
-def single_exp(motion: Quantity) -> Quantity:
-    """
-    Compute exposure time depending on motion value,
-
-    Parameters
-    ----------
-    motion : Quantity
-        Motion value as arcsec/min
-
-    Returns
-    -------
-    Quantity
-        Exposure time as secs or None, if too fast
-    """
-    exp_times = config.exposure_times
-    exp = config.pixel_tolerance * config.resolution * u.arcsec / motion
-    #            ^ pixels                 ^ arcsec/pixel          ^ arcsec/min
-    exp = exp.to(u.s).value
-    exp_min = exp_times[0]
-    if exp < 0.9 * exp_min: # allow a bit of tolerance
-        return None
-    for exp1 in exp_times:
-        if exp1 > exp:
-            break
-        exp_min = exp1
-    return exp_min * u.s
-
-
-
-def motion_limit() -> Quantity:
-    """
-    Get motion limit
-
-    Returns
-    -------
-    Quantity
-        Motion limit derived from minimum exposure time
-    """
-    exp_times = config.exposure_times
-    return config.pixel_tolerance * config.resolution * u.arcsec / (exp_times[0] * u.s).to(u.min)
-
-
-
-def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
-    """
-    Calculate number of exposures, single exposure time, total exposure time, total time, percentage
-    from object motion and magnitude
-
-    Parameters
-    ----------
-    max_motion : Quantity
-        Object motion
-    mag : Magnitude
-        Object magnitude
-
-    Returns
-    -------
-    Exposure
-        Exposure object
-    """
-    exp   = single_exp(max_motion)                      # Single exposure / s
-    if exp == None:                                     # Object too fast
-        return None
-
-    min_n_exp = config.min_n_exp
-    max_n_exp = config.max_n_exp
-    base_mag  = config.base_mag
-    base_exp  = config.base_exp
-
-    rel_brightness = 10 ** (0.4 * (mag.value - base_mag))
-    total_exp = base_exp * u.s * rel_brightness         # Total exposure
-    n_exp = int(total_exp / exp) + 1                    # Number of exposures
-    ic(base_mag, base_exp, mag.value, rel_brightness, total_exp, n_exp)
-    perc_of_required = 100.                             # Percentage actual / total exposure
-    if n_exp < min_n_exp:
-        perc_of_required = min_n_exp / n_exp * 100
-        n_exp = min_n_exp
-    if n_exp > max_n_exp:
-        perc_of_required = max_n_exp / n_exp * 100
-        n_exp = max_n_exp
-    total_exp = (n_exp * exp).to(u.min)
-    total_time = ( total_exp 
-                   + config.dead_time_slew_center * u.s 
-                   + config.dead_time_af * u.s
-                   + config.dead_time_guiding * u.s  
-                   + config.safety_margin * u.s
-                   + n_exp * config.dead_time_image * u.s )
-    ic(n_exp, exp, total_exp, total_time, perc_of_required)
-
-    return Exposure(n_exp, exp, total_exp, total_time, perc_of_required)
+from utils.verbose import verbose, warning
+from utils.csvoutput import csv_output
+from neo.config import config
+from neo.classes import EphemData, EphemTimes, EphemDataList
 
 
 
@@ -167,30 +77,7 @@ def get_mag0(eph: Ephem, column: str="Mag") -> Magnitude:
 
 
 
-def _get_table(eph: Ephem) -> QTable:
-    """Hack for proper iteration: get actual table from Ephem object
-
-    Parameters
-    ----------
-    eph : Ephem
-        Ephemeris object
-
-    Returns
-    -------
-    QTable
-        Table object
-    """
-    # Hack for iterating over Ephem object:
-    # for row in eph yields single line QTable objects
-    # for row in get_table(eph) yields Row object as expected
-    # Reported as a bug to sbpy, may change with future implementations
-    ##FIXME: table attribute is an "official" attribute for sbpy DataClass,
-    ##       use directly in the neoutils code?
-    return eph.table
-
-
-
-def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
+def get_max_motion(eph: Ephem, column: str="Motion") -> Quantity:
     """
     Get max value for motion column(s) from ephemeris table
 
@@ -214,7 +101,7 @@ def max_motion(eph: Ephem, column: str="Motion") -> Quantity:
         # Single column with proper motion
         col1 = column
         col2 = None
-    for row in _get_table(eph):
+    for row in eph.table:
         if col2:
             motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
         else:
@@ -283,7 +170,7 @@ def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tupl
     prev_time = None
     prev_az   = None
 
-    for row in _get_table(eph):
+    for row in eph.table:
         time = row[col_obstime]
         az   = row[col_az]
         # ic(time, az)
@@ -323,7 +210,7 @@ def opt_alt_times(eph: Ephem, alt: Angle, col_obstime: str="Obstime", col_alt: s
     time_alt0 = None
     time_alt1 = None
 
-    for row in _get_table(eph):
+    for row in eph.table:
         if time_alt0 == None and row[col_alt] >= alt:
             time_alt0 = row[col_obstime]
         if time_alt0 != None and row[col_alt] >= alt:
@@ -355,7 +242,7 @@ def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> 
     """
     max_alt = -90 * u.degree
     time_max = None
-    for row in _get_table(eph):
+    for row in eph.table:
         if row[col_alt] > max_alt:
             max_alt = row[col_alt]
             time_max = row[col_obstime]
@@ -382,7 +269,7 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
         Corresponding row from ephemeris table
         None, if not found
     """
-    for r1, r2 in pairwise(_get_table(eph)):
+    for r1, r2 in pairwise(eph.table):
         if r1[col_obstime] <= t and t <= r2[col_obstime]:
             return r1
     
@@ -473,6 +360,7 @@ def edata_list_csv_output(edata_list: EphemDataList, output: str) -> None:
     csv_rows = list()
 
     # Traverse objects, only those with valid plan_start time
+    csv_row = None
     for edata in edata_list:
         obj = edata.obj
         if edata.times.plan_start:
@@ -499,23 +387,15 @@ def edata_list_csv_output(edata_list: EphemDataList, output: str) -> None:
                         "total": str(edata.exposure)
                         }
             ic(csv_row)
-            csv_rows.append(csv_row)
+            csv_output(csv_row)
 
     # Output to CSV file for nina-create-sequence2
     verbose(f"planned objects for nina-create-sequence2: {output}")
     # csv_row is the last object, if any were found
     if csv_row:
-        ##FIXME: improve csvoutput module to cover this usage
         fieldnames = csv_row.keys()
         ic(fieldnames)
-        if output:
-            with open(output, "w", newline="") as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(csv_rows)
-        else:
-            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(csv_rows)
+        csv_output.add_fields(fieldnames)
+        csv_output.write(output, set_locale=False)
     else:
         warning("no objects, no CSV output")

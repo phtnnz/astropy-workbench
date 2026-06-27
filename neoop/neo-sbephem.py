@@ -23,17 +23,19 @@
 #       Common column names for ephemeris tables
 # Version 0.3 / 2026-03-15
 #       Use functions from neoephem, with slightly different user interface
+# Version 0.4 / 2026-06-23
+#       Moved and adapted to new directory structure under neoop/
+# Version 0.5 / 2026-06-25
+#       Added --lastobs option
 
-VERSION     = "0.3 / 2026-03-15"
+VERSION     = "0.5 / 2026-06-25"
 AUTHOR      = "Martin Junius"
-NAME        = "sbephem"
+NAME        = "neo-sbephem"
 DESCRIPTION = "Ephemeris for solar system objects"
 
 import sys
 import argparse
-import re
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -42,34 +44,17 @@ ic.disable()
 from astropy.time import Time
 import astropy.units as u
 from astroquery.mpc import MPC
-from sbpy.data import Obs
-from sbpy.data.core import QueryError
 
 # Local modules
-from verbose    import verbose, warning, error, message
-from neoconfig  import config
-from neoephem   import edata_add_ephem_jpl, edata_add_ephem_mpc, edata_add_exposure, get_local_circumstances, get_dec_limits
-from neoclasses import EphemData
+from utils.verbose import verbose, warning, error, message
+from neo.config    import config
+from neo.ephem     import edata_add_ephem_jpl, edata_add_ephem_mpc, get_local_circumstances, get_dec_limits
+from neo.exposure  import edata_add_exposure
+from neo.classes   import EphemData
+from mpc.observations import get_obs_from_mpc, get_last_row_from_mpc, get_last_obs_from_mpc
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
-
-
-
-def id_type_from_name(name: str) -> str:
-    id_type_regex = {   "asteroid numer":         "^[1-9][0-9]*$",
-                        "asteroid designation":   "^20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$",
-                        "comet number":           "^[0-9]{1,3}[PIA]$",
-                        "comet designation":      "^[PDCXAI]/20[0-9]{2}[ _][A-Z]{2}[0-9]{0,3}$"
-                    }
-
-    for id in id_type_regex.keys():
-        m = re.match(id_type_regex[id], name)
-        if m:
-            ic(name, id)
-            return id
-    ## Default None or "asteroid designation"?
-    return None
 
 
 
@@ -86,6 +71,7 @@ def main():
     arg.add_argument("-J", "--jpl", action="store_true", help="use JPL Horizons ephemeris, default MPC")
     arg.add_argument("-a", "--allnight", action="store_true", help="ephemeris for midnight +/- 8h (30min steps)")
     arg.add_argument("--obs", action="store_true", help="output MPC obs")
+    arg.add_argument("--lastobs", action="store_true", help="output MPC obs last row")
     arg.add_argument("--clear", action="store_true", help="clear MPC cache")
     arg.add_argument("object", nargs="*", help="object name")
 
@@ -172,24 +158,18 @@ def main():
         ic(edata)
 
         if edata.ephem:
-            verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+            verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                             "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
             verbose("NEO exposure", edata.exposure)
 
-        ##CHECK: doesn't work properly
         if args.obs:
-            try:
-                obs = Obs.from_mpc(obj, id_type=id_type_from_name(obj))
-                print(obs)
-                # # Handle masked entries
-                # for i in range(-1, -10, -1):
-                #     mag = obs["mag"][i].unmasked
-                #     if mag > Magnitude(0):
-                #         break
-            except QueryError as e:
-                warning(f"MPC observations for {obj} failed")
-            except ConnectionError as e:
-                warning(f"MPC request failed: {e}")
+            obs = get_obs_from_mpc(obj)
+            verbose.print_lines2(obs)
+        
+        if args.lastobs:
+            last_obs = get_last_obs_from_mpc(obj)
+            ic(last_obs)
+            verbose(f"last obs {last_obs.iso}")
 
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2023-2025 Martin Junius
+# Copyright 2023-2026 Martin Junius
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,6 +51,8 @@
 #       Added "autofocus_first_target_only" setting to config
 # Version 1.7 / 2026-02-09
 #       Output type and coordinates for -l --list-targets option
+# Version 2.0 / 2026-06-16
+#       Moved and adapted to new directory structure under neoop/
 
 
 # See here https://www.newtonsoft.com/json/help/html/SerializingJSON.htm for the JSON serializing used in N.I.N.A
@@ -71,7 +73,7 @@
 # 0=target, 1=date, 2=seq, 3=number
 # "subdir" is optional, or can be blank ""
 
-VERSION = "1.7 / 2026-02-09"
+VERSION = "2.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "nina-create-sequence2"
 
@@ -84,16 +86,15 @@ from datetime import datetime, date
 from zoneinfo import ZoneInfo
 import copy
 
-# The following libs must be installed with pip
 import tzdata
 from icecream import ic
 # Disable debugging
 ic.disable()
 
 # Local modules
-from verbose          import verbose, warning, error, message
-from jsonconfig       import JSONConfig, config
-from radec            import Coord
+from utils.verbose    import verbose, warning, error, message
+from utils.jsonconfig import JSONConfig, config
+from astro.radec      import Coord
 
 
 
