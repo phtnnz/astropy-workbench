@@ -34,38 +34,16 @@ from astropy.time import Time
 from astropy.table import Row
 from astropy.units import Quantity
 import astropy.units as u
-from sbpy.data import Obs
-from sbpy.data.core import QueryError
 
 # Local modules
 from utils.verbose import verbose, warning, error, message
-
-
-
-def _id_type_from_name(name: str) -> str:
-    id_type_regex = {   "asteroid number":        r'^[1-9][0-9]*$',
-                        "asteroid designation":   r'^\d{4}[ _][A-Z]{1,2}\d{0,3}$',
-                        "comet number":           r'^[0-9]{1,3}[PIA]$',
-                        "comet designation":      r'^[PDCXAI]\/\d{4}[ _][A-Z]{1,2}\d{0,3}$'
-                    }
-
-    for id, regex in id_type_regex.items():
-        m = re.match(regex, name)
-        if m:
-            ic(name, id)
-            return id
-    ## Default None or "asteroid designation"?
-    return None
+from neo.classes import Obs
+from astro.astroutils import time_jd_as_iso
 
 
 
 def get_obs_from_mpc(obj: str) -> Obs:
-    try:
-        obs = Obs.from_mpc(obj, id_type=_id_type_from_name(obj))
-    except QueryError as e:
-        warning(f"MPC observations for {obj} failed")
-    except ConnectionError as e:
-        warning(f"MPC request failed: {e}")
+    obs = Obs.from_object(obj)
     return obs
 
 
@@ -83,4 +61,4 @@ def get_last_row_from_mpc(obj: str) -> Row:
 
 def get_last_obs_from_mpc(obj: str) -> Quantity:
     lastrow = get_last_row_from_mpc(obj)
-    return lastrow.get("epoch")
+    return time_jd_as_iso(lastrow.get("epoch"))
