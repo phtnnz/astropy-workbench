@@ -48,68 +48,12 @@ from astropy.units import Quantity, Magnitude
 from astropy.time import Time
 from astropy.table import QTable, Row
 import numpy as np
-from sbpy.data import Ephem
 
 # Local modules
 from utils.verbose import verbose, warning
 from utils.csvoutput import csv_output
 from neo.config import config
-from neo.classes import EphemData, EphemTimes, EphemDataList
-
-
-
-def get_mag0(eph: Ephem, column: str="Mag") -> Magnitude:
-    """Get magnitude from ephemeris (first row)
-
-    Parameters
-    ----------
-    eph : Ephem
-        ephemeris
-    column : str, optional
-        column name, by default "Mag"
-
-    Returns
-    -------
-    Magnitude
-        Magnitude quantity
-    """
-    return eph[column][0]
-
-
-
-def get_max_motion(eph: Ephem, column: str="Motion") -> Quantity:
-    """
-    Get max value for motion column(s) from ephemeris table
-
-    Parameters
-    ----------
-    eph : QTable
-        Ephemeris table
-    column : str, optional
-        Motion column name(s), by default "motion", comma separated for RA/DEC motion
-
-    Returns
-    -------
-    Quantity
-        Max motion of object
-    """
-    max_m = -1 * u.arcsec / u.min
-    if "," in column:
-        # Separate RA*cos(DEC), DEC motion columns
-        col1, col2 = column.split(",")
-    else:
-        # Single column with proper motion
-        col1 = column
-        col2 = None
-    for row in eph.table:
-        if col2:
-            motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
-        else:
-            motion = row[col1]
-        if motion > max_m:
-            max_m = motion
-
-    return max_m.to(u.arcsec / u.min)
+from neo.classes import Ephem, EphemData, EphemTimes, EphemDataList
 
 
 
