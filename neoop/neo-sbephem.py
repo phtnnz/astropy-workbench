@@ -46,13 +46,14 @@ import astropy.units as u
 from astroquery.mpc import MPC
 
 # Local modules
-from utils.verbose import verbose, warning, error, message
-from neo.config    import config
-from mpc.ephem     import edata_add_ephem_mpc
-from neo.local     import get_local_circumstances, get_dec_limits
-from neo.exposure  import edata_add_exposure
-from neo.classes   import EphemData
-# from mpc.observations import get_obs_from_mpc, get_last_obs_from_mpc
+from utils.verbose    import verbose, warning, error, message
+from neo.config       import config
+from mpc.ephem        import edata_add_ephem_mpc
+from neo.local        import get_local_circumstances, get_dec_limits
+from neo.exposure     import edata_add_exposure
+from neo.classes      import EphemData
+from mpc.observations import get_obs_from_mpc, get_last_obs_from_mpc
+
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
