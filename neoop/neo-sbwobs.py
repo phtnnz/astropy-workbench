@@ -36,7 +36,7 @@ import astropy.units as u
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
-from neo.ephem import get_local_circumstances, get_dec_limits
+from neo.local import get_local_circumstances, get_dec_limits
 from jpl.sbwobs import sbwobs_get_objects
 
 
