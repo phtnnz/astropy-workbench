@@ -28,18 +28,17 @@
 
 VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
-NAME    = "mpcneocp"
+NAME    = "mpc.neocp"
 
 import re
 import requests
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import Angle, EarthLocation
+from astropy.coordinates import Angle
 import astropy.units as u
 from astropy.units import Quantity, Magnitude
 from astropy.time import Time
@@ -49,8 +48,7 @@ from astropy.table import QTable
 from utils.verbose import verbose, warning, error
 from neo.config import config
 from neo.classes import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
-from neo.utils import get_mag0, get_max_motion
-from neo.ephem import get_dec_limits
+from neo.local import get_dec_limits
 
 
 # Requests timeout
@@ -149,8 +147,8 @@ def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: Loca
             verbose(f"skipping NEOCP {obj=} (empty)")
             continue
         eph1 = Ephem.from_table(qt)
-        mag = get_mag0(eph1)
-        motion = get_max_motion(eph1)
+        mag = eph1.get_mag0()
+        motion = eph1.get_max_motion()
 
         edata = EphemData("-", obj, None, eph1, None, None, mag, motion)
         edata_list.append(edata)
