@@ -29,12 +29,6 @@ from icecream import ic
 # Disable debugging
 ic.disable()
 
-# AstroPy
-from astropy.coordinates import Angle
-from astropy.time import Time
-import astropy.units as u
-from astropy.units import Quantity, Magnitude
-
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
