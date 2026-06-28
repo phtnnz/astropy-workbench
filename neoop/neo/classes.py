@@ -25,10 +25,12 @@
 #       Added EphemDataList
 # Version 1.0 / 2026-06-16
 #       Moved and adapted to new directory structure under neoop/
+# Version 1.1 / 2026-06-28
+#       Added Ephem class (replacing sbpy)
 
-VERSION = "1.0 / 2026-06-16"
+VERSION     = "1.1 / 2026-06-28"
 AUTHOR      = "Martin Junius"
-NAME        = "neoclasses"
+NAME        = "neo.classes"
 DESCRIPTION = "Dataclasses for ephemeris/planning"
 
 from dataclasses import dataclass
@@ -43,17 +45,116 @@ ic.disable()
 # AstroPy
 from astropy.coordinates import EarthLocation, Angle
 from astropy.time        import Time
-from sbpy.data import Ephem
-from astroplan import Observer
-from astropy.units import Quantity, Magnitude
+from astroplan           import Observer
+from astropy.units       import Quantity, Magnitude
+from astropy.table       import Table, QTable
+import astropy.units as u
+import numpy as np
+from astroquery.mpc      import MPC
 
 # Local modules
-from astro.astroutils import location_to_string
-from utils.verbose import verbose
+from astro.astroutils    import location_to_string
+from utils.verbose       import verbose
 
 
 
 # Dataclasses
+@dataclass
+class LocalCircumstances:
+    """Observer location and time data"""
+    loc: EarthLocation          # location
+    observer: Observer          # astroplan observer
+    naut_dusk: Time             # nautical dusk
+    naut_dawn: Time             # nautical dawn
+    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
+    code: str = None            # MPC station code
+
+    def __str__(self) -> str:
+        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
+
+
+
+@dataclass
+class Ephem:
+    table: QTable = None
+
+    def _rename_columns_mpc(self) -> None:
+        self.table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
+                                   "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
+                                  # -->
+                                  ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
+                                   "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
+
+
+    def get_ephemeris(self, obj: str, local: LocalCircumstances) -> Self:
+        # For compatibility with sbpy.data.Ephem
+        start = local.epochs.get("start")
+        step  = local.epochs.get("step")
+        stop  = local.epochs.get("stop")
+        if stop:
+            number = int((stop - start) / step) + 1
+        else:
+            number = 10
+        ic(start, step, stop, number)
+        
+        table = MPC.get_ephemeris(obj, location=local.loc,
+                                  start=start, step=step, number=number)
+        table["Targetname"] = obj
+        # Adopted from sbpy.data: convert Table returned from MPC.get_ephemeris
+        # to QTable with Quantity when indexing
+        self.table = QTable(table, meta={**table.meta})
+        self._rename_columns_mpc()
+        return self
+
+
+    @classmethod
+    def from_object(cls, obj: str, local: LocalCircumstances) -> Self:
+        ephem = cls()
+        ephem.get_ephemeris(obj, local)
+        return ephem
+    
+
+    @classmethod
+    def from_table(cls, table: Table) -> Self:
+        ephem = cls()
+        ephem.table = QTable(table, meta={**table.meta})
+        ephem._rename_columns_mpc()
+        return ephem
+
+
+    def get_mag0(self, column: str="Mag") -> Magnitude:
+        return self.table[column][0]
+
+
+    def get_max_motion(self, column: str="Motion") -> Quantity:
+        max_m = -1 * u.arcsec / u.min
+        if "," in column:
+            # Separate RA*cos(DEC), DEC motion columns
+            col1, col2 = column.split(",")
+        else:
+            # Single column with proper motion
+            col1 = column
+            col2 = None
+        for row in self.table:
+            if col2:
+                motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
+            else:
+                motion = row[col1]
+            if motion > max_m:
+                max_m = motion
+
+        return max_m.to(u.arcsec / u.min)
+
+
+    def __getitem__(self, item) -> any:
+        return self.table[item]
+    
+
+    def __len__(self) -> int:
+        return len(self.table)
+
+
+
 @dataclass
 class NEOCPListData:
     """Extra data from NEOCP / PCCP list"""
@@ -171,21 +272,6 @@ class EphemData:
             return f"{wobs.type.upper():5s}  {wobs.designation:11s} {wobs.rise_time:6s} {wobs.transit_time:6s} {wobs.set_time:6s}  {float(wobs.vmag.value):4.1f}  {dlx.uncertainty}  {str(dlx.last_obs):10.10s}"
         else:
             return str(wobs)
-
-
-
-@dataclass
-class LocalCircumstances:
-    """Observer location and time data"""
-    loc: EarthLocation          # location
-    observer: Observer          # astroplan observer
-    naut_dusk: Time             # nautical dusk
-    naut_dawn: Time             # nautical dawn
-    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
-    code: str = None            # MPC station code
-
-    def __str__(self) -> str:
-        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
 
 
 
