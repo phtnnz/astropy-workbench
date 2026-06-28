@@ -48,10 +48,11 @@ from astroquery.mpc import MPC
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config    import config
-from neo.ephem     import edata_add_ephem_jpl, edata_add_ephem_mpc, get_local_circumstances, get_dec_limits
+from mpc.ephem     import edata_add_ephem_mpc
+from neo.local     import get_local_circumstances, get_dec_limits
 from neo.exposure  import edata_add_exposure
 from neo.classes   import EphemData
-from mpc.observations import get_obs_from_mpc, get_last_row_from_mpc, get_last_obs_from_mpc
+# from mpc.observations import get_obs_from_mpc, get_last_obs_from_mpc
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -150,15 +151,12 @@ def main():
         edata = EphemData("-", obj)
 
         # Get ephemerides
-        if args.jpl:
-            edata_add_ephem_jpl(edata, local)
-        else:
-            edata_add_ephem_mpc(edata, local)
+        edata_add_ephem_mpc(edata, local)
         edata_add_exposure(edata, local)
         ic(edata)
 
         if edata.ephem:
-            verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+            verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                             "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
             verbose("NEO exposure", edata.exposure)
 
