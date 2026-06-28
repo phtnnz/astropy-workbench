@@ -121,7 +121,6 @@ class Ephem:
     def from_table(cls, table: Table) -> Self:
         ephem = cls()
         ephem.table = QTable(table, meta={**table.meta})
-        ephem._rename_columns_mpc()
         return ephem
 
 
