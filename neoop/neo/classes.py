@@ -81,12 +81,16 @@ class LocalCircumstances:
 class Ephem:
     table: QTable = None
 
-    def _rename_columns_mpc(self) -> None:
+    def _rename_columns(self) -> None:
         self.table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
                                    "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
                                   # -->
                                   ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
                                    "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
+
+
+    def _convert_columns(self) -> None:
+        self.table["RA"] = self.table["RA"].to(u.hourangle)
 
 
     def get_ephemeris(self, obj: str, local: LocalCircumstances) -> Self:
@@ -106,7 +110,8 @@ class Ephem:
         # Adopted from sbpy.data: convert Table returned from MPC.get_ephemeris
         # to QTable with Quantity when indexing
         self.table = QTable(table, meta={**table.meta})
-        self._rename_columns_mpc()
+        self._rename_columns()
+        self._convert_columns()
         return self
 
 
@@ -150,6 +155,10 @@ class Ephem:
 
     def __getitem__(self, item) -> any:
         return self.table[item]
+    
+
+    def __setitem__(self, item, value) -> None:
+        self.table[item] = value
     
 
     def __len__(self) -> int:
