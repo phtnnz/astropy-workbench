@@ -36,8 +36,9 @@ import astropy.units as u
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
-from neo.local import get_local_circumstances, get_dec_limits
+from neo.local import LocalCircumstances
 from jpl.sbwobs import sbwobs_get_objects
+
 
 
 def main():
@@ -82,10 +83,10 @@ def main():
         config.sb_group = None
 
     # Observer location and local circumstances
-    local = get_local_circumstances(args.location if args.location else config.code)
+    local = LocalCircumstances.from_location(args.location if args.location else config.code)
 
     # Update DEC limits in config
-    min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
+    min_dec, max_dec = local.get_dec_limits(config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 

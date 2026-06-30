@@ -21,14 +21,14 @@
 from icecream import ic
 
 from mpc.ephem import Ephem, edata_add_ephem_mpc
-from neo.local import get_local_circumstances
+from neo.local import LocalCircumstances
 from neo.classes import EphemData
 
 ic.enable()
 obj = "C/2026 L1"
 
 # Observer location and local circumstances
-local = get_local_circumstances("M49")
+local = LocalCircumstances.from_location("M49")
 ic(local)
 
 eph = Ephem()

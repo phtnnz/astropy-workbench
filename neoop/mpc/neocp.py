@@ -48,7 +48,6 @@ from astropy.table import QTable
 from utils.verbose import verbose, warning, error
 from neo.config import config
 from neo.classes import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
-from neo.local import get_dec_limits
 
 
 # Requests timeout
@@ -78,7 +77,7 @@ def mpc_query_neocp_ephemerides(url: str, local: LocalCircumstances) -> None:
     # Compute min/max DEC from min altitude and latitude
     mag_limit = config.neocp_mag_limit
     min_alt   = config.min_alt
-    min_dec, max_dec = get_dec_limits(local, min_alt * u.deg)
+    min_dec, max_dec = local.get_dec_limits(min_alt * u.deg)
     ic(min_dec, max_dec)
     min_dec, max_dec = int(min_dec.value), int(max_dec.value)
 

@@ -25,6 +25,7 @@ DESCRIPTION = "Location and local circumstances"
 
 import re
 from dataclasses import dataclass
+from typing import Self
 
 from icecream import ic
 # Disable debugging
@@ -58,79 +59,56 @@ class LocalCircumstances:
         return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
 
 
+    @classmethod
+    def from_location(cls, location: str) -> Self:
+        loc = get_location(location)
+        ic(loc, loc.to_geodetic())
+        # MPC station code
+        m = re.search(r'^([0-9A-Z]{3})$', location)
+        if m:
+            code = m.group(1)
+        else:
+            code = None
+        ic(code)
+    
+        # Astroplan
+        observer = Observer(location=loc, description=loc.info.name)
+        ic(observer)
 
-def get_local_circumstances(location: str) -> LocalCircumstances:
-    """Get local circumentances: location, observer, dusk, dawn, epochs parameter
+        # Observation times for upcoming night
+        time = Time.now()
+        ic(time)
 
-    Args:
-        location (str): observer location
+        midnight = observer.midnight(time, which="next")
+        twilight_evening = observer.twilight_evening_nautical(time, which="next")
+        twilight_morning = observer.twilight_morning_nautical(time, which="next")
+        if twilight_evening > twilight_morning:
+            twilight_evening = observer.twilight_evening_nautical(time, which="previous")
+        ic(midnight.iso, twilight_evening.iso, twilight_morning.iso)
 
-    Returns:
-        LocalCircumstances: local circumstances data
-    """
-    loc = get_location(location)
-    ic(loc, loc.to_geodetic())
-    # MPC station code
-    m = re.search(r'^([0-9A-Z]{3})$', location)
-    if m:
-        code = m.group(1)
-    else:
-        code = None
-    ic(code)
- 
-    # Astroplan
-    observer = Observer(location=loc, description=loc.info.name)
-    ic(observer)
+        # Round midnight time to nearest 30 min
+        rem, day = np.modf(midnight.jd)
+        n_round = 24 * 2    # 24 h / 30 min
+        rem = round(rem*n_round) / n_round
+        jd1 = day + rem
+        midnight1 = Time(jd1, format="jd")
+        ic(day, rem, midnight1.iso)
+        epochs = {"start":  midnight1 - 8 * u.hour,
+                "step":   30 * u.min,
+                "stop":   midnight1 + 9 * u.hour
+                }
+        ic(epochs)
 
-    # Observation times for upcoming night
-    time = Time.now()
-    ic(time)
-
-    midnight = observer.midnight(time, which="next")
-    twilight_evening = observer.twilight_evening_nautical(time, which="next")
-    twilight_morning = observer.twilight_morning_nautical(time, which="next")
-    if twilight_evening > twilight_morning:
-        twilight_evening = observer.twilight_evening_nautical(time, which="previous")
-    ic(midnight.iso, twilight_evening.iso, twilight_morning.iso)
-
-    # Round midnight time to nearest 30 min
-    rem, day = np.modf(midnight.jd)
-    n_round = 24 * 2    # 24 h / 30 min
-    rem = round(rem*n_round) / n_round
-    jd1 = day + rem
-    midnight1 = Time(jd1, format="jd")
-    ic(day, rem, midnight1.iso)
-    epochs = {"start":  midnight1 - 8 * u.hour,
-              "step":   30 * u.min,
-              "stop":   midnight1 + 9 * u.hour
-             }
-    ic(epochs)
-
-    return LocalCircumstances(loc, observer, twilight_evening, twilight_morning, epochs, code)
+        return cls(loc, observer, twilight_evening, twilight_morning, epochs, code)
 
 
-
-def get_dec_limits(local: LocalCircumstances, min_alt: Angle) -> tuple[Angle, Angle]:
-    """Compute min/max DEC from min altitude and latitude
-
-    Parameters
-    ----------
-    local : LocalCircumstances
-        Observer location related data
-    min_alt : Angle
-        Minimum altitude
-
-    Returns
-    -------
-    tuple[Angle, Angle]
-        Minimum DEC, maximum DEC
-    """
-    lat = local.loc.lat
-    min_dec = -90*u.deg + min_alt + lat
-    max_dec = +90*u.deg - min_alt + lat
-    if min_dec < -90*u.deg:
-        min_dec = -90*u.deg 
-    if max_dec > +90*u.deg:
-        max_dec = +90*u.deg 
-    ic(lat, min_alt, min_dec, max_dec)
-    return Angle(min_dec), Angle(max_dec)
+    def get_dec_limits(self, min_alt: Angle) -> tuple[Angle, Angle]:
+        lat = self.loc.lat
+        min_dec = -90*u.deg + min_alt + lat
+        max_dec = +90*u.deg - min_alt + lat
+        if min_dec < -90*u.deg:
+            min_dec = -90*u.deg 
+        if max_dec > +90*u.deg:
+            max_dec = +90*u.deg 
+        ic(lat, min_alt, min_dec, max_dec)
+        return Angle(min_dec), Angle(max_dec)

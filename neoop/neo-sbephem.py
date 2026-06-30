@@ -49,9 +49,8 @@ from astroquery.mpc import MPC
 from utils.verbose    import verbose, warning, error, message
 from neo.config       import config
 from mpc.ephem        import edata_add_ephem_mpc
-from neo.local        import get_local_circumstances, get_dec_limits
 from neo.exposure     import edata_add_exposure
-from neo.classes      import EphemData
+from neo.classes      import EphemData, LocalCircumstances
 from mpc.observations import get_obs_from_mpc, get_last_obs_from_mpc
 
 
@@ -91,10 +90,10 @@ def main():
     config.elev_min = 0
 
     # Observer location and local circumstances
-    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
+    local = LocalCircumstances.from_location(args.location if args.location else DEFAULT_LOCATION)
 
     # Override config DEC limits
-    min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
+    min_dec, max_dec = local.get_dec_limits(config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 

@@ -60,7 +60,6 @@ from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances
 from neo.utils     import edata_list_add_times, get_row_for_time, fmt_time, edata_list_csv_output
 from neo.exposure  import motion_limit, edata_add_exposure
-from neo.local     import get_local_circumstances, get_dec_limits
 from mpc.ephem     import edata_add_ephem_mpc
 from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
@@ -328,10 +327,10 @@ def main():
         config.sb_group = None
 
     # Observer location and local circumstances
-    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
+    local = LocalCircumstances.from_location(args.location if args.location else DEFAULT_LOCATION)
 
     # Update DEC limits in config
-    min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
+    min_dec, max_dec = local.get_dec_limits(config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 
