@@ -46,9 +46,8 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import EarthLocation, Angle
+from astropy.coordinates import Angle
 from astropy.time        import Time
-from astroplan           import Observer
 from astropy.units       import Quantity, Magnitude
 from astropy.table       import Table, QTable
 import astropy.units as u
@@ -58,6 +57,7 @@ from astroquery.mpc      import MPC
 # Local modules
 from utils.verbose       import verbose
 from neo.local           import LocalCircumstances
+from mpc.observations    import Obs
 
 
 # Dataclasses
@@ -143,60 +143,6 @@ class Ephem:
 
     def __setitem__(self, item, value) -> None:
         self.table[item] = value
-    
-
-    def __len__(self) -> int:
-        return len(self.table)
-
-
-
-@dataclass
-class Obs:
-    table: QTable = None
-
-    def _rename_columns_mpc(self) -> None:
-        self.table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
-                                   "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
-                                  # -->
-                                  ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
-                                   "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
-
-
-    def _id_type_from_name(name: str) -> str:
-        id_type_regex = {   "asteroid number":        r'^[1-9][0-9]*$',
-                            "asteroid designation":   r'^\d{4}[ _][A-Z]{1,2}\d{0,3}$',
-                            "comet number":           r'^[0-9]{1,3}[PIA]$',
-                            "comet designation":      r'^[PDCXAI]\/\d{4}[ _][A-Z]{1,2}\d{0,3}$'
-                        }
-
-        for id, regex in id_type_regex.items():
-            m = re.match(regex, name)
-            if m:
-                ic(name, id)
-                return id
-        ## Default None or "asteroid designation"?
-        return None
-
-
-    def get_observations(self, obj: str) -> Self:
-        table = MPC.get_observations(obj)
-        # table["Targetname"] = obj
-        # # table is already a QTable
-        # self.table = QTable(table, meta={**table.meta})
-        # self._rename_columns_mpc()
-        self.table = table
-        return self
-
-
-    @classmethod
-    def from_object(cls, obj: str) -> Self:
-        obs = cls()
-        obs.get_observations(obj)
-        return obs
-    
-
-    def __getitem__(self, item) -> any:
-        return self.table[item]
     
 
     def __len__(self) -> int:

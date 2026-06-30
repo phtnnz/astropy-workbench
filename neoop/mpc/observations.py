@@ -24,6 +24,8 @@ NAME        = "mpc.observations"
 DESCRIPTION = "Retrieve MPC observations data"
 
 import re
+from dataclasses import dataclass
+from typing import Self
 
 from icecream import ic
 # Disable debugging
@@ -33,32 +35,78 @@ ic.disable()
 from astropy.time import Time
 from astropy.table import Row
 from astropy.units import Quantity
+from astropy.table       import Table, QTable
 import astropy.units as u
+
+from astroquery.mpc import MPC
 
 # Local modules
 from utils.verbose import verbose, warning, error, message
-from neo.classes import Obs
 from astro.astroutils import time_jd_as_iso
 
 
 
-def get_obs_from_mpc(obj: str) -> Obs:
-    obs = Obs.from_object(obj)
-    return obs
+@dataclass
+class Obs:
+    table: QTable = None
+
+    def _rename_columns_mpc(self) -> None:
+        self.table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
+                                   "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
+                                  # -->
+                                  ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
+                                   "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
 
 
+    def _id_type_from_name(name: str) -> str:
+        id_type_regex = {   "asteroid number":        r'^[1-9][0-9]*$',
+                            "asteroid designation":   r'^\d{4}[ _][A-Z]{1,2}\d{0,3}$',
+                            "comet number":           r'^[0-9]{1,3}[PIA]$',
+                            "comet designation":      r'^[PDCXAI]\/\d{4}[ _][A-Z]{1,2}\d{0,3}$'
+                        }
 
-def get_last_row_from_mpc(obj: str) -> Row:
-    obs = get_obs_from_mpc(obj)
-    # # Handle masked entries
-    # for i in range(-1, -10, -1):
-    #     mag = obs["mag"][i].unmasked
-    #     if mag > Magnitude(0):
-    #         break
-    return obs.table[-1]
+        for id, regex in id_type_regex.items():
+            m = re.match(regex, name)
+            if m:
+                ic(name, id)
+                return id
+        ## Default None or "asteroid designation"?
+        return None
 
 
+    def get_observations(self, obj: str) -> Self:
+        table = MPC.get_observations(obj)
+        # table["Targetname"] = obj
+        # # table is already a QTable
+        # self.table = QTable(table, meta={**table.meta})
+        # self._rename_columns_mpc()
+        self.table = table
+        return self
 
-def get_last_obs_from_mpc(obj: str) -> Quantity:
-    lastrow = get_last_row_from_mpc(obj)
-    return time_jd_as_iso(lastrow.get("epoch"))
+
+    @classmethod
+    def from_object(cls, obj: str) -> Self:
+        obs = cls()
+        obs.get_observations(obj)
+        return obs
+    
+
+    def __getitem__(self, item) -> any:
+        return self.table[item]
+    
+
+    def __len__(self) -> int:
+        return len(self.table)
+
+
+    def get_last_row_from_mpc(self) -> Row:
+        # # Handle masked entries
+        # for i in range(-1, -10, -1):
+        #     mag = obs["mag"][i].unmasked
+        #     if mag > Magnitude(0):
+        #         break
+        return self.table[-1]
+
+
+    def get_last_obs(self) -> Time:
+            return time_jd_as_iso(self.table[-1].get("epoch"))

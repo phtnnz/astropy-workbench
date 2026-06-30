@@ -50,8 +50,7 @@ from utils.verbose    import verbose, warning, error, message
 from neo.config       import config
 from mpc.ephem        import edata_add_ephem_mpc
 from neo.exposure     import edata_add_exposure
-from neo.classes      import EphemData, LocalCircumstances
-from mpc.observations import get_obs_from_mpc, get_last_obs_from_mpc
+from neo.classes      import EphemData, LocalCircumstances, Obs
 
 
 ##FIXME: use config
@@ -161,11 +160,12 @@ def main():
             verbose("NEO exposure", edata.exposure)
 
         if args.obs:
-            obs = get_obs_from_mpc(obj)
+            obs = Obs.from_object(obj)
             verbose.print_lines2(obs)
         
         if args.lastobs:
-            last_obs = get_last_obs_from_mpc(obj)
+            obs = Obs.from_object(obj)
+            last_obs = obs.get_last_obs()
             ic(last_obs)
             verbose(f"last obs {last_obs.iso}")
 
