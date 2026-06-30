@@ -24,21 +24,38 @@ NAME        = "neo.local"
 DESCRIPTION = "Location and local circumstances"
 
 import re
+from dataclasses import dataclass
 
 from icecream import ic
 # Disable debugging
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import Angle
 from astropy.time import Time
+from astropy.coordinates import EarthLocation, Angle
+
 import astropy.units as u
 import numpy as np
 from astroplan import Observer
 
 # Local modules
 from mpc.location import get_location
-from neo.classes import LocalCircumstances
+from astro.astroutils import location_to_string
+
+
+
+@dataclass
+class LocalCircumstances:
+    """Observer location and time data"""
+    loc: EarthLocation          # location
+    observer: Observer          # astroplan observer
+    naut_dusk: Time             # nautical dusk
+    naut_dawn: Time             # nautical dawn
+    epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
+    code: str = None            # MPC station code
+
+    def __str__(self) -> str:
+        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
 
 
 
