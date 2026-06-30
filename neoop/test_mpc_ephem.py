@@ -15,15 +15,14 @@
 # limitations under the License.
 
 # ChangeLog
-# Version 0.1 / 2026-06-27
-#       Test mpc.ephem
+# Version 0.1 / 2026-06-30
+#       Test mpc.ephem, mpc.ephemdata
 
 from icecream import ic
 
 from mpc.ephem import Ephem
-from mpc.ephemdata import edata_add_ephem_mpc
+from mpc.ephemdata import EphemData, edata_add_ephem_mpc
 from neo.local import LocalCircumstances
-from neo.classes import EphemData
 
 ic.enable()
 obj = "C/2026 L1"

@@ -24,16 +24,39 @@ NAME        = "mpc.prevneocp"
 DESCRIPTION = "Retrieve previous NEOCP from MPC"
 
 import re
+from dataclasses import dataclass
+
 import requests
 from icecream import ic
 # Disable debugging
 ic.disable()
 
+# AstroPy
+from astropy.time import Time
+
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
-from neo.classes import PrevNEOCPData
 
+
+
+@dataclass
+class PrevNEOCPData:
+    trk_sub: str
+    designation: str = None
+    comment: str = None
+    date: Time = None
+    mpec_no: str = None
+    mpec_url: str = None
+
+    def __str__(self) -> str:
+        if self.designation:
+            if self.mpec_no:
+                return f"{self.trk_sub:7s} = {self.designation:10s}  MPEC {self.mpec_no:9s}  {self.mpec_url}"
+            else:
+                return f"{self.trk_sub:7s} = {self.designation:10s}"
+        else:
+            return f"{self.trk_sub:7s}   {self.comment}"
 
 
 def mpc_query_prev_neocp(url: str) -> str:
