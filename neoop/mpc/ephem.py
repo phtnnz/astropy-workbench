@@ -24,6 +24,9 @@ AUTHOR      = "Martin Junius"
 NAME        = "mpc.ephem"
 DESCRIPTION = "MPC ephemeris and observations"
 
+from dataclasses import dataclass
+from typing import Self
+
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -32,33 +35,100 @@ ic.disable()
 import astropy.units as u
 
 # Local modules
-from utils.verbose import verbose, warning
-from neo.classes import Ephem, EphemData, LocalCircumstances
-from neo.config import config
+from neo.local import LocalCircumstances
+
+# AstroPy
+from astropy.units import Quantity, Magnitude
+from astropy.table import Table, QTable
+import astropy.units as u
+import numpy as np
+from astroquery.mpc import MPC
 
 
-def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
-    if edata.ephem:
-        verbose(f"already got ephemeris for {edata.obj}")
-        return
 
-    min_alt = config.min_alt
+@dataclass
+class Ephem:
+    table: QTable = None
 
-    obj = edata.obj
-    verbose(f"{obj} ephemeris from MPC")
-    eph = Ephem.from_object(obj, local)
-    mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
-    eph1 = Ephem(eph[mask])
-    if len(eph1) == 0:
-        warning(f"skipping empty ephemeris for {obj}")
-        return
-    mag = eph1.get_mag0()
-    motion = eph1.get_max_motion()
+    def _rename_columns(self) -> None:
+        self.table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
+                                   "Azimuth", "Altitude", "Moon distance", "Moon altitude" ),
+                                  # -->
+                                  ("Obstime", "DEC",      "Mag",           "Motion",        "PA",        
+                                   "Az",      "Alt",      "Moon_dist",     "Moon_alt"      ))
 
-    # Copy to EphemData
-    if edata.wobs:
-        edata.type = edata.wobs.type.upper()
-    edata.obj = obj
-    edata.ephem = eph1
-    edata.mag = mag
-    edata.motion = motion
+
+    def _convert_columns(self) -> None:
+        self.table["RA"] = self.table["RA"].to(u.hourangle)
+
+
+    def get_ephemeris(self, obj: str, local: LocalCircumstances) -> Self:
+        # For compatibility with sbpy.data.Ephem
+        start = local.epochs.get("start")
+        step  = local.epochs.get("step")
+        stop  = local.epochs.get("stop")
+        if stop:
+            number = int((stop - start) / step) + 1
+        else:
+            number = 10
+        ic(start, step, stop, number)
+        
+        table = MPC.get_ephemeris(obj, location=local.loc,
+                                  start=start, step=step, number=number)
+        table["Targetname"] = obj
+        # Adopted from sbpy.data: convert Table returned from MPC.get_ephemeris
+        # to QTable with Quantity when indexing
+        self.table = QTable(table, meta={**table.meta})
+        self._rename_columns()
+        self._convert_columns()
+        return self
+
+
+    @classmethod
+    def from_object(cls, obj: str, local: LocalCircumstances) -> Self:
+        ephem = cls()
+        ephem.get_ephemeris(obj, local)
+        return ephem
+    
+
+    @classmethod
+    def from_table(cls, table: Table) -> Self:
+        ephem = cls()
+        ephem.table = QTable(table, meta={**table.meta})
+        return ephem
+
+
+    def get_mag0(self, column: str="Mag") -> Magnitude:
+        return self.table[column][0]
+
+
+    def get_max_motion(self, column: str="Motion") -> Quantity:
+        max_m = -1 * u.arcsec / u.min
+        if "," in column:
+            # Separate RA*cos(DEC), DEC motion columns
+            col1, col2 = column.split(",")
+        else:
+            # Single column with proper motion
+            col1 = column
+            col2 = None
+        for row in self.table:
+            if col2:
+                motion = np.sqrt( np.square(row[col1]) + np.square(row[col2]) )
+            else:
+                motion = row[col1]
+            if motion > max_m:
+                max_m = motion
+
+        return max_m.to(u.arcsec / u.min)
+
+
+    def __getitem__(self, item) -> any:
+        return self.table[item]
+    
+
+    def __setitem__(self, item, value) -> None:
+        self.table[item] = value
+    
+
+    def __len__(self) -> int:
+        return len(self.table)

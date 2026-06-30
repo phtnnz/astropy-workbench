@@ -58,9 +58,8 @@ from astropy.units import Quantity, Magnitude
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
 from neo.utils import fmt_time
-from neo.classes import LocalCircumstances, JPLWObsData, EphemData, EphemDataList
+from neo.classes import LocalCircumstances, JPLWObsData, EphemData, EphemDataList, Obs
 from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_lastobs, mpc_parse_lastobs
-from mpc.observations import get_last_obs_from_mpc
 
 
 
@@ -247,7 +246,8 @@ def edata_comet_add_prefix(edata: EphemData) -> EphemData:
 def edata_add_last_obs(edata: EphemData) -> EphemData:
     if not edata.wobs:
         return None
-    edata.wobs.last_obs = get_last_obs_from_mpc(edata.obj)
+    obs = Obs.from_object(edata.obj)
+    edata.wobs.last_obs = obs.get_last_obs()
     verbose(f"{edata.obj}: last obs {edata.wobs.last_obs.iso}")
     ic(edata.obj, edata.wobs.last_obs.iso)
     return edata

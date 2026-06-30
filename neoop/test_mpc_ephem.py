@@ -20,7 +20,8 @@
 
 from icecream import ic
 
-from mpc.ephem import Ephem, edata_add_ephem_mpc
+from mpc.ephem import Ephem
+from mpc.ephemdata import edata_add_ephem_mpc
 from neo.local import LocalCircumstances
 from neo.classes import EphemData
 

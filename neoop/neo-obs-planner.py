@@ -60,7 +60,7 @@ from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances
 from neo.utils     import edata_list_add_times, get_row_for_time, fmt_time, edata_list_csv_output
 from neo.exposure  import motion_limit, edata_add_exposure
-from mpc.ephem     import edata_add_ephem_mpc
+from mpc.ephemdata import edata_add_ephem_mpc
 from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
 from mpc.neocp     import neocp_get_edata_list

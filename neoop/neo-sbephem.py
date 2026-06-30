@@ -48,7 +48,7 @@ from astroquery.mpc import MPC
 # Local modules
 from utils.verbose    import verbose, warning, error, message
 from neo.config       import config
-from mpc.ephem        import edata_add_ephem_mpc
+from mpc.ephemdata    import edata_add_ephem_mpc
 from neo.exposure     import edata_add_exposure
 from neo.classes      import EphemData, LocalCircumstances, Obs
 
@@ -130,23 +130,6 @@ def main():
         MPC.clear_cache()    
 
     for obj in objects:
-        # # Object ephemeris
-        # try:
-        #     eph = MPC.get_ephemeris(obj, location=loc, start=time, step=5*u.min, number=12)
-        #     print(eph["Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
-        # except InvalidQueryError as err:
-        #     warning(f"query MPC ephemeris for failed {obj}!")
-        #     eph = None
-
-        # # Observations
-        # try:
-        #     ##FIXME: must specify id_type
-        #     obs = MPC.get_observations(obj, id_type="comet number")
-        #     print(obs)
-        # except (EmptyResponseError, ValueError) as err:
-        #     warning(f"query MPC observations failed for {obj}!")
-        #     obs = None
-
         edata = EphemData("-", obj)
 
         # Get ephemerides
