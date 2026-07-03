@@ -32,8 +32,6 @@ AUTHOR      = "Martin Junius"
 NAME        = "neo.utils"
 DESCRIPTION = "NEO utility functions"
 
-import sys
-import csv
 from itertools import pairwise
 
 # The following libs must be installed with pip
@@ -44,10 +42,8 @@ ic.disable()
 # AstroPy & friends
 import astropy.units as u
 from astropy.coordinates import Angle
-from astropy.units import Quantity, Magnitude
 from astropy.time import Time
-from astropy.table import QTable, Row
-import numpy as np
+from astropy.table import Row
 
 # Local modules
 from utils.verbose import verbose, warning
@@ -57,6 +53,7 @@ from neo.classes import Ephem, EphemData, EphemTimes, EphemDataList
 
 
 
+##FIXME: make methods of class Ephem
 def is_east(az: Angle) -> bool:
     """
     Test for east azimut position
