@@ -243,7 +243,7 @@ def edata_comet_add_prefix(edata: EphemData) -> EphemData:
 
 
 
-def edata_add_last_obs(edata: EphemData) -> EphemData:
+def edata_add_last_obs(edata: EphemData, local: LocalCircumstances) -> EphemData:
     if not edata.wobs:
         return None
     obs = Obs.from_object(edata.obj)
@@ -266,7 +266,7 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
         for key, edata in obj_edata1.items():
             edata = obj_edata1.get(key)
             edata_comet_add_prefix(edata)
-            edata_add_last_obs(edata)
+            edata_add_last_obs(edata, local)
             ##FIXME: config
             sleep(0.25) # avoid rapid fire to MPC servers
 

@@ -207,7 +207,7 @@ class EphemDataList(list):
 
 
 
-def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
+def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> EphemData:
     if edata.ephem:
         verbose(f"already got ephemeris for {edata.obj}")
         return
@@ -232,3 +232,5 @@ def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> None:
     edata.ephem = eph1
     edata.mag = mag
     edata.motion = motion
+
+    return edata

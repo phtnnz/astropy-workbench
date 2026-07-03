@@ -134,7 +134,7 @@ def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
 
 
 
-def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> None:
+def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> EphemData:
     obj = edata.obj
     if not edata.ephem:
         return
@@ -145,3 +145,5 @@ def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> None:
         warning(f"exposure calculation for {obj} failed, too fast?")
         if edata.motion != None:
             warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
+
+    return edata

@@ -222,7 +222,7 @@ def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
 
 
 
-def edata_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> None:
+def edata_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> EphemData:
     """Add EphemTimes data to EphemData object
 
     Parameters
@@ -264,6 +264,8 @@ def edata_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="
         # New sort order of neo-obs-planner
         if etimes.alt_start != None:
             edata.sort_time = etimes.alt_start
+
+    return edata
 
 
 
