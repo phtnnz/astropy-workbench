@@ -41,7 +41,6 @@ from astroplan import Observer
 
 # Local modules
 from mpc.location import get_location
-from astro.astroutils import location_to_string
 
 
 
@@ -55,8 +54,13 @@ class LocalCircumstances:
     epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
     code: str = None            # MPC station code
 
+
+    def _loc_to_string(self) -> str:
+        return f"lon={self.loc.to_geodetic().lon.to_string(unit=u.degree, precision=1)} lat={self.loc.to_geodetic().lat.to_string(unit=u.degree, precision=1)} height={self.loc.to_geodetic().height.to_string(precision=0)}"
+
+
     def __str__(self) -> str:
-        return f"location {location_to_string(self.loc)} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
+        return f"location {self._loc_to_string()} code {self.code if self.code else "---"}\nnautical twilight {self.naut_dusk.iso} / {self.naut_dawn.iso} ({self.naut_dusk.scale.upper()})"
 
 
     @classmethod

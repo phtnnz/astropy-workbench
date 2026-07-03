@@ -18,7 +18,7 @@
 # Version 0.1 / 2026-06-25
 #       Get observations from MPC database
 
-VERSION     = "0. / 2026-06-25"
+VERSION     = "0.1 / 2026-06-25"
 AUTHOR      = "Martin Junius"
 NAME        = "mpc.observations"
 DESCRIPTION = "Retrieve MPC observations data"
@@ -34,15 +34,10 @@ ic.disable()
 # AstroPy
 from astropy.time import Time
 from astropy.table import Row
-from astropy.units import Quantity
-from astropy.table       import Table, QTable
+from astropy.table import Table, QTable
 import astropy.units as u
 
 from astroquery.mpc import MPC
-
-# Local modules
-from utils.verbose import verbose, warning, error, message
-from astro.astroutils import time_jd_as_iso
 
 
 
@@ -109,4 +104,7 @@ class Obs:
 
 
     def get_last_obs(self) -> Time:
-            return time_jd_as_iso(self.table[-1].get("epoch"))
+            jd = self.table[-1].get("epoch")
+            time = Time(jd, format="jd")
+            time.format = "iso"
+            return time
