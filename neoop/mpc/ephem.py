@@ -26,29 +26,40 @@ DESCRIPTION = "MPC ephemeris and observations"
 
 from dataclasses import dataclass
 from typing import Self
+from itertools import pairwise
 
 from icecream import ic
 # Disable debugging
 ic.disable()
 
 # AstroPy
-import astropy.units as u
-
-# Local modules
-from neo.local import LocalCircumstances
-
-# AstroPy
 from astropy.units import Quantity, Magnitude
-from astropy.table import Table, QTable
+from astropy.table import Table, QTable, Row
+from astropy.time import Time
+from astropy.coordinates import Angle
 import astropy.units as u
 import numpy as np
 from astroquery.mpc import MPC
+
+# Local modules
+from astro.utils import is_east, is_west
+from neo.local import LocalCircumstances
 
 
 
 @dataclass
 class Ephem:
     table: QTable = None
+
+    def __getitem__(self, item) -> any:
+        return self.table[item]
+
+    def __setitem__(self, item, value) -> None:
+        self.table[item] = value
+
+    def __len__(self) -> int:
+        return len(self.table)
+
 
     def _rename_columns(self) -> None:
         self.table.rename_columns(("Date",    "Dec",      "V",             "Proper motion", "Direction", 
@@ -122,13 +133,55 @@ class Ephem:
         return max_m.to(u.arcsec / u.min)
 
 
-    def __getitem__(self, item) -> any:
-        return self.table[item]
-    
+    def get_flip_times(self, col_obstime: str="Obstime", col_az: str="Az") -> tuple[Time, Time]:
+        prev_time = None
+        prev_az   = None
 
-    def __setitem__(self, item, value) -> None:
-        self.table[item] = value
-    
+        for row in self.table:
+            time = row[col_obstime]
+            az   = row[col_az]
+            # ic(time, az)
+            if not prev_az == None:
+                if is_east(prev_az) and is_west(az):     # South flip
+                    return (prev_time, time)
+                if is_west(prev_az) and is_east(az):     # North flip
+                    return (prev_time, time)
+            prev_time = time
+            prev_az   = az
 
-    def __len__(self) -> int:
-        return len(self.table)
+        # No meridian passing found
+        return None, None
+
+
+    def get_opt_alt_times(self, alt: Angle, col_obstime: str="Obstime", col_alt: str="Alt") -> tuple[Time, Time]:
+        time_alt0 = None
+        time_alt1 = None
+
+        for row in self.table:
+            if time_alt0 == None and row[col_alt] >= alt:
+                time_alt0 = row[col_obstime]
+            if time_alt0 != None and row[col_alt] >= alt:
+                time_alt1 = row[col_obstime]
+            if time_alt1 != None and row[col_alt] < alt:
+                break
+        
+        return time_alt0, time_alt1
+
+
+    def get_max_alt_time(self, col_obstime: str="Obstime", col_alt: str="Alt") -> Time:
+        max_alt = -90 * u.degree
+        time_max = None
+        for row in self.table:
+            if row[col_alt] > max_alt:
+                max_alt = row[col_alt]
+                time_max = row[col_obstime]
+        return time_max
+
+
+    def get_row_for_time(self, t: Time, col_obstime: str="Obstime") -> Row:
+        for r1, r2 in pairwise(self.table):
+            if r1[col_obstime] <= t and t <= r2[col_obstime]:
+                return r1
+        
+        # No matching interval found
+        return None

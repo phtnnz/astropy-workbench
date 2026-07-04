@@ -56,9 +56,10 @@ from astroquery.mpc import MPC
 
 # Local modules
 from utils.verbose import verbose, warning, error, message
+from astro.utils   import fmt_time
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances
-from neo.utils     import edata_list_add_times, get_row_for_time, fmt_time, edata_list_csv_output
+from neo.utils     import edata_list_add_times, edata_list_csv_output
 from neo.exposure  import motion_limit, edata_add_exposure
 from mpc.ephemdata import edata_add_ephem_mpc
 from neo.plot      import edata_list_plot
@@ -199,7 +200,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             continue
 
         # Ephemeris row best matching start time
-        row = get_row_for_time(eph, exp_start)
+        row = eph.get_row_for_time(exp_start)
         ic(row)
 
         if not edata.force:

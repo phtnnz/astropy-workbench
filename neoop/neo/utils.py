@@ -41,150 +41,17 @@ ic.disable()
 
 # AstroPy & friends
 import astropy.units as u
-from astropy.coordinates import Angle
-from astropy.time import Time
-from astropy.table import Row
 
 # Local modules
 from utils.verbose import verbose, warning
 from utils.csvoutput import csv_output
-from astro.utils import is_east, is_west, fmt_time
+from astro.utils import fmt_time
 from neo.config import config
 from neo.classes import Ephem, EphemData, EphemTimes, EphemDataList
 
 
 
-##FIXME: make methods of class Ephem
-def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tuple[Time, Time]:
-    """
-    Get time before and after meridian passing from ephemeris table
-
-    Parameters
-    ----------
-    eph : Ephem
-        Ephemeris table
-    col_obstime : str
-        Name of obstime column
-    col_az : str
-        Name of azimuth column
-
-    Returns
-    -------
-    Tuple[Time, Time]
-        Time before meridian, time after meridian passing
-        None, None if object doesn't pass meridian
-    """
-    prev_time = None
-    prev_az   = None
-
-    for row in eph.table:
-        time = row[col_obstime]
-        az   = row[col_az]
-        # ic(time, az)
-        if not prev_az == None:
-            if is_east(prev_az) and is_west(az):     # South flip
-                return (prev_time, time)
-            if is_west(prev_az) and is_east(az):     # North flip
-                return (prev_time, time)
-        prev_time = time
-        prev_az   = az
-
-    # No meridian passing found
-    return None, None
-
-
-
-def opt_alt_times(eph: Ephem, alt: Angle, col_obstime: str="Obstime", col_alt: str="Alt") -> tuple[Time, Time]:
-    """
-    Get times for object above specified altitude
-
-    Parameters
-    ----------
-    eph : Ephem
-        Ephemeris table
-    alt : Angle
-        Altitude angle
-    col_obstime : str
-        Name of obstime column
-    col_alt : str
-        Name of altitude column
-
-    Returns
-    -------
-    tuple[Time, Time]
-        Start time above altitude, end time above altitude
-    """
-    time_alt0 = None
-    time_alt1 = None
-
-    for row in eph.table:
-        if time_alt0 == None and row[col_alt] >= alt:
-            time_alt0 = row[col_obstime]
-        if time_alt0 != None and row[col_alt] >= alt:
-            time_alt1 = row[col_obstime]
-        if time_alt1 != None and row[col_alt] < alt:
-            break
-    
-    return time_alt0, time_alt1
-
-
-
-def max_alt_time(eph: Ephem, col_obstime: str="Obstime", col_alt: str="Alt") -> Time:
-    """
-    Get time of maximum altitude from ephemeris table
-
-    Parameters
-    ----------
-    eph : Ephem
-        Ephemeris table
-    col_obstime : str
-        Name of obstime column
-    col_alt : str
-        Name of altitude column
-
-    Returns
-    -------
-    Time
-        Time of max altitude
-    """
-    max_alt = -90 * u.degree
-    time_max = None
-    for row in eph.table:
-        if row[col_alt] > max_alt:
-            max_alt = row[col_alt]
-            time_max = row[col_obstime]
-    return time_max
-
-
-
-def get_row_for_time(eph: Ephem, t: Time, col_obstime: str="Obstime") -> Row:
-    """
-    Get row from ephemeris table closest to specified time
-
-    Parameters
-    ----------
-    eph : Ephem
-        Ephemeris table
-    t : Time
-        Time for retrieving row
-    col_obstime : str
-        Name of obstime column
-
-    Returns
-    -------
-    Row
-        Corresponding row from ephemeris table
-        None, if not found
-    """
-    for r1, r2 in pairwise(eph.table):
-        if r1[col_obstime] <= t and t <= r2[col_obstime]:
-            return r1
-    
-    # No matching interval found
-    return None
-
-
-
+##FIXME: make methods of class EphemData
 def edata_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> EphemData:
     """Add EphemTimes data to EphemData object
 
@@ -214,10 +81,10 @@ def edata_add_times(edata: EphemData, col_obstime: str="Obstime", col_alt: str="
     edata.times = EphemTimes(eph[col_obstime][0], eph[col_obstime][-1],
                              None, None, None, None, None, None)
     etimes = edata.times
-    etimes.before, etimes.after = flip_times(eph, col_obstime, col_az)
-    etimes.alt_start, etimes.alt_end = opt_alt_times(eph, config.opt_alt * u.deg, col_obstime, col_alt)
+    etimes.before, etimes.after = eph.get_flip_times(col_obstime, col_az)
+    etimes.alt_start, etimes.alt_end = eph.get_opt_alt_times(config.opt_alt * u.deg, col_obstime, col_alt)
 
-    etimes.max_alt = max_alt_time(eph, col_obstime, col_alt)
+    etimes.max_alt = eph.get_max_alt_time(col_obstime, col_alt)
     edata.sort_time = etimes.max_alt
     if use_old_sort:
         # Old sort order of neocp.py
