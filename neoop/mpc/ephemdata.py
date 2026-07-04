@@ -43,7 +43,7 @@ from utils.csvoutput import csv_output
 from astro.utils import fmt_time
 from mpc.ephem import Ephem
 from neo.local import LocalCircumstances
-from neo.exposure import Exposure, exposure_calc, motion_limit
+from neo.exposure import Exposure
 from neo.config import config
 
 
@@ -208,20 +208,19 @@ class EphemData:
         return self
 
 
+    def add_exposure(self) -> Self:
+        obj = self.obj
+        if not self.ephem:
+            return
+        if self.motion != None and self.mag != None:
+            self.exposure = Exposure.from_motion_mag(self.motion, self.mag)
+            ic(self.obj, self.exposure)
+        if not self.exposure:
+            warning(f"exposure calculation for {obj} failed, too fast?")
+            if self.motion != None:
+                warning(f"motion={self.motion:.2f}, limit={Exposure.motion_limit():.2f}")
 
-def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> EphemData:
-    obj = edata.obj
-    if not edata.ephem:
-        return
-    if edata.motion != None and edata.mag != None:
-        edata.exposure = exposure_calc(edata.motion, edata.mag)
-        ic(edata.obj, edata.exposure)
-    if not edata.exposure:
-        warning(f"exposure calculation for {obj} failed, too fast?")
-        if edata.motion != None:
-            warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
-
-    return edata
+        return self
 
 
 
@@ -281,6 +280,13 @@ class EphemDataList(list):
                 edata.add_ephem_times(col_obstime, col_alt, col_az, use_old_sort)
             else:
                 warning(f"no ephemeris for {edata.obj}")
+        return self
+
+
+    def add_exposure(self) -> Self:
+        edata: EphemData
+        for edata in self:
+            edata.add_exposure()
         return self
 
 

@@ -58,11 +58,7 @@ from astroquery.mpc import MPC
 from utils.verbose import verbose, warning, error, message
 from astro.utils   import fmt_time
 from neo.config    import config
-from neo.classes   import EphemData, EphemDataList, LocalCircumstances
-from neo.exposure  import motion_limit
-##FIXME
-from mpc.ephemdata import edata_add_exposure
-##
+from neo.classes   import EphemData, EphemDataList, LocalCircumstances, Exposure
 from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
 from mpc.neocp     import neocp_get_edata_list
@@ -149,7 +145,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         if edata.exposure:
             total_time = edata.exposure.total_time
         else:
-            message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
+            message(f"SKIPPED: object too fast (>{Exposure.motion_limit():.1f})")
             skipped.append(obj)
             continue
 
@@ -388,8 +384,7 @@ def main():
     edata_list.add_ephem_mpc(local)
 
     # Get exposure data from mag and motion
-    ##FIXME: method of edata_list
-    edata_list.process(edata_add_exposure, local)
+    edata_list.add_exposure()
     ic(edata_list)
 
     # Process only objects with ephemeris and exposure data

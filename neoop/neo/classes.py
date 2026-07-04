@@ -35,7 +35,7 @@
 VERSION     = "2.0 / 2026-06-30"
 AUTHOR      = "Martin Junius"
 NAME        = "neo.classes"
-DESCRIPTION = "Dataclasses for ephemeris/planning"
+DESCRIPTION = "Dataclasses wrapper"
 
 
 
@@ -45,3 +45,4 @@ from mpc.observations    import Obs
 from mpc.ephem           import Ephem
 from mpc.ephemdata       import EphemData, EphemDataList, EphemTimes, Exposure, NEOCPListData, JPLWObsData, MPCDLxData
 from mpc.prevneocp       import PrevNEOCPData
+from neo.exposure        import Exposure
