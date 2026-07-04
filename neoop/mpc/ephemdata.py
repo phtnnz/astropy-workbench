@@ -224,9 +224,18 @@ class EphemData:
 
 
 
+class EphemDataDict(dict):
+    def __str__(self) -> str:
+        return f"objects ({len(self)}): {', '.join(sorted(self.keys()))}"
+
+
+
 class EphemDataList(list):
+    def __str__(self) -> str:
+        return "\n".join(f"{edata.type} {edata.obj} {edata.sort_time.iso if edata.sort_time else ''}" for edata in self)
+
     @classmethod
-    def from_dict(cls, obj_edata: dict[str, EphemData]) -> Self:
+    def from_dict(cls, obj_edata: EphemDataDict) -> Self:
         return cls(obj_edata.values())
     
     @classmethod
@@ -248,9 +257,6 @@ class EphemDataList(list):
 
     def sort_by_time(self) -> None:
         return self.sort(key=lambda item: item.sort_time)
-
-    def __str__(self) -> str:
-        return "\n".join(f"{edata.type} {edata.obj} {edata.sort_time.iso if edata.sort_time else ''}" for edata in self)
 
     def verbose_ephem(self) -> None:
         for edata in self:
@@ -331,10 +337,3 @@ class EphemDataList(list):
             csv_output.write(output, set_locale=False)
         else:
             warning("no objects, no CSV output")
-
-
-
-class EphemDataDict(dict):
-    
-    def __str__(self) -> str:
-        return f"objects ({len(self)}): {', '.join(sorted(self.keys()))}"

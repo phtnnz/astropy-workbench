@@ -38,7 +38,7 @@ import astropy.units as u
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
-from neo.classes import DLxData, EphemData
+from neo.classes import DLxData, EphemData, EphemDataDict
 
 
 
@@ -176,8 +176,8 @@ def parse_txt_line(txt_line: str, list_type: str) -> DLxData:
 
 
 
-def mpc_parse_customize(content: str, list_type: str) -> dict[str, EphemData]:
-    objects = dict()
+def mpc_parse_customize(content: str, list_type: str) -> EphemDataDict:
+    objects = EphemDataDict()
 
     in_unnumbered1 = False
     for line in content.splitlines():
@@ -221,8 +221,8 @@ def mpc_query_lastobs(url: str) -> str:
 
 
 
-def mpc_parse_lastobs(content: str) -> dict[str, EphemData]:
-    objects = dict()
+def mpc_parse_lastobs(content: str) -> EphemDataDict:
+    objects = EphemDataDict()
 
     for txt_line in content.splitlines():
         dlx = parse_txt_line(txt_line, "DLN")       # same format als customize/DLN
@@ -240,6 +240,3 @@ def mpc_parse_lastobs(content: str) -> dict[str, EphemData]:
             objects[dlx.designation] = edata
 
     return objects
-
-
-
