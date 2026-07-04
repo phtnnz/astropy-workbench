@@ -36,7 +36,7 @@ ic.disable()
 from astropy.units import Quantity, Magnitude
 from astropy.table import Table, QTable, Row
 from astropy.time import Time
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, AltAz
 import astropy.units as u
 import numpy as np
 from astroquery.mpc import MPC
@@ -185,3 +185,25 @@ class Ephem:
         
         # No matching interval found
         return None
+
+
+    def to_altaz(self, name: str, local: LocalCircumstances, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> AltAz:
+        """
+        Convert ephemeris cols "Alt"/"Az" to AltAz object
+
+        Parameters
+        ----------
+        id : str
+            NEOCP id = temporary designation
+        eph : Ephem
+            Ephemeris, including alt/az
+
+        Returns
+        -------
+        AltAz
+            AltAz coordinates object for altitude/sky plot
+        """
+        altaz = AltAz(alt=self[col_alt], az=self[col_az], obstime=self[col_obstime], location=local.loc)
+        altaz.name = name
+        ic(altaz)
+        return altaz
