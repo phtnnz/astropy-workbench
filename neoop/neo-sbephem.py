@@ -46,12 +46,10 @@ import astropy.units as u
 from astroquery.mpc import MPC
 
 # Local modules
-from utils.verbose import verbose, warning, error, message
-from neo.config    import config
-from neo.ephem     import edata_add_ephem_jpl, edata_add_ephem_mpc, get_local_circumstances, get_dec_limits
-from neo.exposure  import edata_add_exposure
-from neo.classes   import EphemData
-from mpc.observations import get_obs_from_mpc, get_last_row_from_mpc, get_last_obs_from_mpc
+from utils.verbose    import verbose, warning, error, message
+from neo.config       import config
+from neo.classes      import EphemData, LocalCircumstances, Obs
+
 
 ##FIXME: use config
 DEFAULT_LOCATION = config.code
@@ -89,10 +87,10 @@ def main():
     config.elev_min = 0
 
     # Observer location and local circumstances
-    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
+    local = LocalCircumstances.from_location(args.location if args.location else DEFAULT_LOCATION)
 
     # Override config DEC limits
-    min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
+    min_dec, max_dec = local.get_dec_limits(config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 
@@ -130,44 +128,25 @@ def main():
         MPC.clear_cache()    
 
     for obj in objects:
-        # # Object ephemeris
-        # try:
-        #     eph = MPC.get_ephemeris(obj, location=loc, start=time, step=5*u.min, number=12)
-        #     print(eph["Date", "RA", "Dec", "V", "Proper motion", "Direction", "Azimuth", "Altitude"])
-        # except InvalidQueryError as err:
-        #     warning(f"query MPC ephemeris for failed {obj}!")
-        #     eph = None
-
-        # # Observations
-        # try:
-        #     ##FIXME: must specify id_type
-        #     obs = MPC.get_observations(obj, id_type="comet number")
-        #     print(obs)
-        # except (EmptyResponseError, ValueError) as err:
-        #     warning(f"query MPC observations failed for {obj}!")
-        #     obs = None
-
         edata = EphemData("-", obj)
 
         # Get ephemerides
-        if args.jpl:
-            edata_add_ephem_jpl(edata, local)
-        else:
-            edata_add_ephem_mpc(edata, local)
-        edata_add_exposure(edata, local)
+        edata.add_ephem_mpc(local)
+        edata.add_exposure()
         ic(edata)
 
         if edata.ephem:
-            verbose.print_lines2(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
+            verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                                             "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
             verbose("NEO exposure", edata.exposure)
 
         if args.obs:
-            obs = get_obs_from_mpc(obj)
+            obs = Obs.from_object(obj)
             verbose.print_lines2(obs)
         
         if args.lastobs:
-            last_obs = get_last_obs_from_mpc(obj)
+            obs = Obs.from_object(obj)
+            last_obs = obs.get_last_obs()
             ic(last_obs)
             verbose(f"last obs {last_obs.iso}")
 

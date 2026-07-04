@@ -36,8 +36,10 @@
 #       Refactored version in new subdirectory neoop/
 # Version 2.1 / 2026-06-16
 #       New option --verbose-ephem for ephemerides output, fixed mag limits
+# Version 2.2 / 2026-07-04
+#       Added output of Moon altitude
 
-VERSION     = "2.1 / 2026-06-20"
+VERSION     = "2.2 / 2026-07-04"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEOCP/NEO observation planner"
@@ -56,11 +58,9 @@ from astroquery.mpc import MPC
 
 # Local modules
 from utils.verbose import verbose, warning, error, message
+from astro.utils   import fmt_time
 from neo.config    import config
-from neo.classes   import EphemData, EphemDataList, LocalCircumstances
-from neo.utils     import edata_list_add_times, get_row_for_time, fmt_time, edata_list_csv_output
-from neo.exposure  import motion_limit, edata_add_exposure
-from neo.ephem     import get_local_circumstances, get_dec_limits, edata_add_ephem_mpc
+from neo.classes   import EphemData, EphemDataList, LocalCircumstances, Exposure
 from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
 from mpc.neocp     import neocp_get_edata_list
@@ -79,7 +79,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     message("-------------------------------------------------------------------------------------------------------------------")
     message("              Score       Mag #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                 Max motion")
     message("       /Uncertainty                                  Time before         / after meridian             Moon distance")
-    message("                                                     Time start exposure / end exposure")
+    message("                                                     Time start exposure / end exposure                    Moon alt")
     message("                                                     # x Exp = total exposure time")
     message("                                                     RA, DEC, Alt, Az")
 
@@ -147,7 +147,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         if edata.exposure:
             total_time = edata.exposure.total_time
         else:
-            message(f"SKIPPED: object too fast (>{motion_limit():.1f})")
+            message(f"SKIPPED: object too fast (>{Exposure.motion_limit():.1f})")
             skipped.append(obj)
             continue
 
@@ -199,8 +199,10 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             continue
 
         # Ephemeris row best matching start time
-        row = get_row_for_time(eph, exp_start)
+        row = eph.get_row_for_time(exp_start)
         ic(row)
+        moon_dist = row["Moon_dist"]
+        moon_alt = row["Moon_alt"]
 
         if not edata.force:
             ##### Skip object for various reasons ... #####
@@ -211,7 +213,6 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
                 continue
 
             # Skip, if moon distance is too small
-            moon_dist = row["Moon_dist"]
             min_moon_dist = config.min_moon_dist * u.degree
             if moon_dist < min_moon_dist:
                 message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
@@ -251,7 +252,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         objects.append(obj)
 
         message(f"{'':53s}{fmt_time(before)} / {fmt_time(after)}              {moon_dist:3.0f}")
-        message(f"{'':53s}{fmt_time(exp_start)} / {fmt_time(exp_end)}")
+        message(f"{'':53s}{fmt_time(exp_start)} / {fmt_time(exp_end)}              {moon_alt:3.0f}")
         message(f"{'':53s}{edata.exposure}")
         message(f"{'':53s}RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
@@ -327,10 +328,10 @@ def main():
         config.sb_group = None
 
     # Observer location and local circumstances
-    local = get_local_circumstances(args.location if args.location else DEFAULT_LOCATION)
+    local = LocalCircumstances.from_location(args.location if args.location else DEFAULT_LOCATION)
 
     # Update DEC limits in config
-    min_dec, max_dec = get_dec_limits(local, config.min_alt*u.deg)
+    min_dec, max_dec = local.get_dec_limits(config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
 
@@ -383,17 +384,17 @@ def main():
     verbose.print_lines(local)
 
     # Get ephemerides from MPC (JPL doesn't provide moon phase/distance)
-    edata_list.process(edata_add_ephem_mpc, local)
+    edata_list.add_ephem_mpc(local)
 
     # Get exposure data from mag and motion
-    edata_list.process(edata_add_exposure, local)
+    edata_list.add_exposure()
     ic(edata_list)
 
     # Process only objects with ephemeris and exposure data
     edata_list = EphemDataList([ edata for edata in edata_list if edata.ephem and edata.exposure ])
 
     # Process objects
-    edata_list_add_times(edata_list)
+    edata_list.add_ephem_times()
     verbose(f"original object sequence: {edata_list.objects_str()}")
     # for edata in edata_list:
     #     verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
@@ -427,13 +428,13 @@ def main():
         obs_planner_1(edata_list, local)
         if args.csv:
             ##FIXME: output file name depending on mode
-            edata_list_csv_output(edata_list, args.output or neo.files.path("neo-obs-plan.csv"))
+            edata_list.csv_output(args.output or neo.files.path("neo-obs-plan.csv"))
 
         # Plot objects and Moon
         if args.plot:
             plot_file = neo.files.path("neo-obs-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
-            edata_list_plot(edata_list, plot_file, local.loc)
+            edata_list_plot(edata_list, plot_file, local)
 
 
 

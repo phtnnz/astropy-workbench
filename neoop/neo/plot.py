@@ -32,11 +32,8 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation
 import astropy.units as u
-from astropy.time import Time
 import numpy as np
-from astropy.table import QTable
 
 # Astroplan
 import matplotlib.pyplot as plt
@@ -44,44 +41,19 @@ from astroplan import Observer
 from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
-from neo.classes import EphemData, Ephem, EphemDataList
+from neo.classes import EphemData, EphemDataList, LocalCircumstances
 
 
 
-def ephem_to_altaz(id: str, eph: Ephem, loc: EarthLocation, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> AltAz:
-    """
-    Convert ephemeris cols "Alt"/"Az" to AltAz object
-
-    Parameters
-    ----------
-    id : str
-        NEOCP id = temporary designation
-    eph : Ephem
-        Ephemeris, including alt/az
-
-    Returns
-    -------
-    AltAz
-        AltAz coordinates object for altitude/sky plot
-    """
-    altaz = AltAz(alt=eph[col_alt], az=eph[col_az], obstime=eph[col_obstime], location=loc)
-    # Quick hack to get a proper label for plot_altitude()
-    altaz.name = id
-    ic(altaz)
-    return altaz
-
-
-
-def edata_list_plot(edata_list: EphemDataList, filename: str, loc: EarthLocation, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
+def edata_list_plot(edata_list: EphemDataList, filename: str, local: LocalCircumstances, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
     # Get next midnight
-    observer = Observer(location=loc, description=loc.info.name)
-    midnight = observer.midnight(Time.now(), which="next")
+    observer = Observer(location=local.loc, description=local.loc.info.name)
+    midnight = local.midnight
     ic(midnight)
 
     # Intervals around midnight
     time_interval = midnight + np.linspace(-8, 8, 160)*u.hour
     moon          = observer.moon_altaz(time_interval)
-    # Quick hack to get a proper label for plot_altitude()
     moon.name     = "Moon"
 
     # Subplots
@@ -91,10 +63,11 @@ def edata_list_plot(edata_list: EphemDataList, filename: str, loc: EarthLocation
     # Plot altitude for all NEOCP objects
 
     # Traverse objects, only those with valid plan_start time
+    edata: EphemData
     for edata in edata_list:
         id = edata.obj
         if edata.times.plan_start != None:
-            altaz = ephem_to_altaz(id, edata.ephem, loc, col_obstime, col_alt, col_az)
+            altaz = edata.ephem.to_altaz(id, local, col_obstime, col_alt, col_az)
             plot_altitude(altaz, observer, altaz.obstime, ax1, style_kwargs=dict(fmt="o"))
 
     # Add Moon
@@ -115,7 +88,7 @@ def edata_list_plot(edata_list: EphemDataList, filename: str, loc: EarthLocation
     for edata in edata_list:
         id = edata.obj
         if edata.times.plan_start != None:
-            altaz = ephem_to_altaz(id, edata.ephem, loc, col_obstime, col_alt, col_az)
+            altaz = edata.ephem.to_altaz(id, local, col_obstime, col_alt, col_az)
             plot_sky(altaz, observer, altaz.obstime, ax2)
 
     # Add Moon

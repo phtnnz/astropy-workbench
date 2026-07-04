@@ -57,10 +57,9 @@ from astropy.units import Quantity, Magnitude
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
-from neo.utils import fmt_time
-from neo.classes import LocalCircumstances, JPLWObsData, MPCDLxData, EphemData, EphemDataList
+from astro.utils import fmt_time
+from neo.classes import LocalCircumstances, WObsData, EphemData, EphemDataList, EphemDataDict, Obs
 from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_lastobs, mpc_parse_lastobs
-from mpc.observations import get_last_obs_from_mpc
 
 
 
@@ -127,7 +126,7 @@ def jpl_query_sbwobs(url: str, local: LocalCircumstances) -> str:
 
 
 
-def jpl_parse_sbwobs(text: str) -> dict[str, EphemData]:
+def jpl_parse_sbwobs(text: str) -> EphemDataDict:
     """
     Parse JSON retrieve from JPL What's Observable
 
@@ -163,7 +162,7 @@ def jpl_parse_sbwobs(text: str) -> dict[str, EphemData]:
     # 'Object-Observer-Sun (deg)'
     # 'Object-Observer-Moon (deg)'
     # 'Galactic latitude (deg)'
-    objects = {}
+    objects = EphemDataDict()
     for d in data:
         # Convert to dictionary
         obj1 = { field: d[idx] for idx, field in enumerate(fields) }
@@ -172,7 +171,7 @@ def jpl_parse_sbwobs(text: str) -> dict[str, EphemData]:
         vmag = obj1.get("Vmag")
         if vmag[-1].isupper():
             vmag = vmag[:-1]
-        wobs = JPLWObsData(
+        wobs = WObsData(
             obj1.get('Designation'),
             obj1.get('Full name'),
             obj1.get('Rise time'),
@@ -244,10 +243,11 @@ def edata_comet_add_prefix(edata: EphemData) -> EphemData:
 
 
 
-def edata_add_last_obs(edata: EphemData) -> EphemData:
+def edata_add_last_obs(edata: EphemData, local: LocalCircumstances) -> EphemData:
     if not edata.wobs:
         return None
-    edata.wobs.last_obs = get_last_obs_from_mpc(edata.obj)
+    obs = Obs.from_object(edata.obj)
+    edata.wobs.last_obs = obs.get_last_obs()
     verbose(f"{edata.obj}: last obs {edata.wobs.last_obs.iso}")
     ic(edata.obj, edata.wobs.last_obs.iso)
     return edata
@@ -257,16 +257,16 @@ def edata_add_last_obs(edata: EphemData) -> EphemData:
 def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
-    obj_edata1 = jpl_parse_sbwobs(query)
+    obj_edata1: EphemDataDict = jpl_parse_sbwobs(query)
     keys1 = obj_edata1.keys()
-    verbose(f"WOBS objects ({len(keys1)}): {", ".join(sorted(keys1))}")
+    verbose(f"WOBS {obj_edata1}")
 
     if config.sb_kind == "c":
         # Comets
         for key, edata in obj_edata1.items():
             edata = obj_edata1.get(key)
             edata_comet_add_prefix(edata)
-            edata_add_last_obs(edata)
+            edata_add_last_obs(edata, local)
             ##FIXME: config
             sleep(0.25) # avoid rapid fire to MPC servers
 
@@ -297,21 +297,21 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
             obj_edata2 = mpc_parse_customize(query, "DLU")
 
         keys2 = obj_edata2.keys()
-        verbose(f"{list_type} objects ({len(keys2)}): {", ".join(sorted(keys2))}")
+        verbose(f"{list_type} {obj_edata2}")
 
         # Filter MPC list
         keys2_filtered = [ k for k in keys2 if object_filter(k, obj_edata2.get(k)) ]
 
         # Intersection 1 & 2: observable objects also in MPC list
         keys_selected = sorted(keys1 & keys2_filtered)
-        verbose(f"WOBS & {list_type} objects ({len(keys_selected)}): {", ".join(keys_selected)}")
         # Build new dict
-        obj_edata = dict()
+        obj_edata = EphemDataDict()
         for k in keys_selected:
             edata = obj_edata1.get(k)
             # Copy MPCDLxData from MPC data
             edata.dlx = obj_edata2.get(k).dlx
             obj_edata[k] = edata
+        verbose(f"WOBS & {list_type} {obj_edata}")
 
         verbose("------------------------------------------------------------")
         verbose("Type   Designation Rise   Trans  Set     Vmag  U  Last Obs")
@@ -327,6 +327,3 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
 def sbwobs_get_objects(local: LocalCircumstances, list_type: str="DLU") -> list[str]:
     # wrapper for sbwobs_get_obj_edata()
     return sbwobs_get_edata_list(local, list_type).objects()
-
-
-

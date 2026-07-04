@@ -28,18 +28,17 @@
 
 VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
-NAME    = "mpcneocp"
+NAME    = "mpc.neocp"
 
 import re
 import requests
 
-# The following libs must be installed with pip
 from icecream import ic
 # Disable debugging
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import Angle, EarthLocation
+from astropy.coordinates import Angle
 import astropy.units as u
 from astropy.units import Quantity, Magnitude
 from astropy.time import Time
@@ -48,9 +47,7 @@ from astropy.table import QTable
 # Local modules
 from utils.verbose import verbose, warning, error
 from neo.config import config
-from neo.classes import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
-from neo.utils import get_mag0, get_max_motion
-from neo.ephem import get_dec_limits
+from neo.classes import EphemData, Ephem, NEOCPData, EphemDataList, LocalCircumstances
 
 
 # Requests timeout
@@ -80,7 +77,7 @@ def mpc_query_neocp_ephemerides(url: str, local: LocalCircumstances) -> None:
     # Compute min/max DEC from min altitude and latitude
     mag_limit = config.neocp_mag_limit
     min_alt   = config.min_alt
-    min_dec, max_dec = get_dec_limits(local, min_alt * u.deg)
+    min_dec, max_dec = local.get_dec_limits(min_alt * u.deg)
     ic(min_dec, max_dec)
     min_dec, max_dec = int(min_dec.value), int(max_dec.value)
 
@@ -149,8 +146,8 @@ def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: Loca
             verbose(f"skipping NEOCP {obj=} (empty)")
             continue
         eph1 = Ephem.from_table(qt)
-        mag = get_mag0(eph1)
-        motion = get_max_motion(eph1)
+        mag = eph1.get_mag0()
+        motion = eph1.get_max_motion()
 
         edata = EphemData("-", obj, None, eph1, None, None, mag, motion)
         edata_list.append(edata)
@@ -159,7 +156,7 @@ def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: Loca
 
 
 
-def edata_list_add_neocp_list(edata_list: EphemDataList, neocp_list: dict[str, NEOCPListData], is_pccp: bool=False) -> EphemDataList:
+def edata_list_add_neocp_list(edata_list: EphemDataList, neocp_list: dict[str, NEOCPData], is_pccp: bool=False) -> EphemDataList:
     for edata in edata_list:
         obj = edata.obj
         neocp = neocp_list.get(obj)
@@ -308,7 +305,7 @@ def parse_html_ephemerides(content: str) -> dict[str, list[str]]:
 
 
 
-def parse_neocp_list(content: str) -> dict[str, NEOCPListData]:
+def parse_neocp_list(content: str) -> dict[str, NEOCPData]:
     """
     Parse plain text HTML page of NEOCP/PCCP list
 
@@ -338,7 +335,7 @@ def parse_neocp_list(content: str) -> dict[str, NEOCPListData]:
         line = line.rstrip()
         ic(line)
         obj = line[0:7].strip()
-        data = NEOCPListData(type="NEOCP", 
+        data = NEOCPData(type="NEOCP", 
                              score=int(line[8:11]),              
                              mag=float(line[43:47]) * u.mag,
                              nobs=int(line[79:82]),
