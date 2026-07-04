@@ -77,7 +77,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     message("-------------------------------------------------------------------------------------------------------------------")
     message("              Score       Mag #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                 Max motion")
     message("       /Uncertainty                                  Time before         / after meridian             Moon distance")
-    message("                                                     Time start exposure / end exposure")
+    message("                                                     Time start exposure / end exposure                    Moon alt")
     message("                                                     # x Exp = total exposure time")
     message("                                                     RA, DEC, Alt, Az")
 
@@ -199,6 +199,8 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         # Ephemeris row best matching start time
         row = eph.get_row_for_time(exp_start)
         ic(row)
+        moon_dist = row["Moon_dist"]
+        moon_alt = row["Moon_alt"]
 
         if not edata.force:
             ##### Skip object for various reasons ... #####
@@ -209,7 +211,6 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
                 continue
 
             # Skip, if moon distance is too small
-            moon_dist = row["Moon_dist"]
             min_moon_dist = config.min_moon_dist * u.degree
             if moon_dist < min_moon_dist:
                 message(f"SKIPPED: moon distance {moon_dist:.0f} < {min_moon_dist:.0f}")
@@ -249,7 +250,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         objects.append(obj)
 
         message(f"{'':53s}{fmt_time(before)} / {fmt_time(after)}              {moon_dist:3.0f}")
-        message(f"{'':53s}{fmt_time(exp_start)} / {fmt_time(exp_end)}")
+        message(f"{'':53s}{fmt_time(exp_start)} / {fmt_time(exp_end)}              {moon_alt:3.0f}")
         message(f"{'':53s}{edata.exposure}")
         message(f"{'':53s}RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
