@@ -59,7 +59,10 @@ from utils.verbose import verbose, warning, error, message
 from astro.utils   import fmt_time
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances
-from neo.exposure  import motion_limit, edata_add_exposure
+from neo.exposure  import motion_limit
+##FIXME
+from mpc.ephemdata import edata_add_exposure
+##
 from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
 from mpc.neocp     import neocp_get_edata_list

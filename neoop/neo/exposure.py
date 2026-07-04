@@ -26,6 +26,8 @@ AUTHOR      = "Martin Junius"
 NAME        = "neo.exposure"
 DESCRIPTION = "NEO exposure functions"
 
+from dataclasses import dataclass
+
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -35,9 +37,21 @@ import astropy.units as u
 from astropy.units import Quantity, Magnitude
 
 # Local modules
-from utils.verbose import verbose, warning
 from neo.config import config
-from neo.classes import Exposure, EphemData, LocalCircumstances
+
+
+
+@dataclass
+class Exposure:
+    """Exposure data"""
+    number: int                 # number of exposure
+    single: Quantity            # single exposure time
+    total: Quantity             # total net exposure time
+    total_time: Quantity        # total gross exposure time incl. overhead
+    percentage: float           # percentage of required total exposure time
+
+    def __str__(self):
+        return f"{self.number} x {self.single:2.0f} = {self.total:3.1f} ({self.percentage:.0f}%) / total {self.total_time:3.1f}"
 
 
 
@@ -134,16 +148,3 @@ def exposure_calc(max_motion: Quantity, mag: Magnitude) -> Exposure:
 
 
 
-def edata_add_exposure(edata: EphemData, local: LocalCircumstances) -> EphemData:
-    obj = edata.obj
-    if not edata.ephem:
-        return
-    if edata.motion != None and edata.mag != None:
-        edata.exposure = exposure_calc(edata.motion, edata.mag)
-        ic(edata.obj, edata.exposure)
-    if not edata.exposure:
-        warning(f"exposure calculation for {obj} failed, too fast?")
-        if edata.motion != None:
-            warning(f"motion={edata.motion:.2f}, limit={motion_limit():.2f}")
-
-    return edata
