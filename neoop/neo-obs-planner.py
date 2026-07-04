@@ -59,7 +59,6 @@ from utils.verbose import verbose, warning, error, message
 from astro.utils   import fmt_time
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances
-from neo.utils     import edata_list_add_times, edata_list_csv_output
 from neo.exposure  import motion_limit, edata_add_exposure
 from mpc.ephemdata import edata_add_ephem_mpc
 from neo.plot      import edata_list_plot
@@ -394,7 +393,7 @@ def main():
     edata_list = EphemDataList([ edata for edata in edata_list if edata.ephem and edata.exposure ])
 
     # Process objects
-    edata_list_add_times(edata_list)
+    edata_list.add_ephem_times()
     verbose(f"original object sequence: {edata_list.objects_str()}")
     # for edata in edata_list:
     #     verbose.print_lines(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
@@ -428,7 +427,7 @@ def main():
         obs_planner_1(edata_list, local)
         if args.csv:
             ##FIXME: output file name depending on mode
-            edata_list_csv_output(edata_list, args.output or neo.files.path("neo-obs-plan.csv"))
+            edata_list.csv_output(args.output or neo.files.path("neo-obs-plan.csv"))
 
         # Plot objects and Moon
         if args.plot:

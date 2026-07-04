@@ -57,7 +57,7 @@ from astropy.units import Quantity, Magnitude
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
-from neo.utils import fmt_time
+from astro.utils import fmt_time
 from neo.classes import LocalCircumstances, JPLWObsData, EphemData, EphemDataList, Obs
 from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_lastobs, mpc_parse_lastobs
 

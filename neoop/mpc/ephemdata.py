@@ -39,6 +39,8 @@ import astropy.units as u
 
 # Local modules
 from utils.verbose import verbose, warning
+from utils.csvoutput import csv_output
+from astro.utils import fmt_time
 from mpc.ephem import Ephem
 from neo.local import LocalCircumstances
 from neo.config import config
@@ -164,6 +166,32 @@ class EphemData:
             return str(wobs)
 
 
+    def add_ephem_times(self, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> Self:
+        eph = self.ephem
+        # Ephemeris could be empty
+        if len(eph) == 0:
+            raise ValueError(f"ephemeris for object {self.obj} is empty")
+
+        self.times = EphemTimes(eph[col_obstime][0], eph[col_obstime][-1],
+                                None, None, None, None, None, None)
+        etimes = self.times
+        etimes.before, etimes.after = eph.get_flip_times(col_obstime, col_az)
+        etimes.alt_start, etimes.alt_end = eph.get_opt_alt_times(config.opt_alt * u.deg, col_obstime, col_alt)
+
+        etimes.max_alt = eph.get_max_alt_time(col_obstime, col_alt)
+        self.sort_time = etimes.max_alt
+        if use_old_sort:
+            # Old sort order of neocp.py
+            if etimes.before:
+                self.sort_time = etimes.before
+        else:
+            # New sort order of neo-obs-planner
+            if etimes.alt_start != None:
+                self.sort_time = etimes.alt_start
+
+        return self
+
+
 
 class EphemDataList(list):
     @classmethod
@@ -204,6 +232,59 @@ class EphemDataList(list):
     def process(self, func: Callable, local: LocalCircumstances) -> None:
         for edata in self:
             func(edata, local)
+
+
+    def add_ephem_times(self, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> Self:
+        edata: EphemData
+        for edata in self:
+            if edata.ephem:
+                edata.add_ephem_times(col_obstime, col_alt, col_az, use_old_sort)
+            else:
+                warning(f"no ephemeris for {edata.obj}")
+        return self
+
+
+    def csv_output(self, output: str) -> None:
+        # Traverse objects, only those with valid plan_start time
+        csv_row = None
+        for edata in self:
+            obj = edata.obj
+            if edata.times.plan_start:
+                # CSV output:
+                #   start time, end time, 
+                #   target=id, observation date (YYYY-MM-DD), time ut (HH:MM), ra, dec, exposure, number, filter (L),
+                #   type, mag, nobs, arc, notseen, total
+                # RA output  = hourangle !!!
+                # DEC output = degree
+                csv_row = { "target": obj,
+                            "obstime": fmt_time(edata.times.plan_start, add_tz=True),
+                            "ra": float(edata.ra.value),
+                            "dec": float(edata.dec.value),
+                            "exposure": float(edata.exposure.single.value),
+                            "number": edata.exposure.number,
+                            "filter": "L",
+                            "start time": fmt_time(edata.times.plan_start),
+                            "end time": fmt_time(edata.times.plan_end),
+                            "type": edata.type if edata.type else "-",
+                            "mag": float(edata.mag.value),
+                            "nobs": int(edata.neocp.nobs) if edata.neocp else "",
+                            "arc": float(edata.neocp.arc.value) if edata.neocp else "",
+                            "notseen": float(edata.neocp.notseen.value) if edata.neocp else "",
+                            "total": str(edata.exposure)
+                            }
+                ic(csv_row)
+                csv_output(csv_row)
+
+        # Output to CSV file for nina-create-sequence2
+        verbose(f"planned objects for nina-create-sequence2: {output}")
+        # csv_row is the last object, if any were found
+        if csv_row:
+            fieldnames = csv_row.keys()
+            ic(fieldnames)
+            csv_output.add_fields(fieldnames)
+            csv_output.write(output, set_locale=False)
+        else:
+            warning("no objects, no CSV output")
 
 
 
