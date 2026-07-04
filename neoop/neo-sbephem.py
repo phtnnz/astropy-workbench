@@ -48,8 +48,6 @@ from astroquery.mpc import MPC
 # Local modules
 from utils.verbose    import verbose, warning, error, message
 from neo.config       import config
-from mpc.ephemdata    import edata_add_ephem_mpc
-from neo.exposure     import edata_add_exposure
 from neo.classes      import EphemData, LocalCircumstances, Obs
 
 
@@ -133,8 +131,8 @@ def main():
         edata = EphemData("-", obj)
 
         # Get ephemerides
-        edata_add_ephem_mpc(edata, local)
-        edata_add_exposure(edata, local)
+        edata.add_ephem_mpc(local)
+        edata.add_exposure()
         ic(edata)
 
         if edata.ephem:

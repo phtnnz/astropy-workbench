@@ -21,7 +21,7 @@
 from icecream import ic
 
 from mpc.ephem import Ephem
-from mpc.ephemdata import EphemData, edata_add_ephem_mpc
+from mpc.ephemdata import EphemData
 from neo.local import LocalCircumstances
 
 ic.enable()
@@ -42,7 +42,7 @@ motion = eph["Motion"]
 ic(motion, motion[0])
 
 edata = EphemData("-", obj, sort_time=None, ephem=None, times=None, exposure=None, mag=None, motion=None)
-edata_add_ephem_mpc(edata, local)
+edata.add_ephem_mpc(local)
 ic(edata)
 print(edata.ephem["Targetname", "Obstime", "RA", "DEC", "Mag", 
                   "Motion", "PA", "Az", "Alt", "Moon_dist", "Moon_alt"])
