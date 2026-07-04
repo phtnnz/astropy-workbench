@@ -434,7 +434,7 @@ def main():
         if args.plot:
             plot_file = neo.files.path("neo-obs-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
-            edata_list_plot(edata_list, plot_file, local.loc)
+            edata_list_plot(edata_list, plot_file, local)
 
 
 
