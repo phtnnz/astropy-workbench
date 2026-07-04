@@ -60,7 +60,6 @@ from astro.utils   import fmt_time
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances
 from neo.exposure  import motion_limit, edata_add_exposure
-from mpc.ephemdata import edata_add_ephem_mpc
 from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
 from mpc.neocp     import neocp_get_edata_list
@@ -383,9 +382,10 @@ def main():
     verbose.print_lines(local)
 
     # Get ephemerides from MPC (JPL doesn't provide moon phase/distance)
-    edata_list.process(edata_add_ephem_mpc, local)
+    edata_list.add_ephem_mpc(local)
 
     # Get exposure data from mag and motion
+    ##FIXME: method of edata_list
     edata_list.process(edata_add_exposure, local)
     ic(edata_list)
 

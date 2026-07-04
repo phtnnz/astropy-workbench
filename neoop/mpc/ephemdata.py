@@ -192,6 +192,35 @@ class EphemData:
         return self
 
 
+    def add_ephem_mpc(self, local: LocalCircumstances) -> Self:
+        if self.ephem:
+            verbose(f"already got ephemeris for {self.obj}")
+            return
+
+        min_alt = config.min_alt
+
+        obj = self.obj
+        verbose(f"{obj} ephemeris from MPC")
+        eph = Ephem.from_object(obj, local)
+        mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
+        eph1 = Ephem(eph[mask])
+        if len(eph1) == 0:
+            warning(f"skipping empty ephemeris for {obj}")
+            return
+        mag = eph1.get_mag0()
+        motion = eph1.get_max_motion()
+
+        # Copy to EphemData
+        if self.wobs:
+            self.type = self.wobs.type.upper()
+        self.obj = obj
+        self.ephem = eph1
+        self.mag = mag
+        self.motion = motion
+
+        return self
+
+
 
 class EphemDataList(list):
     @classmethod
@@ -229,9 +258,17 @@ class EphemDataList(list):
                 verbose.print_lines2(edata.ephem)
         verbose("===================================================================================================================")
 
-    def process(self, func: Callable, local: LocalCircumstances) -> None:
+    def process(self, func: Callable, local: LocalCircumstances) -> Self:
         for edata in self:
             func(edata, local)
+        return self
+
+
+    def add_ephem_mpc(self, local: LocalCircumstances) -> Self:
+        edata: EphemData
+        for edata in self:
+            edata.add_ephem_mpc(local)
+        return self
 
 
     def add_ephem_times(self, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az", use_old_sort: bool=False) -> Self:
@@ -285,33 +322,3 @@ class EphemDataList(list):
             csv_output.write(output, set_locale=False)
         else:
             warning("no objects, no CSV output")
-
-
-
-def edata_add_ephem_mpc(edata: EphemData, local: LocalCircumstances) -> EphemData:
-    if edata.ephem:
-        verbose(f"already got ephemeris for {edata.obj}")
-        return
-
-    min_alt = config.min_alt
-
-    obj = edata.obj
-    verbose(f"{obj} ephemeris from MPC")
-    eph = Ephem.from_object(obj, local)
-    mask = (eph["Alt"] > min_alt * u.deg) & (eph["Obstime"] >= local.naut_dusk) & (eph["Obstime"] <= local.naut_dawn)
-    eph1 = Ephem(eph[mask])
-    if len(eph1) == 0:
-        warning(f"skipping empty ephemeris for {obj}")
-        return
-    mag = eph1.get_mag0()
-    motion = eph1.get_max_motion()
-
-    # Copy to EphemData
-    if edata.wobs:
-        edata.type = edata.wobs.type.upper()
-    edata.obj = obj
-    edata.ephem = eph1
-    edata.mag = mag
-    edata.motion = motion
-
-    return edata
