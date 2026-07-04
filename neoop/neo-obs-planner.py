@@ -36,8 +36,10 @@
 #       Refactored version in new subdirectory neoop/
 # Version 2.1 / 2026-06-16
 #       New option --verbose-ephem for ephemerides output, fixed mag limits
+# Version 2.2 / 2026-07-04
+#       Added output of Moon altitude
 
-VERSION     = "2.1 / 2026-06-20"
+VERSION     = "2.2 / 2026-07-04"
 AUTHOR      = "Martin Junius"
 NAME        = "neo-obs-planner"
 DESCRIPTION = "NEOCP/NEO observation planner"
