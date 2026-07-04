@@ -43,6 +43,6 @@ DESCRIPTION = "Dataclasses wrapper"
 from neo.local           import LocalCircumstances
 from mpc.observations    import Obs
 from mpc.ephem           import Ephem
-from mpc.ephemdata       import EphemData, EphemDataList, EphemTimes, Exposure, NEOCPListData, JPLWObsData, MPCDLxData
+from mpc.ephemdata       import EphemData, EphemDataList, EphemTimes, Exposure, NEOCPData, WObsData, DLxData
 from mpc.prevneocp       import PrevNEOCPData
 from neo.exposure        import Exposure

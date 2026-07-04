@@ -38,7 +38,7 @@ import astropy.units as u
 # Local modules
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
-from neo.classes import MPCDLxData, EphemData
+from neo.classes import DLxData, EphemData
 
 
 
@@ -94,7 +94,7 @@ def parse_date(date: str) -> str:
 
 
 
-def parse_txt_line(txt_line: str, list_type: str) -> MPCDLxData:
+def parse_txt_line(txt_line: str, list_type: str) -> DLxData:
     ic(txt_line)
 ##DLU format examples
 #         2025 WA             Amo   1.3/+16/18.3/147/07.42  *2025 Nov. 16  C23  17.8 c  7    1  2.50 0.60   5
@@ -154,7 +154,7 @@ def parse_txt_line(txt_line: str, list_type: str) -> MPCDLxData:
 ##Common
     ra, dec, mag1, elongation, motion = currently.split("/")
     # ic(ra, dec, mag1, elongation, motion)
-    dlx  = MPCDLxData(
+    dlx  = DLxData(
         designation,
         type,
         float(ra) * u.hourangle,
@@ -195,7 +195,7 @@ def mpc_parse_customize(content: str, list_type: str) -> dict[str, EphemData]:
         ic(m)
         txt_line = m.group(1)
         # print(txt_line)
-        dlx: MPCDLxData = parse_txt_line(txt_line, list_type)
+        dlx: DLxData = parse_txt_line(txt_line, list_type)
         if dlx:
             edata = EphemData("", dlx.designation, None, None, None, None, dlx.vmag, None, dlx=dlx)
             ic(edata)

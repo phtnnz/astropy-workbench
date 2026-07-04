@@ -58,7 +58,7 @@ from astropy.units import Quantity, Magnitude
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
 from astro.utils import fmt_time
-from neo.classes import LocalCircumstances, JPLWObsData, EphemData, EphemDataList, Obs
+from neo.classes import LocalCircumstances, WObsData, EphemData, EphemDataList, Obs
 from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_lastobs, mpc_parse_lastobs
 
 
@@ -171,7 +171,7 @@ def jpl_parse_sbwobs(text: str) -> dict[str, EphemData]:
         vmag = obj1.get("Vmag")
         if vmag[-1].isupper():
             vmag = vmag[:-1]
-        wobs = JPLWObsData(
+        wobs = WObsData(
             obj1.get('Designation'),
             obj1.get('Full name'),
             obj1.get('Rise time'),

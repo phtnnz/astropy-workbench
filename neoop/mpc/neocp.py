@@ -47,7 +47,7 @@ from astropy.table import QTable
 # Local modules
 from utils.verbose import verbose, warning, error
 from neo.config import config
-from neo.classes import EphemData, Ephem, NEOCPListData, EphemDataList, LocalCircumstances
+from neo.classes import EphemData, Ephem, NEOCPData, EphemDataList, LocalCircumstances
 
 
 # Requests timeout
@@ -156,7 +156,7 @@ def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: Loca
 
 
 
-def edata_list_add_neocp_list(edata_list: EphemDataList, neocp_list: dict[str, NEOCPListData], is_pccp: bool=False) -> EphemDataList:
+def edata_list_add_neocp_list(edata_list: EphemDataList, neocp_list: dict[str, NEOCPData], is_pccp: bool=False) -> EphemDataList:
     for edata in edata_list:
         obj = edata.obj
         neocp = neocp_list.get(obj)
@@ -305,7 +305,7 @@ def parse_html_ephemerides(content: str) -> dict[str, list[str]]:
 
 
 
-def parse_neocp_list(content: str) -> dict[str, NEOCPListData]:
+def parse_neocp_list(content: str) -> dict[str, NEOCPData]:
     """
     Parse plain text HTML page of NEOCP/PCCP list
 
@@ -335,7 +335,7 @@ def parse_neocp_list(content: str) -> dict[str, NEOCPListData]:
         line = line.rstrip()
         ic(line)
         obj = line[0:7].strip()
-        data = NEOCPListData(type="NEOCP", 
+        data = NEOCPData(type="NEOCP", 
                              score=int(line[8:11]),              
                              mag=float(line[43:47]) * u.mag,
                              nobs=int(line[79:82]),

@@ -49,7 +49,7 @@ from neo.config import config
 
 # Dataclasses
 @dataclass
-class NEOCPListData:
+class NEOCPData:
     """Extra data from NEOCP / PCCP list"""
     type: str                   # "PCCP" or "NEOCP"
     score: int                  # NEOCP score
@@ -78,7 +78,7 @@ class EphemTimes:
 
 
 @dataclass
-class JPLWObsData:
+class WObsData:
     """Data from JPL WObs servive"""
     designation: str            # 'Designation'             object name
     full_name: str              # 'Full name'               full name
@@ -107,7 +107,7 @@ class JPLWObsData:
 
 
 @dataclass
-class MPCDLxData:
+class DLxData:
     """Data from MPC DLU / DLN lists"""
     designation: str
     type: str
@@ -139,9 +139,9 @@ class EphemData:
     motion: Quantity = None     # max. motion of object
     ra: Angle = None            # planned RA
     dec: Angle = None           # planned DEC
-    neocp: NEOCPListData = None # data from NEOCP list
-    wobs: JPLWObsData = None    # data from JPL SBWOBS service
-    dlx: MPCDLxData = None      # data from MPC DLU/DLN lists
+    neocp: NEOCPData = None # data from NEOCP list
+    wobs: WObsData = None    # data from JPL SBWOBS service
+    dlx: DLxData = None      # data from MPC DLU/DLN lists
     force: bool = False         # force observation of this object (e.g. from --force option)
 
     def __str__(self) -> str:
@@ -331,3 +331,10 @@ class EphemDataList(list):
             csv_output.write(output, set_locale=False)
         else:
             warning("no objects, no CSV output")
+
+
+
+class EphemDataDict(dict):
+    
+    def __str__(self) -> str:
+        return f"objects ({len(self)}): {', '.join(sorted(self.keys()))}"
