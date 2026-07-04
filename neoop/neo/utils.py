@@ -48,47 +48,13 @@ from astropy.table import Row
 # Local modules
 from utils.verbose import verbose, warning
 from utils.csvoutput import csv_output
+from astro.utils import is_east, is_west, fmt_time
 from neo.config import config
 from neo.classes import Ephem, EphemData, EphemTimes, EphemDataList
 
 
 
 ##FIXME: make methods of class Ephem
-def is_east(az: Angle) -> bool:
-    """
-    Test for east azimut position
-
-    Parameters
-    ----------
-    az : Angle
-        Azimut angle
-
-    Returns
-    -------
-    bool
-        True if east, False if west
-    """
-    az180     = 180 * u.degree
-    return True if az >= 0 and az < az180 else False
-
-def is_west(az: Angle) -> bool:
-    """
-    Test for west azimut position
-
-    Parameters
-    ----------
-    az : Angle
-        Azimut angle
-
-    Returns
-    -------
-    bool
-        True if west, False if east
-    """
-    az180     = 180 * u.degree
-    az360     = 360 * u.degree
-    return True if az >= az180 and az < az360 else False
-
 def flip_times(eph: Ephem, col_obstime: str="Obstime", col_az: str="Az") -> tuple[Time, Time]:
     """
     Get time before and after meridian passing from ephemeris table
@@ -273,28 +239,6 @@ def edata_list_add_times(edata_list: EphemDataList, col_obstime: str="Obstime", 
         else:
             warning(f"no ephemeris for {edata.obj}")
     return edata_list
-
-
-
-TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-TIME_FORMAT_TZ = "%Y-%m-%d %H:%M:%S+0000"
-
-def fmt_time(time: Time|None, add_tz: bool=False) -> str:
-    """Format time
-
-    Parameters
-    ----------
-    time : Time | None
-        Time value
-    add_tz : bool, optional
-        Add timezone "+0000", by default False
-
-    Returns
-    -------
-    str
-        Formatted time
-    """
-    return time.strftime(TIME_FORMAT_TZ if add_tz else TIME_FORMAT) if time != None else "-" * 19
 
 
 
