@@ -32,11 +32,8 @@ from icecream import ic
 ic.disable()
 
 # AstroPy
-from astropy.coordinates import AltAz, EarthLocation
 import astropy.units as u
-from astropy.time import Time
 import numpy as np
-from astropy.table import QTable
 
 # Astroplan
 import matplotlib.pyplot as plt
@@ -44,7 +41,7 @@ from astroplan import Observer
 from astroplan.plots import plot_altitude, plot_sky
 
 # Local modules
-from neo.classes import EphemData, Ephem, EphemDataList, LocalCircumstances
+from neo.classes import EphemData, EphemDataList, LocalCircumstances
 
 
 
