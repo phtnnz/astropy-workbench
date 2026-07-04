@@ -53,7 +53,7 @@ class LocalCircumstances:
     naut_dawn: Time             # nautical dawn
     epochs: dict                # epochs parameter for Ephem.from_mpc()/from_jpb()
     code: str = None            # MPC station code
-
+    midnight: Time = None       # midnight
 
     def _loc_to_string(self) -> str:
         return f"lon={self.loc.to_geodetic().lon.to_string(unit=u.degree, precision=1)} lat={self.loc.to_geodetic().lat.to_string(unit=u.degree, precision=1)} height={self.loc.to_geodetic().height.to_string(precision=0)}"
@@ -103,7 +103,7 @@ class LocalCircumstances:
                 }
         ic(epochs)
 
-        return cls(loc, observer, twilight_evening, twilight_morning, epochs, code)
+        return cls(loc, observer, twilight_evening, twilight_morning, epochs, code, midnight1)
 
 
     def get_dec_limits(self, min_alt: Angle) -> tuple[Angle, Angle]:
