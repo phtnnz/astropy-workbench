@@ -57,7 +57,7 @@ def objects_from_csv(csvfile: str) -> list[str]:
                 error("can't find target name in CSV data")
             obj_type = row.get("type")
 
-            if not obj_type or obj_type=="NEOCP":
+            if not obj_type or obj_type=="NEOCP" or obj_type=="PCCP":
                 objects.append(target)
 
     return objects
