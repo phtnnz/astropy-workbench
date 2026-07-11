@@ -341,3 +341,12 @@ class EphemDataList(list):
 
     def plot(self, filename: str, local: LocalCircumstances, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
         ... # provided by import neo.plot
+
+
+    @classmethod
+    def from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU") -> Self:
+        ... # provided by import jpl.sbwobs
+
+    @classmethod
+    def from_neocp(cls, local: LocalCircumstances) -> Self:
+        ... # provided by import mpc.neocp
