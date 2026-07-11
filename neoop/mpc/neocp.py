@@ -25,8 +25,13 @@
 #       Removed locally cached files
 # Version 1.1 / 2026-06-16
 #       Moved and adapted to new directory structure under neoop/
+# Version 1.2 / 2026-07-11
+#       Provides from_neocp class method for EphemDataList
 
-VERSION = "1.0 / 2026-06-16"
+# Usage
+#       import mpc.neocp
+
+VERSION = "1.1 / 2026-07-11"
 AUTHOR  = "Martin Junius"
 NAME    = "mpc.neocp"
 
@@ -69,7 +74,7 @@ TIMEOUT = config.requests_timeout
 # Example request for M49
 # W=a&mb=-30&mf=20.5&dl=-90&du=%2B40&nl=75&nu=100&sort=d&Parallax=1&obscode=M49&long=&lat=&alt=&int=1&start=0&raty=a&mot=m&dmot=p&out=f&sun=n&oalt=26
 
-def mpc_query_neocp_ephemerides(url: str, local: LocalCircumstances) -> None:
+def mpc_query_neocp_ephemerides(url: str, local: LocalCircumstances) -> str:
     loc = local.loc
     code = local.code
     ic(url, code)
@@ -116,7 +121,7 @@ def mpc_query_neocp_ephemerides(url: str, local: LocalCircumstances) -> None:
 
 
 
-def mpc_query_neocp_list(url: str) -> None:
+def mpc_query_neocp_list(url: str) -> str:
     """
     Retrieve NEOCP/PCCP txt list from MPC
 
@@ -137,108 +142,7 @@ def mpc_query_neocp_list(url: str) -> None:
 
 
 
-def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: LocalCircumstances) -> EphemDataList:
-    edata_list = EphemDataList()
-
-    for obj, lines in eph_text.items():
-        qt = convert_text_ephemeris1(obj, lines, local)
-        if len(qt) == 0:
-            verbose(f"skipping NEOCP {obj=} (empty)")
-            continue
-        eph1 = Ephem.from_table(qt)
-        mag = eph1.get_mag0()
-        motion = eph1.get_max_motion()
-
-        edata = EphemData("-", obj, None, eph1, None, None, mag, motion)
-        edata_list.append(edata)
-
-    return edata_list
-
-
-
-def edata_list_add_neocp_list(edata_list: EphemDataList, neocp_list: dict[str, NEOCPData], is_pccp: bool=False) -> EphemDataList:
-    for edata in edata_list:
-        obj = edata.obj
-        neocp = neocp_list.get(obj)
-        if neocp:
-            neocp.type = "PCCP" if is_pccp else "NEOCP"
-            edata.neocp = neocp
-            edata.type = neocp.type
-        elif not is_pccp:
-            warning(f"no NEOCP / PCCP list data for {obj}")
-    return edata_list
-
-
-
-def convert_text_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) -> QTable:
-    """
-    Convert ephemeris in plain text format to table
-
-    Parameters
-    ----------
-    id : str
-        Object id
-    eph : list
-        Ephemeris as list of plain text lines from MPC query results
-    local : LocalCircumstances
-        Location data &c.
-    Returns
-    -------
-    QTable
-        Ephemeris table
-    """
-    ic(id)
-    qt = QTable()
-    qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
-    # Initialize empty columns with proper Quantity type, same as .add_column()
-    # A bit ugly, but I found no other to handle this
-    qt["Targetname"] = id
-    qt["Obstime"]    = Time("2000-01-01 00:00")
-    qt["RA"]         = 0 * u.hourangle
-    qt["DEC"]        = 0 * u.degree
-    qt["Mag"]        = 0 * u.mag
-    qt["Motion"]     = 0 * u.arcsec / u.min
-    qt["PA"]         = 0 * u.degree
-    qt["Alt"]        = 0 * u.degree
-    qt["Az"]         = 0 * u.degree
-    qt["Moon_dist"]  = 0 * u.degree
-    qt["Moon_alt"]   = 0 * u.degree
-
-    for line in eph:
-        # Date       UT      R.A. (J2000) Decl.  Elong.  V        Motion     Object     Sun         Moon        Uncertainty
-        #             h m                                      "/min   P.A.  Azi. Alt.  Alt.  Phase Dist. Alt.        
-        # 2025 08 26 0400   02 48 19.2 -26 44 25 114.9  19.5    1.79  239.8  064  +81   -17    0.09  133  -38
-        # ^0         ^11    ^18        ^29              ^46   ^52     ^60    ^67  ^72                ^91  ^96
-        time      = Time(line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15])
-        ra        = Angle(line[18:28], unit=u.hourangle)
-        dec       = Angle(line[29:38], unit=u.degree)
-        mag       = Magnitude(line[46:50], unit=u.mag)
-        motion    = Quantity(line[52:58].strip(), unit=u.arcsec / u.min)
-        pa        = Angle(line[60:65], unit=u.degree)
-        # NEOCP ephemerides count azimuth from S=0, Astropy from N=0
-        az        = Angle(line[67:70], unit=u.degree) - 180*u.degree
-        az.wrap_at(360 * u.degree, inplace=True)
-        alt       = Angle(line[72:75], unit=u.degree)
-        moon_dist = Angle(line[91:94], unit=u.degree)
-        moon_alt  = Angle(line[96:99], unit=u.degree)
-        ic(time, local.naut_dusk, local.naut_dawn)
-        if time < local.naut_dusk or time > local.naut_dawn:
-            ic("skipping")
-            continue
-        ic(ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
-        qt.add_row([ id, time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
-
-        # # Test: compare alt/az in ephemerides to values computed from ra/dec
-        # coord=SkyCoord(ra, dec, frame=FK5, equinox="J2000", obstime=time)
-        # altaz=coord.transform_to(AltAz(obstime=time, location=Options.loc))
-        # ic(alt, az, altaz.alt, altaz.az)                                 
-
-    ic(qt)
-    return qt
-
-
-
-def parse_html_ephemerides(content: str) -> dict[str, list[str]]:
+def parse_neocp_ephemerides(content: str) -> dict[str, list[str]]:
     """
     Parse HTML page with the result of the MPC NEOCP ephemerides query
 
@@ -305,6 +209,74 @@ def parse_html_ephemerides(content: str) -> dict[str, list[str]]:
 
 
 
+def parse_neocp_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) -> QTable:
+    """
+    Convert single ephemeris in plain text format to table
+
+    Parameters
+    ----------
+    id : str
+        Object id
+    eph : list
+        Ephemeris as list of plain text lines from MPC query results
+    local : LocalCircumstances
+        Location data &c.
+    Returns
+    -------
+    QTable
+        Ephemeris table
+    """
+    ic(id)
+    qt = QTable()
+    qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
+    # Initialize empty columns with proper Quantity type, same as .add_column()
+    # A bit ugly, but I found no other to handle this
+    qt["Targetname"] = id
+    qt["Obstime"]    = Time("2000-01-01 00:00")
+    qt["RA"]         = 0 * u.hourangle
+    qt["DEC"]        = 0 * u.degree
+    qt["Mag"]        = 0 * u.mag
+    qt["Motion"]     = 0 * u.arcsec / u.min
+    qt["PA"]         = 0 * u.degree
+    qt["Alt"]        = 0 * u.degree
+    qt["Az"]         = 0 * u.degree
+    qt["Moon_dist"]  = 0 * u.degree
+    qt["Moon_alt"]   = 0 * u.degree
+
+    for line in eph:
+        # Date       UT      R.A. (J2000) Decl.  Elong.  V        Motion     Object     Sun         Moon        Uncertainty
+        #             h m                                      "/min   P.A.  Azi. Alt.  Alt.  Phase Dist. Alt.        
+        # 2025 08 26 0400   02 48 19.2 -26 44 25 114.9  19.5    1.79  239.8  064  +81   -17    0.09  133  -38
+        # ^0         ^11    ^18        ^29              ^46   ^52     ^60    ^67  ^72                ^91  ^96
+        time      = Time(line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15])
+        ra        = Angle(line[18:28], unit=u.hourangle)
+        dec       = Angle(line[29:38], unit=u.degree)
+        mag       = Magnitude(line[46:50], unit=u.mag)
+        motion    = Quantity(line[52:58].strip(), unit=u.arcsec / u.min)
+        pa        = Angle(line[60:65], unit=u.degree)
+        # NEOCP ephemerides count azimuth from S=0, Astropy from N=0
+        az        = Angle(line[67:70], unit=u.degree) - 180*u.degree
+        az.wrap_at(360 * u.degree, inplace=True)
+        alt       = Angle(line[72:75], unit=u.degree)
+        moon_dist = Angle(line[91:94], unit=u.degree)
+        moon_alt  = Angle(line[96:99], unit=u.degree)
+        ic(time, local.naut_dusk, local.naut_dawn)
+        if time < local.naut_dusk or time > local.naut_dawn:
+            ic("skipping")
+            continue
+        ic(ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
+        qt.add_row([ id, time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
+
+        # # Test: compare alt/az in ephemerides to values computed from ra/dec
+        # coord=SkyCoord(ra, dec, frame=FK5, equinox="J2000", obstime=time)
+        # altaz=coord.transform_to(AltAz(obstime=time, location=Options.loc))
+        # ic(alt, az, altaz.alt, altaz.az)                                 
+
+    ic(qt)
+    return qt
+
+
+
 def parse_neocp_list(content: str) -> dict[str, NEOCPData]:
     """
     Parse plain text HTML page of NEOCP/PCCP list
@@ -348,10 +320,56 @@ def parse_neocp_list(content: str) -> dict[str, NEOCPData]:
 
 
 
-def neocp_get_edata_list(local: LocalCircumstances) -> EphemDataList:
+def edata_list_from_text_ephemerides(eph_text: dict[str, list[str]], local: LocalCircumstances) -> EphemDataList:
+    edata_list = EphemDataList()
+
+    for obj, lines in eph_text.items():
+        qt = parse_neocp_ephemeris1(obj, lines, local)
+        if len(qt) == 0:
+            verbose(f"skipping NEOCP {obj=} (empty)")
+            continue
+        eph1 = Ephem.from_table(qt)
+        mag = eph1.get_mag0()
+        motion = eph1.get_max_motion()
+
+        edata = EphemData("-", obj, None, eph1, None, None, mag, motion)
+        edata_list.append(edata)
+
+    return edata_list
+
+
+
+def edata_list_add_neocp_list(edata_list: EphemDataList, neocp_list: dict[str, NEOCPData], is_pccp: bool=False) -> EphemDataList:
+    for edata in edata_list:
+        obj = edata.obj
+        neocp = neocp_list.get(obj)
+        if neocp:
+            neocp.type = "PCCP" if is_pccp else "NEOCP"
+            edata.neocp = neocp
+            edata.type = neocp.type
+        elif not is_pccp:
+            warning(f"no NEOCP / PCCP list data for {obj}")
+    return edata_list
+
+
+
+@classmethod
+def edata_list_from_neocp(cls, local: LocalCircumstances) -> EphemDataList:
+    """Public interface EphemDataList.from_neocp, dynamically added to class
+
+    Parameters
+    ----------
+    local : LocalCircumstances
+        Local parameters location, dusk/dawn/midnight, station code
+
+    Returns
+    -------
+    EphemDataList
+        List of EphemData objects
+    """
     verbose(f"download ephemerides from {config.url_neocp_query}")
     content_ephem = mpc_query_neocp_ephemerides(config.url_neocp_query, local)
-    ephemerides_txt = parse_html_ephemerides(content_ephem)
+    ephemerides_txt = parse_neocp_ephemerides(content_ephem)
     edata_list = edata_list_from_text_ephemerides(ephemerides_txt, local)
 
     verbose(f"download NEOCP list from {config.url_neocp_list}")
@@ -366,3 +384,6 @@ def neocp_get_edata_list(local: LocalCircumstances) -> EphemDataList:
 
     verbose(f"NEOCP objects ({edata_list.len()}): {edata_list.objects_str()}")
     return edata_list
+
+# Dynamically add/replace class method
+EphemDataList.from_neocp = edata_list_from_neocp
