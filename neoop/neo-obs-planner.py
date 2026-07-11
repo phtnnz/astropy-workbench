@@ -61,10 +61,10 @@ from utils.verbose import verbose, warning, error, message
 from astro.utils   import fmt_time
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances, Exposure
-from neo.plot      import edata_list_plot
 from jpl.sbwobs    import sbwobs_get_edata_list
 from mpc.neocp     import neocp_get_edata_list
 import neo.files
+import neo.plot     # provides EphemDataList.plot
 
 DEFAULT_LOCATION = config.code
 
@@ -365,7 +365,7 @@ def main():
     if args.object:
         objects.extend(args.object)
     if objects:
-        edata_list = edata_list.append_objects(objects)
+        edata_list = edata_list.extend_objects(objects)
 
     if not edata_list:
         error("no objects from file or command line")
@@ -439,7 +439,7 @@ def main():
         if args.plot:
             plot_file = neo.files.path("neo-obs-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
-            edata_list_plot(edata_list, plot_file, local)
+            edata_list.plot(plot_file, local)
 
 
 
