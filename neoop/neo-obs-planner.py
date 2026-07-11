@@ -61,10 +61,10 @@ from utils.verbose import verbose, warning, error, message
 from astro.utils   import fmt_time
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances, Exposure
-from jpl.sbwobs    import sbwobs_get_edata_list
-from mpc.neocp     import neocp_get_edata_list
 import neo.files
 import neo.plot     # provides EphemDataList.plot
+import jpl.sbwobs   # provides EphemDataList.from_sbwobs
+import mpc.neocp    # provides EphemDataList.from_neocp
 
 DEFAULT_LOCATION = config.code
 
@@ -349,11 +349,11 @@ def main():
 
     # Objects from NEOCP
     if args.neocp:
-        edata_list.extend( neocp_get_edata_list(local) )
+        edata_list.extend( EphemDataList.from_neocp(local) )
 
     # Objects from SBWOBS
     if args.sbwobs:
-        edata_list.extend( sbwobs_get_edata_list(local) )
+        edata_list.extend( EphemDataList.from_sbwobs(local) )
 
     # Objects from file / command line
     type = "-"
