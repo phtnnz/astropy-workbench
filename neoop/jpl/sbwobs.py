@@ -254,7 +254,8 @@ def edata_add_last_obs(edata: EphemData, local: LocalCircumstances) -> EphemData
 
 
 
-def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
+@classmethod
+def edata_list_from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
     obj_edata1: EphemDataDict = jpl_parse_sbwobs(query)
@@ -322,8 +323,10 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
 
     return EphemDataList.from_dict(obj_edata)
 
+EphemDataList.from_sbwobs = edata_list_from_sbwobs
 
 
 def sbwobs_get_objects(local: LocalCircumstances, list_type: str="DLU") -> list[str]:
-    # wrapper for sbwobs_get_obj_edata()
-    return sbwobs_get_edata_list(local, list_type).objects()
+    # wrapper for EphemDataList.from_sbwobs()
+    edata_list = EphemDataList.from_sbwobs(local, list_type)
+    return edata_list.objects()
