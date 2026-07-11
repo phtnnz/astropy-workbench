@@ -251,7 +251,7 @@ class EphemDataList(list):
     def len(self) -> int:
         return len(self)
     
-    def append_objects(self, objects: list[str]) -> Self:
+    def extend_objects(self, objects: list[str]) -> Self:
         self.extend([ EphemData("-", obj) for obj in objects ])
         return self
 
@@ -337,3 +337,7 @@ class EphemDataList(list):
             csv_output.write(output, set_locale=False)
         else:
             warning("no objects, no CSV output")
+
+
+    def plot(self, filename: str, local: LocalCircumstances, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
+        ... # provided by import neo.plot
