@@ -21,10 +21,15 @@
 #       Refactored for EphemDataList
 # Version 1.0 / 2026-06-16
 #       Moved and adapted to new directory structure under neoop/
+# Version 1.1 / 2026-07-11
+#       Provides plot method for EphemDataList
 
-VERSION = "1.0 / 2026-06-16"
+# Usage
+#       import neo.plot
+
+VERSION = "1.1 / 2026-07-11"
 AUTHOR  = "Martin Junius"
-NAME    = "neoplot"
+NAME    = "neo.plot"
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -45,7 +50,7 @@ from neo.classes import EphemData, EphemDataList, LocalCircumstances
 
 
 
-def edata_list_plot(edata_list: EphemDataList, filename: str, local: LocalCircumstances, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
+def edata_list_plot(self: EphemDataList, filename: str, local: LocalCircumstances, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
     # Get next midnight
     observer = Observer(location=local.loc, description=local.loc.info.name)
     midnight = local.midnight
@@ -64,7 +69,7 @@ def edata_list_plot(edata_list: EphemDataList, filename: str, local: LocalCircum
 
     # Traverse objects, only those with valid plan_start time
     edata: EphemData
-    for edata in edata_list:
+    for edata in self:
         id = edata.obj
         if edata.times.plan_start != None:
             altaz = edata.ephem.to_altaz(id, local, col_obstime, col_alt, col_az)
@@ -85,7 +90,7 @@ def edata_list_plot(edata_list: EphemDataList, filename: str, local: LocalCircum
 
     # Plot sky for all NEOCP objects
     # Traverse objects, only those with valid plan_start time
-    for edata in edata_list:
+    for edata in self:
         id = edata.obj
         if edata.times.plan_start != None:
             altaz = edata.ephem.to_altaz(id, local, col_obstime, col_alt, col_az)
@@ -98,3 +103,7 @@ def edata_list_plot(edata_list: EphemDataList, filename: str, local: LocalCircum
     plt.subplots_adjust(wspace=0.3)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
+
+
+
+EphemDataList.plot = edata_list_plot
