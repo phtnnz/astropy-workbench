@@ -34,8 +34,13 @@
 #       Moved MPC functions to new module mpc.lastobs
 # Version 1.2 / 2026-06-26
 #       Get last obs for comets, using mpc.observations, filter accordingly
+# Version 1.3 / 2026-07-11
+#       Provides from_sbwobs class method for EphemDataList
 
-VERSION     = "1.2 / 2026-06-26"
+# Usage
+#       import jpl.sbwobs
+
+VERSION     = "1.3 / 2026-07-11"
 AUTHOR      = "Martin Junius"
 NAME        = "jpl.sbwobs"
 DESCRIPTION = "Retrieve observable NEOs/comets from JPL"
