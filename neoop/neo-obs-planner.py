@@ -340,7 +340,7 @@ def main():
         neo.files.set_prefix(args.prefix)
 
     # Forced objects
-    forced_objs = []
+    forced_objs = list()
     if args.force:
         forced_objs = args.force.split(",")
 
@@ -407,6 +407,11 @@ def main():
     verbose(f"sorted object sequence: {edata_list.objects_str()}")
 
     verbose("forced objects:", ", ".join(forced_objs))
+    # Set force flag for all in forced_objs
+    for edata in edata_list:
+        if edata.obj in forced_objs:
+            edata.force = True
+
     if args.verbose_ephem:
         ##FIXME: use process() to implement
         edata: EphemData
