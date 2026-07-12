@@ -329,9 +329,3 @@ def edata_list_from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU")
     return EphemDataList.from_dict(obj_edata)
 
 EphemDataList.from_sbwobs = edata_list_from_sbwobs
-
-
-def sbwobs_get_objects(local: LocalCircumstances, list_type: str="DLU") -> list[str]:
-    # wrapper for EphemDataList.from_sbwobs()
-    edata_list = EphemDataList.from_sbwobs(local, list_type)
-    return edata_list.objects()
