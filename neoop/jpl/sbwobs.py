@@ -69,9 +69,12 @@ from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_last
 
 
 def jpl_query_verbose_error(text: str) -> None:
-    obj = json.loads(text)
-    verbose(f"ERROR: {obj['code']} {obj['message']}")
-    verbose(f"ERROR: info {obj['moreInfo']}")
+    try:
+        obj = json.loads(text)
+        verbose(f"ERROR: {obj['code']} {obj['message']}")
+        verbose(f"ERROR: info {obj['moreInfo']}")
+    except json.decoder.JSONDecodeError:
+        verbose(f"ERROR: parsing JSON failed")
 
 
 
