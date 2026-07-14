@@ -23,13 +23,10 @@
 # Usage:
 #       from neoconfig import config
 
-VERSION = "1.0 / 2026-06-16"
+VERSION     = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
 NAME        = "neoconfig"
 DESCRIPTION = "Global NEO config module"
-
-import sys
-import argparse
 
 # The following libs must be installed with pip
 from icecream import ic
@@ -37,7 +34,6 @@ from icecream import ic
 ic.disable()
 
 # Local modules
-from utils.verbose import verbose, warning, error, message
 from utils.jsonconfig import JSONConfig, config
 
 
@@ -45,32 +41,3 @@ from utils.jsonconfig import JSONConfig, config
 CONFIGFILE = "neo-config.json"
 config = JSONConfig(CONFIGFILE)
 config.set_error_on_missing()
-
-
-
-def main():
-    arg = argparse.ArgumentParser(
-        prog        = NAME,
-        description = DESCRIPTION,
-        epilog      = "Version " + VERSION + " / " + AUTHOR)
-    arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
-    arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-
-    args = arg.parse_args()
-
-    if args.debug:
-        ic.enable()
-        ic(sys.version_info, sys.path, args)
-    if args.verbose:
-        verbose.set_prog(NAME)
-        verbose.enable()
-
-    config.info()
-    json_keys = config.get_keys()
-    for k in json_keys:
-        verbose(f"{k:22s} : {config.get(k)}")
-
-
-
-if __name__ == "__main__":
-    main()

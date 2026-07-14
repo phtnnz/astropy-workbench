@@ -47,6 +47,7 @@ from neo.exposure import Exposure
 from neo.config import config
 
 
+
 # Dataclasses
 @dataclass
 class NEOCPData:
@@ -60,7 +61,6 @@ class NEOCPData:
 
     def __str__(self):
         return f"{self.type} {self.score} {self.mag} #{self.nobs} {self.arc} {self.notseen}"
-
 
 
 @dataclass
@@ -105,7 +105,6 @@ class WObsData:
             return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
 
 
-
 @dataclass
 class DLxData:
     """Data from MPC DLU / DLN lists"""
@@ -123,7 +122,6 @@ class DLxData:
     filter: str
     uncertainty: int
     arc: Quantity
-
 
 
 @dataclass
@@ -266,9 +264,9 @@ class EphemDataList(list):
                 verbose.print_lines2(edata.ephem)
         verbose("===================================================================================================================")
 
-    def process(self, func: Callable, local: LocalCircumstances) -> Self:
+    def process(self, func: Callable, *args, **kwargs) -> Self:
         for edata in self:
-            func(edata, local)
+            func(edata, *args, **kwargs)
         return self
 
 

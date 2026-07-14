@@ -21,7 +21,7 @@
 # Usage:
 #       from neo.exposure import ...
 
-VERSION = "1.0 / 2026-06-20"
+VERSION     = "1.0 / 2026-06-20"
 AUTHOR      = "Martin Junius"
 NAME        = "neo.exposure"
 DESCRIPTION = "NEO exposure functions"

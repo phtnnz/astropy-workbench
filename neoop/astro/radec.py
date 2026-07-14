@@ -28,8 +28,6 @@ VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
 NAME    = "astro.radec"
 
-import argparse
-
 from icecream import ic
 # Disable debugging
 ic.disable()
@@ -38,9 +36,6 @@ ic.disable()
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import Angle
 import astropy.units as u
-
-# Local modules
-from utils.verbose import verbose, error
 
 
 
@@ -161,46 +156,3 @@ class Coord(SkyCoord):
             String representation, format "hmsdms"
         """
         return self.to_string()
-
-
-
-### Test run as a command line script ###
-def main():
-    arg = argparse.ArgumentParser(
-        prog        = NAME,
-        description = "RA/DEC parser",
-        epilog      = "Version " + VERSION + " / " + AUTHOR)
-    arg.add_argument("-v", "--verbose", action="store_true", help="verbose messages")
-    arg.add_argument("-d", "--debug", action="store_true", help="more debug messages")
-    arg.add_argument("ra", help="ra")
-    arg.add_argument("dec", help="dec")
-
-    args = arg.parse_args()
-
-    if args.verbose:
-        verbose.set_prog(NAME)
-        verbose.enable()
-    if args.debug:
-        ic.enable()
-
-    print(f"{args.ra=} {args.dec=}")
-    try:
-        coord1 = Coord(args.ra, args.dec)
-    except ValueError as e:
-        error(f"illegal RA/DEC values")
-
-    print(f"{coord1 = }\n{coord1.to_string(format='decimal') = }")
-    print("Regression with coord1 decimal values ...")
-    coord2 = Coord(coord1.ra, coord1.dec)
-    print(f"{coord2 = }")
-    print(f"{coord2.to_string(format='hmsdms')  = }")
-    print(f"{coord2.to_string(format='decimal') = }")
-    print(f"{coord2.to_string(format=' ')       = }")
-    print(f"{coord2.to_string(format='mpc')     = }")
-    print(f"{coord2.to_string(format='mpc1')    = }")
-
-
-    
-
-if __name__ == "__main__":
-    main()
