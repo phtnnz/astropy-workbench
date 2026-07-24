@@ -198,7 +198,7 @@ def parse_neocp_ephemerides(content: str) -> dict[str, list[str]]:
                         ic(line)
                     m = re.match(r"\d\d\d\d \d\d \d\d \d\d", line)
                     if m:
-                        line = line[0:100]
+                        # line = line[0:100]
                         ic(line)
                         neocp_text_eph[neocp_id].append(line)
 
@@ -231,22 +231,24 @@ def parse_neocp_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) -
     qt.meta["comments"] = [ f"NEOCP temporary designation: {id}" ]
     # Initialize empty columns with proper Quantity type, same as .add_column()
     # A bit ugly, but I found no other to handle this
-    qt["Targetname"] = id
-    qt["Obstime"]    = Time("2000-01-01 00:00")
-    qt["RA"]         = 0 * u.hourangle
-    qt["DEC"]        = 0 * u.degree
-    qt["Mag"]        = 0 * u.mag
-    qt["Motion"]     = 0 * u.arcsec / u.min
-    qt["PA"]         = 0 * u.degree
-    qt["Alt"]        = 0 * u.degree
-    qt["Az"]         = 0 * u.degree
-    qt["Moon_dist"]  = 0 * u.degree
-    qt["Moon_alt"]   = 0 * u.degree
+    qt["Targetname"]  = id
+    qt["Obstime"]     = Time("2000-01-01 00:00")
+    qt["RA"]          = 0 * u.hourangle
+    qt["DEC"]         = 0 * u.degree
+    qt["Mag"]         = 0 * u.mag
+    qt["Motion"]      = 0 * u.arcsec / u.min
+    qt["PA"]          = 0 * u.degree
+    qt["Alt"]         = 0 * u.degree
+    qt["Az"]          = 0 * u.degree
+    qt["Moon_dist"]   = 0 * u.degree
+    qt["Moon_alt"]    = 0 * u.degree
+    qt["Uncertainty"] = None
 
     for line in eph:
         # Date       UT      R.A. (J2000) Decl.  Elong.  V        Motion     Object     Sun         Moon        Uncertainty
         #             h m                                      "/min   P.A.  Azi. Alt.  Alt.  Phase Dist. Alt.        
         # 2025 08 26 0400   02 48 19.2 -26 44 25 114.9  19.5    1.79  239.8  064  +81   -17    0.09  133  -38
+        # 2026 07 24 1730   18 01 43.9 -14 11 28 147.7  20.1    1.49  272.6  268  +43   -14    0.80  027  +68   <a href="...">...
         # ^0         ^11    ^18        ^29              ^46   ^52     ^60    ^67  ^72                ^91  ^96
         time      = Time(line[0:10].replace(" ", "-") + " " + line[11:13]+":"+line[13:15])
         ra        = Angle(line[18:28], unit=u.hourangle)
@@ -260,12 +262,18 @@ def parse_neocp_ephemeris1(id: str, eph: list[str], local: LocalCircumstances) -
         alt       = Angle(line[72:75], unit=u.degree)
         moon_dist = Angle(line[91:94], unit=u.degree)
         moon_alt  = Angle(line[96:99], unit=u.degree)
+
         ic(time, local.naut_dusk, local.naut_dawn)
         if time < local.naut_dusk or time > local.naut_dawn:
             ic("skipping")
             continue
+
+        m = re.match(r'<a href="(.+?)">', line[102:])
+        link = m.group(1) if m else None
+        ic(link)
+
         ic(ra, dec, mag, motion, alt, az, moon_dist, moon_alt)
-        qt.add_row([ id, time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt ])
+        qt.add_row([ id, time, ra, dec, mag, motion, pa, alt, az, moon_dist, moon_alt, link ])
 
         # # Test: compare alt/az in ephemerides to values computed from ra/dec
         # coord=SkyCoord(ra, dec, frame=FK5, equinox="J2000", obstime=time)
