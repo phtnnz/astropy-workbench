@@ -222,7 +222,8 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             # Skip, if below threshold for # obs
             if not nobs is None and nobs < config.min_n_obs:
                 message(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
-                message(f"{row["Uncertainty"]}")
+                if row["Uncertainty"]:
+                    message(f"{row["Uncertainty"]}")
                 skipped.append(obj)
                 continue
 
@@ -237,7 +238,8 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             min_arc = config.min_arc * u.day
             if not arc is None and arc < min_arc:
                 message(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
-                message(f"{row["Uncertainty"]}")
+                if row["Uncertainty"]:
+                    message(f"{row["Uncertainty"]}")
                 skipped.append(obj)
                 continue
         # /if
@@ -392,7 +394,7 @@ def main():
     edata_list.add_exposure()
     ic(edata_list)
 
-    # Process only objects with ephemeris and exposure data
+    # Rebuild list: process only objects with ephemeris and exposure data
     edata_list = EphemDataList([ edata for edata in edata_list if edata.ephem and edata.exposure ])
 
     # Process objects
