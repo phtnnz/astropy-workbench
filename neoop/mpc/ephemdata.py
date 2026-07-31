@@ -45,6 +45,7 @@ from mpc.ephem import Ephem
 from neo.local import LocalCircumstances
 from neo.exposure import Exposure
 from neo.config import config
+from mpc.observations import Obs
 
 
 
@@ -218,6 +219,25 @@ class EphemData:
             if self.motion != None:
                 warning(f"motion={self.motion:.2f}, limit={Exposure.motion_limit():.2f}")
 
+        return self
+
+
+    def add_comet_prefix(self) -> Self:
+        if not self.wobs or self.type != "comet":
+            return None
+        if self.wobs.full_name[1] == "/":
+            # Comet full name contains X/ prefix
+            self.obj = self.wobs.designation = f"{self.wobs.full_name[0]}/{self.obj}"
+        return self
+
+
+    def add_last_obs(self) -> Self:
+        if not self.wobs:
+            return None
+        obs = Obs.from_object(self.obj)
+        self.wobs.last_obs = obs.get_last_obs()
+        verbose(f"{self.obj}: last obs {self.wobs.last_obs.iso}")
+        ic(self.obj, self.wobs.last_obs.iso)
         return self
 
 

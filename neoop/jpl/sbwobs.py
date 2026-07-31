@@ -241,27 +241,6 @@ def object_filter(key: str, edata: EphemData) -> bool:
 
 
 
-def edata_comet_add_prefix(edata: EphemData) -> EphemData:
-    if not edata.wobs or edata.type != "comet":
-        return None
-    if edata.wobs.full_name[1] == "/":
-        # Comet full name contains X/ prefix
-        edata.obj = edata.wobs.designation = f"{edata.wobs.full_name[0]}/{edata.obj}"
-    return edata
-
-
-
-def edata_add_last_obs(edata: EphemData, local: LocalCircumstances) -> EphemData:
-    if not edata.wobs:
-        return None
-    obs = Obs.from_object(edata.obj)
-    edata.wobs.last_obs = obs.get_last_obs()
-    verbose(f"{edata.obj}: last obs {edata.wobs.last_obs.iso}")
-    ic(edata.obj, edata.wobs.last_obs.iso)
-    return edata
-
-
-
 @classmethod
 def edata_list_from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
     # get sbwobs objects from JPL
@@ -272,10 +251,12 @@ def edata_list_from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU")
 
     if config.sb_kind == "c":
         # Comets
+        key: str
+        edata: EphemData
         for key, edata in obj_edata1.items():
             edata = obj_edata1.get(key)
-            edata_comet_add_prefix(edata)
-            edata_add_last_obs(edata, local)
+            edata.add_comet_prefix()
+            edata.add_last_obs()
             ##FIXME: config
             sleep(0.25) # avoid rapid fire to MPC servers
 
@@ -331,4 +312,5 @@ def edata_list_from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU")
 
     return EphemDataList.from_dict(obj_edata)
 
+# Monkey patching EphemDataList
 EphemDataList.from_sbwobs = edata_list_from_sbwobs
