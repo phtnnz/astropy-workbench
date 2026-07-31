@@ -76,12 +76,12 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     objects = list()
     skipped = list()
 
-    message("-------------------------------------------------------------------------------------------------------------------")
-    message("              Score       Mag #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                 Max motion")
-    message("       /Uncertainty                                  Time before         / after meridian             Moon distance")
-    message("                                                     Time start exposure / end exposure                    Moon alt")
-    message("                                                     # x Exp = total exposure time")
-    message("                                                     RA, DEC, Alt, Az")
+    message("----------------------------------------------------------------------------------------------------------------------")
+    message("                 Score       Mag #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                 Max motion")
+    message("          /Uncertainty                                  Time before         / after meridian             Moon distance")
+    message("                                                        Time start exposure / end exposure                    Moon alt")
+    message("                                                        # x Exp = total exposure time")
+    message("                                                        RA, DEC, Alt, Az")
 
     edata: EphemData
     for edata in edata_list:
@@ -99,7 +99,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         before = etimes.before
         after = etimes.after
 
-        message("-------------------------------------------------------------------------------------------------------------------")
+        message("----------------------------------------------------------------------------------------------------------------------")
         type    = edata.type
         if edata.neocp:
             score   = edata.neocp.score
@@ -125,7 +125,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         s_nobs = f"{nobs:3d}" if nobs != None else "   "
         s_arc = f"{arc:5.2f}" if arc != None else "       "
         s_notseen = f"{notseen:4.1f}" if notseen != None else "      "
-        message(f"{obj:9s} {type:5s} {s_score}  {mag}  {s_nobs}  {s_arc}  {s_notseen}  {fmt_time(start)} / {fmt_time(end)}   {edata.motion:5.1f}")
+        message(f"{obj:12s} {type:5s} {s_score}  {mag}  {s_nobs}  {s_arc}  {s_notseen}  {fmt_time(start)} / {fmt_time(end)}   {edata.motion:5.1f}")
 
         # check overlap with previous object
         if next_start_time > start:
@@ -255,13 +255,13 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         edata.ra, edata.dec = ra, dec
         objects.append(obj)
 
-        message(f"{'':53s}{fmt_time(before)} / {fmt_time(after)}              {moon_dist:3.0f}")
-        message(f"{'':53s}{fmt_time(exp_start)} / {fmt_time(exp_end)}              {moon_alt:3.0f}")
-        message(f"{'':53s}{edata.exposure}")
-        message(f"{'':53s}RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
+        message(f"{'':56s}{fmt_time(before)} / {fmt_time(after)}              {moon_dist:3.0f}")
+        message(f"{'':56s}{fmt_time(exp_start)} / {fmt_time(exp_end)}              {moon_alt:3.0f}")
+        message(f"{'':56s}{edata.exposure}")
+        message(f"{'':56s}RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
     # end for
-    message("-------------------------------------------------------------------------------------------------------------------")
+    message("----------------------------------------------------------------------------------------------------------------------")
     message(f"{len(objects)} object(s) planned: {", ".join(objects)}")
     message(f"{len(skipped)} object(s) skipped: {", ".join(skipped)}")
 
