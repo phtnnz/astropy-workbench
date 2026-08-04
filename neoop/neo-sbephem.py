@@ -86,18 +86,18 @@ def main():
     config.min_alt = 0
     config.elev_min = 0
 
+    # Observation time
+    time = Time(args.time) if args.time else Time.now()
+    ic(time)
+    verbose(f"time {time.iso} ({time.scale.upper()})")
+
     # Observer location and local circumstances
-    local = LocalCircumstances.from_location(args.location if args.location else DEFAULT_LOCATION)
+    local = LocalCircumstances.from_location(args.location if args.location else DEFAULT_LOCATION, time)
 
     # Override config DEC limits
     min_dec, max_dec = local.get_dec_limits(config.min_alt*u.deg)
     config.min_dec = int(min_dec.degree)
     config.max_dec = int(max_dec.degree)
-
-    # Observation time
-    time = Time(args.time) if args.time else Time.now()
-    ic(time)
-    verbose(f"time {time.iso} ({time.scale.upper()})")
 
     if not args.allnight:
         local.epochs = {"start":  time,
