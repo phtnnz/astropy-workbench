@@ -64,7 +64,7 @@ class LocalCircumstances:
 
 
     @classmethod
-    def from_location(cls, location: str) -> Self:
+    def from_location(cls, location: str, time: Time=None) -> Self:
         loc = get_location(location)
         ic(loc, loc.to_geodetic())
         # MPC station code
@@ -80,7 +80,8 @@ class LocalCircumstances:
         ic(observer)
 
         # Observation times for upcoming night
-        time = Time.now()
+        if not time:
+            time = Time.now()
         ic(time)
 
         midnight = observer.midnight(time, which="next")
