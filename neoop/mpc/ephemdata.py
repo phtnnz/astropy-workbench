@@ -45,6 +45,8 @@ from mpc.ephem import Ephem
 from neo.local import LocalCircumstances
 from neo.exposure import Exposure
 from neo.config import config
+from mpc.observations import Obs
+
 
 
 # Dataclasses
@@ -60,7 +62,6 @@ class NEOCPData:
 
     def __str__(self):
         return f"{self.type} {self.score} {self.mag} #{self.nobs} {self.arc} {self.notseen}"
-
 
 
 @dataclass
@@ -105,7 +106,6 @@ class WObsData:
             return f"{self.type.upper()}  {self.designation:12s} {self.rise_time:6s} {self.transit_time:6s} {self.set_time:6s}  {self.vmag.value:4.1f}"
 
 
-
 @dataclass
 class DLxData:
     """Data from MPC DLU / DLN lists"""
@@ -123,7 +123,6 @@ class DLxData:
     filter: str
     uncertainty: int
     arc: Quantity
-
 
 
 @dataclass
@@ -223,6 +222,25 @@ class EphemData:
         return self
 
 
+    def add_comet_prefix(self) -> Self:
+        if not self.wobs or self.type != "comet":
+            return None
+        if self.wobs.full_name[1] == "/":
+            # Comet full name contains X/ prefix
+            self.obj = self.wobs.designation = f"{self.wobs.full_name[0]}/{self.obj}"
+        return self
+
+
+    def add_last_obs(self) -> Self:
+        if not self.wobs:
+            return None
+        obs = Obs.from_object(self.obj)
+        self.wobs.last_obs = obs.get_last_obs()
+        verbose(f"{self.obj}: last obs {self.wobs.last_obs.iso}")
+        ic(self.obj, self.wobs.last_obs.iso)
+        return self
+
+
 
 class EphemDataDict(dict):
     def __str__(self) -> str:
@@ -251,7 +269,7 @@ class EphemDataList(list):
     def len(self) -> int:
         return len(self)
     
-    def append_objects(self, objects: list[str]) -> Self:
+    def extend_objects(self, objects: list[str]) -> Self:
         self.extend([ EphemData("-", obj) for obj in objects ])
         return self
 
@@ -266,9 +284,9 @@ class EphemDataList(list):
                 verbose.print_lines2(edata.ephem)
         verbose("===================================================================================================================")
 
-    def process(self, func: Callable, local: LocalCircumstances) -> Self:
+    def process(self, func: Callable, *args, **kwargs) -> Self:
         for edata in self:
-            func(edata, local)
+            func(edata, *args, **kwargs)
         return self
 
 
@@ -337,3 +355,16 @@ class EphemDataList(list):
             csv_output.write(output, set_locale=False)
         else:
             warning("no objects, no CSV output")
+
+
+    def plot(self, filename: str, local: LocalCircumstances, col_obstime: str="Obstime", col_alt: str="Alt", col_az: str="Az") -> None:
+        ... # provided by import neo.plot
+
+
+    @classmethod
+    def from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU") -> Self:
+        ... # provided by import jpl.sbwobs
+
+    @classmethod
+    def from_neocp(cls, local: LocalCircumstances) -> Self:
+        ... # provided by import mpc.neocp

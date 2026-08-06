@@ -188,8 +188,7 @@ class Verbose:
             Verbose._log_file = None
 
 
-"""Global callable objects
-"""
+"""Global callables"""
 message = Verbose(True)
 verbose = Verbose()
 warning = Verbose(True, "WARNING")

@@ -58,7 +58,7 @@ from utils.verbose import verbose, warning, error
 
 VERSION = "1.0 / 2026-06-16"
 AUTHOR  = "Martin Junius"
-NAME    = "JSONConfig"
+NAME    = "jsonconfig"
 
 
 CONFIG     = ".config"
@@ -320,9 +320,7 @@ class JSONConfig:
 
 
 
-"""
-Default global config object
-"""
+"""Default global config object"""
 config = JSONConfig(CONFIGFILE, False, False)
 
 

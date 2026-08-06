@@ -37,7 +37,8 @@ import astropy.units as u
 from utils.verbose import verbose, warning, error, message
 from neo.config import config
 from neo.local import LocalCircumstances
-from jpl.sbwobs import sbwobs_get_objects
+from neo.classes import EphemDataList
+import jpl.sbwobs
 
 
 
@@ -96,14 +97,13 @@ def main():
         list_type = "DLN"
     if args.lastobs:
         list_type = "LASTOBS"
-    keys_selected = sbwobs_get_objects(local, list_type)
 
-    verbose(f"objects ({len(keys_selected)}): {", ".join(keys_selected)}")
-
+    edata_list = EphemDataList.from_sbwobs(local, list_type)
+    verbose(f"objects ({len(edata_list)}): {edata_list.objects_str()}")
 
     if args.output:
         with open(args.output, "w") as file:
-            file.writelines([line + "\n" for line in keys_selected])
+            file.writelines([line + "\n" for line in edata_list.objects()])
 
 
 

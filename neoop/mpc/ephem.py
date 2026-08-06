@@ -16,8 +16,7 @@
 
 # ChangeLog
 # Version 0.1 / 2026-06-27
-#       New ephemeris handling using astroquery directly,
-#       Ephem class defined in neo.classes
+#       New ephemeris handling using astroquery directly
 
 VERSION     = "0.1 / 2026-06-27"
 AUTHOR      = "Martin Junius"

@@ -27,9 +27,9 @@
 #       neofiles.set_prefix(prefix)
 #       neofiles.path(filename)
 
-VERSION = "1.0 / 2026-06-16"
+VERSION     = "1.0 / 2026-06-16"
 AUTHOR      = "Martin Junius"
-NAME        = "neofiles"
+NAME        = "neo.files"
 DESCRIPTION = "NEO file handling"
 
 import os

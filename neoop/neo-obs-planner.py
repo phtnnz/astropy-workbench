@@ -61,10 +61,10 @@ from utils.verbose import verbose, warning, error, message
 from astro.utils   import fmt_time
 from neo.config    import config
 from neo.classes   import EphemData, EphemDataList, LocalCircumstances, Exposure
-from neo.plot      import edata_list_plot
-from jpl.sbwobs    import sbwobs_get_edata_list
-from mpc.neocp     import neocp_get_edata_list
 import neo.files
+import neo.plot     # provides EphemDataList.plot
+import jpl.sbwobs   # provides EphemDataList.from_sbwobs
+import mpc.neocp    # provides EphemDataList.from_neocp
 
 DEFAULT_LOCATION = config.code
 
@@ -76,12 +76,12 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
     objects = list()
     skipped = list()
 
-    message("-------------------------------------------------------------------------------------------------------------------")
-    message("              Score       Mag #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                 Max motion")
-    message("       /Uncertainty                                  Time before         / after meridian             Moon distance")
-    message("                                                     Time start exposure / end exposure                    Moon alt")
-    message("                                                     # x Exp = total exposure time")
-    message("                                                     RA, DEC, Alt, Az")
+    message("----------------------------------------------------------------------------------------------------------------------")
+    message("                 Score       Mag #Obs      Arc NotSeen  Time start ephemeris/ end ephemeris                 Max motion")
+    message("          /Uncertainty                                  Time before         / after meridian             Moon distance")
+    message("                                                        Time start exposure / end exposure                    Moon alt")
+    message("                                                        # x Exp = total exposure time")
+    message("                                                        RA, DEC, Alt, Az")
 
     edata: EphemData
     for edata in edata_list:
@@ -99,7 +99,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         before = etimes.before
         after = etimes.after
 
-        message("-------------------------------------------------------------------------------------------------------------------")
+        message("----------------------------------------------------------------------------------------------------------------------")
         type    = edata.type
         if edata.neocp:
             score   = edata.neocp.score
@@ -125,7 +125,7 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         s_nobs = f"{nobs:3d}" if nobs != None else "   "
         s_arc = f"{arc:5.2f}" if arc != None else "       "
         s_notseen = f"{notseen:4.1f}" if notseen != None else "      "
-        message(f"{obj:9s} {type:5s} {s_score}  {mag}  {s_nobs}  {s_arc}  {s_notseen}  {fmt_time(start)} / {fmt_time(end)}   {edata.motion:5.1f}")
+        message(f"{obj:12s} {type:5s} {s_score}  {mag}  {s_nobs}  {s_arc}  {s_notseen}  {fmt_time(start)} / {fmt_time(end)}   {edata.motion:5.1f}")
 
         # check overlap with previous object
         if next_start_time > start:
@@ -222,6 +222,8 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             # Skip, if below threshold for # obs
             if not nobs is None and nobs < config.min_n_obs:
                 message(f"SKIPPED: only {nobs} obs (< {config.min_n_obs})")
+                if row["Uncertainty"]:
+                    message(f"{row["Uncertainty"]}")
                 skipped.append(obj)
                 continue
 
@@ -236,6 +238,8 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
             min_arc = config.min_arc * u.day
             if not arc is None and arc < min_arc:
                 message(f"SKIPPED: arc {arc:.2f} too small (< {min_arc})")
+                if row["Uncertainty"]:
+                    message(f"{row["Uncertainty"]}")
                 skipped.append(obj)
                 continue
         # /if
@@ -251,13 +255,13 @@ def obs_planner_1(edata_list: EphemDataList, local: LocalCircumstances) -> None:
         edata.ra, edata.dec = ra, dec
         objects.append(obj)
 
-        message(f"{'':53s}{fmt_time(before)} / {fmt_time(after)}              {moon_dist:3.0f}")
-        message(f"{'':53s}{fmt_time(exp_start)} / {fmt_time(exp_end)}              {moon_alt:3.0f}")
-        message(f"{'':53s}{edata.exposure}")
-        message(f"{'':53s}RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
+        message(f"{'':56s}{fmt_time(before)} / {fmt_time(after)}              {moon_dist:3.0f}")
+        message(f"{'':56s}{fmt_time(exp_start)} / {fmt_time(exp_end)}              {moon_alt:3.0f}")
+        message(f"{'':56s}{edata.exposure}")
+        message(f"{'':56s}RA {ra:.4f}, DEC {dec:.4f}, Alt {alt:.0f}, Az {az:.0f}")
 
     # end for
-    message("-------------------------------------------------------------------------------------------------------------------")
+    message("----------------------------------------------------------------------------------------------------------------------")
     message(f"{len(objects)} object(s) planned: {", ".join(objects)}")
     message(f"{len(skipped)} object(s) skipped: {", ".join(skipped)}")
 
@@ -349,11 +353,11 @@ def main():
 
     # Objects from NEOCP
     if args.neocp:
-        edata_list.extend( neocp_get_edata_list(local) )
+        edata_list.extend( EphemDataList.from_neocp(local) )
 
     # Objects from SBWOBS
     if args.sbwobs:
-        edata_list.extend( sbwobs_get_edata_list(local) )
+        edata_list.extend( EphemDataList.from_sbwobs(local) )
 
     # Objects from file / command line
     type = "-"
@@ -365,7 +369,7 @@ def main():
     if args.object:
         objects.extend(args.object)
     if objects:
-        edata_list = edata_list.append_objects(objects)
+        edata_list = edata_list.extend_objects(objects)
 
     if not edata_list:
         error("no objects from file or command line")
@@ -390,7 +394,7 @@ def main():
     edata_list.add_exposure()
     ic(edata_list)
 
-    # Process only objects with ephemeris and exposure data
+    # Rebuild list: process only objects with ephemeris and exposure data
     edata_list = EphemDataList([ edata for edata in edata_list if edata.ephem and edata.exposure ])
 
     # Process objects
@@ -439,7 +443,7 @@ def main():
         if args.plot:
             plot_file = neo.files.path("neo-obs-plot.png")
             verbose(f"altitude and sky plot for objects: {plot_file}")
-            edata_list_plot(edata_list, plot_file, local)
+            edata_list.plot(plot_file, local)
 
 
 

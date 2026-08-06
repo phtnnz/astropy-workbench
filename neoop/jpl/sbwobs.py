@@ -34,8 +34,13 @@
 #       Moved MPC functions to new module mpc.lastobs
 # Version 1.2 / 2026-06-26
 #       Get last obs for comets, using mpc.observations, filter accordingly
+# Version 1.3 / 2026-07-11
+#       Provides from_sbwobs class method for EphemDataList
 
-VERSION     = "1.2 / 2026-06-26"
+# Usage
+#       import jpl.sbwobs
+
+VERSION     = "1.3 / 2026-07-11"
 AUTHOR      = "Martin Junius"
 NAME        = "jpl.sbwobs"
 DESCRIPTION = "Retrieve observable NEOs/comets from JPL"
@@ -64,9 +69,12 @@ from mpc.lastobs import mpc_query_customize, mpc_parse_customize, mpc_query_last
 
 
 def jpl_query_verbose_error(text: str) -> None:
-    obj = json.loads(text)
-    verbose(f"ERROR: {obj['code']} {obj['message']}")
-    verbose(f"ERROR: info {obj['moreInfo']}")
+    try:
+        obj = json.loads(text)
+        verbose(f"ERROR: {obj['code']} {obj['message']}")
+        verbose(f"ERROR: info {obj['moreInfo']}")
+    except json.decoder.JSONDecodeError:
+        verbose(f"ERROR: parsing JSON failed")
 
 
 
@@ -233,28 +241,8 @@ def object_filter(key: str, edata: EphemData) -> bool:
 
 
 
-def edata_comet_add_prefix(edata: EphemData) -> EphemData:
-    if not edata.wobs or edata.type != "comet":
-        return None
-    if edata.wobs.full_name[1] == "/":
-        # Comet full name contains X/ prefix
-        edata.obj = edata.wobs.designation = f"{edata.wobs.full_name[0]}/{edata.obj}"
-    return edata
-
-
-
-def edata_add_last_obs(edata: EphemData, local: LocalCircumstances) -> EphemData:
-    if not edata.wobs:
-        return None
-    obs = Obs.from_object(edata.obj)
-    edata.wobs.last_obs = obs.get_last_obs()
-    verbose(f"{edata.obj}: last obs {edata.wobs.last_obs.iso}")
-    ic(edata.obj, edata.wobs.last_obs.iso)
-    return edata
-
-
-
-def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
+@classmethod
+def edata_list_from_sbwobs(cls, local: LocalCircumstances, list_type: str="DLU") -> EphemDataList:
     # get sbwobs objects from JPL
     query = jpl_query_sbwobs(config.sbwobs_url, local)
     obj_edata1: EphemDataDict = jpl_parse_sbwobs(query)
@@ -263,10 +251,12 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
 
     if config.sb_kind == "c":
         # Comets
+        key: str
+        edata: EphemData
         for key, edata in obj_edata1.items():
             edata = obj_edata1.get(key)
-            edata_comet_add_prefix(edata)
-            edata_add_last_obs(edata, local)
+            edata.add_comet_prefix()
+            edata.add_last_obs()
             ##FIXME: config
             sleep(0.25) # avoid rapid fire to MPC servers
 
@@ -322,8 +312,5 @@ def sbwobs_get_edata_list(local: LocalCircumstances, list_type: str="DLU") -> Ep
 
     return EphemDataList.from_dict(obj_edata)
 
-
-
-def sbwobs_get_objects(local: LocalCircumstances, list_type: str="DLU") -> list[str]:
-    # wrapper for sbwobs_get_obj_edata()
-    return sbwobs_get_edata_list(local, list_type).objects()
+# Monkey patching EphemDataList
+EphemDataList.from_sbwobs = edata_list_from_sbwobs
