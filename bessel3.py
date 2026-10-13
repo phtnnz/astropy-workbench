@@ -69,7 +69,8 @@ import numpy as np
 from numpy.polynomial    import Polynomial
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+## DOES NOT WORK WITH PYTHON >= 3.14
+# from mpl_toolkits.basemap import Basemap
 
 # SciPy
 from scipy import optimize
@@ -618,23 +619,23 @@ def plot_path(times: list[Time], lons: list[Quantity], lats: list[Quantity]) -> 
     c_lon = lons[len(lons) // 2]
     c_lat = lats[len(lats) // 2]
 
-    # lon_0, lat_0 are the center point of the projection.
-    map = Basemap(projection='ortho', lon_0=c_lon, lat_0=c_lat, ax=ax)
-    # map.drawcoastlines()
-    map.fillcontinents(color="wheat", lake_color="lightblue")
+    # # lon_0, lat_0 are the center point of the projection.
+    # map = Basemap(projection='ortho', lon_0=c_lon, lat_0=c_lat, ax=ax)
+    # # map.drawcoastlines()
+    # map.fillcontinents(color="wheat", lake_color="lightblue")
 
-    # Draw parallels and meridians.
-    map.drawparallels(np.linspace(-60, 60, 5))
-    map.drawmeridians(np.linspace(-180, 150, 12))
-    map.drawmapboundary(fill_color="lightblue")
-    map.drawcountries()
+    # # Draw parallels and meridians.
+    # map.drawparallels(np.linspace(-60, 60, 5))
+    # map.drawmeridians(np.linspace(-180, 150, 12))
+    # map.drawmapboundary(fill_color="lightblue")
+    # map.drawcountries()
 
-    ax.set_title(eclipse_name, fontsize=20)
-    # plt.title(eclipse_name)
+    # ax.set_title(eclipse_name, fontsize=20)
+    # # plt.title(eclipse_name)
 
-    # Plot eclipse path
-    x, y = map(lons, lats)
-    map.plot(x, y, color="red", linewidth=5)
+    # # Plot eclipse path
+    # x, y = map(lons, lats)
+    # map.plot(x, y, color="red", linewidth=5)
 
     # Add time annotations
     format = "%H:%M UT1"
