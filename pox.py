@@ -76,6 +76,10 @@ class POXList:
         self.ra_solved = list()
         self.dec_telescope = list()
         self.dec_solved = list()
+        self.coord_telescope = None
+        self.coord_solved = None
+        self.altaz_telescope = None
+        self.altaz_solved = None
 
 
     @classmethod
@@ -136,8 +140,17 @@ class POXList:
 
 
     def to_skycoord(self) -> tuple[SkyCoord, SkyCoord]:
-        return ( SkyCoord(self.ra_telescope, self.dec_telescope, unit=(u.hour, u.deg)) ,
-                 SkyCoord(self.ra_solved, self.dec_solved, unit=(u.hour, u.deg))        )
+        self.coord_telescope = SkyCoord(self.ra_telescope, self.dec_telescope, unit=(u.hour, u.deg))
+        self.coord_solved = SkyCoord(self.ra_solved, self.dec_solved, unit=(u.hour, u.deg))
+        return self.coord_telescope, self.coord_solved
+
+
+    def to_altaz(self, loc: EarthLocation) -> tuple[AltAz, AltAz]:
+        if not self.coord_telescope or not self.coord_solved:
+            self.to_skycoord()
+        self.altaz_telescope = self.coord_telescope.transform_to( AltAz(obstime=self.obstime, location=loc) )
+        self.altaz_solved = self.coord_solved.transform_to( AltAz(obstime=self.obstime, location=loc) )
+        return self.altaz_telescope, self.altaz_solved
 
 
 
@@ -171,6 +184,13 @@ def main():
 
         coord, coord_solved = pox.to_skycoord()
         ic(coord, coord_solved)
+        altaz, altaz_solved = pox.to_altaz(loc)
+        ic(altaz, altaz_solved)
+
+        sep = altaz.separation(altaz_solved)
+        ic(sep.to(u.arcmin))
+        pa = altaz.position_angle(altaz_solved)
+        ic(pa.to(u.degree))
 
 
 
