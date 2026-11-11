@@ -35,12 +35,10 @@ ic.disable()
 
 # AstroPy
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-from astropy.coordinates import Angle
-from astropy.coordinates import errors
-from astropy.time        import Time, TimeDelta
+from astropy.time        import Time
 import astropy.units as u
-import astropy.constants as const
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Local modules
 from verbose import verbose, warning, error, message
@@ -179,7 +177,7 @@ def main():
     verbose(f"location {location_to_string(loc)}")
 
     # POX files
-    for filename in args.file:
+    for idx, filename in enumerate(args.file):
         pox = POXList.from_pox_file(filename)
 
         coord, coord_solved = pox.to_skycoord()
@@ -191,6 +189,40 @@ def main():
         ic(sep.to(u.arcmin))
         pa = altaz.position_angle(altaz_solved)
         ic(pa.to(u.degree))
+
+        # ##Test
+        # altaz = AltAz(az=[0, 90, 180, 270]*u.degree, alt=[30, 40, 50, 60]*u.degree)
+        # altaz_solved = AltAz(az=[0+15, 90+15, 180, 270]*u.degree, alt=[30-10, 40, 50+5, 60+5]*u.degree)
+        # ic(altaz, altaz_solved)
+        # sep = altaz.separation(altaz_solved)
+        # ic(sep.to(u.arcmin))
+        # pa = altaz.position_angle(altaz_solved)
+        # ic(pa.to(u.degree))
+        # ##/Test
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, polar=True)
+        ax.set_ylim(90, 0)
+        ax.set_theta_zero_location("N")
+        
+        r1, theta1  = altaz.alt.degree, altaz.az.radian
+        ic(r1, theta1)
+        ax.plot(theta1, r1, "o", zorder=0)
+
+        r2, theta2  = altaz_solved.alt.degree, altaz_solved.az.radian
+        ic(r2, theta2)
+        ax.plot(theta2, r2, "o", zorder=1)
+
+        dtheta = pa.radian
+        dr = sep.arcmin
+        ic(dtheta, dr)
+        # dr, dtheta -> x, y for Az 0 = N !
+        ax.quiver(theta2, r2, -dr*np.sin(theta2 - dtheta), +dr*np.cos(theta2 - dtheta), zorder=2)
+
+        plotfile = f"tmp/plot_{idx+1:02d}.png"
+        verbose(f"plot saved to {plotfile}")
+        plt.savefig(plotfile, bbox_inches="tight")
+        plt.close()
 
 
 
