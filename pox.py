@@ -217,6 +217,8 @@ def main():
         dr = sep.arcmin
         ic(dtheta, dr)
         # dr, dtheta -> x, y for Az 0 = N !
+        # arrows point from the solved coordinates in the direction of the needed correction,
+        # length is the correction in arcmin, not displayed to scale
         ax.quiver(theta2, r2, -dr*np.sin(theta2 - dtheta), +dr*np.cos(theta2 - dtheta), zorder=2)
 
         plotfile = f"tmp/plot_{idx+1:02d}.png"
